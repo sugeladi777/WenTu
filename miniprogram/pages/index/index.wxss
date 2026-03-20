@@ -1,0 +1,110 @@
+/* pages/index/index.wxss */
+.container {
+  padding: 20rpx;
+  background: #f6f6f6;
+  min-height: 100vh;
+}
+
+.shift-info {
+  text-align: center;
+  padding: 40rpx 30rpx;
+}
+
+.shift-name {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10rpx;
+}
+
+.shift-time {
+  font-size: 28rpx;
+  color: #666;
+}
+
+.check-buttons {
+  display: flex;
+  justify-content: space-around;
+  padding: 40rpx 20rpx;
+}
+
+.btn-checkin, .btn-checkout {
+  width: 280rpx;
+  height: 280rpx;
+  border-radius: 50%;
+  font-size: 36rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+}
+
+.btn-checkin {
+  background: #3cc51f;
+  color: #fff;
+}
+
+.btn-checkout {
+  background: #ff6434;
+  color: #fff;
+}
+
+.btn-checkin.disabled, .btn-checkout.disabled {
+  background: #ccc;
+  color: #fff;
+}
+
+.overtime-section {
+  padding: 30rpx;
+}
+
+.section-title {
+  font-size: 28rpx;
+  color: #666;
+  margin-bottom: 20rpx;
+}
+
+.overtime-buttons {
+  display: flex;
+  justify-content: space-around;
+}
+
+.overtime-buttons button {
+  flex: 1;
+  margin: 0 10rpx;
+  background: #fff;
+  border: 1rpx solid #ddd;
+  font-size: 26rpx;
+}
+
+.today-record {
+  padding: 30rpx;
+}
+
+.record-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.record-item:last-child {
+  border-bottom: none;
+}
+
+.status-tag {
+  font-size: 22rpx;
+  padding: 5rpx 15rpx;
+  border-radius: 20rpx;
+}
+
+.status-tag.approved {
+  background: #e6f7e6;
+  color: #3cc51f;
+}
+
+.status-tag.pending {
+  background: #fff3e6;
+  color: #ff9800;
+}

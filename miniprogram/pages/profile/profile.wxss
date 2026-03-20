@@ -1,0 +1,92 @@
+/* pages/profile/profile.wxss */
+.container {
+  padding: 20rpx;
+  background: #f6f6f6;
+  min-height: 100vh;
+}
+
+.user-card {
+  display: flex;
+  align-items: center;
+  padding: 40rpx 30rpx;
+}
+
+.avatar {
+  width: 120rpx;
+  height: 120rpx;
+  background: #3cc51f;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 30rpx;
+}
+
+.avatar-text {
+  font-size: 48rpx;
+  color: #fff;
+  font-weight: bold;
+}
+
+.user-info {
+  flex: 1;
+}
+
+.user-name {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10rpx;
+}
+
+.user-role {
+  font-size: 26rpx;
+  color: #666;
+  margin-bottom: 5rpx;
+}
+
+.user-id {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.menu-list {
+  padding: 0;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  padding: 30rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.menu-item:last-child {
+  border-bottom: none;
+}
+
+.menu-icon {
+  font-size: 36rpx;
+  margin-right: 20rpx;
+}
+
+.menu-text {
+  flex: 1;
+  font-size: 28rpx;
+  color: #333;
+}
+
+.menu-arrow {
+  font-size: 32rpx;
+  color: #ccc;
+}
+
+.logout-btn {
+  margin-top: 40rpx;
+  text-align: center;
+  padding: 25rpx 0;
+  background: #fff;
+  color: #ff6434;
+  font-size: 28rpx;
+  border-radius: 12rpx;
+}

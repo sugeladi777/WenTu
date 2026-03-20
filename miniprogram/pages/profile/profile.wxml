@@ -1,0 +1,43 @@
+<!--pages/profile/profile.wxml-->
+<view class="container">
+  <!-- 用户信息卡片 -->
+  <view class="card user-card">
+    <view class="avatar">
+      <text class="avatar-text">{{userInfo.avatarText || '未'}}</text>
+    </view>
+    <view class="user-info">
+      <view class="user-name">{{userInfo.name || '未登录'}}</view>
+      <view class="user-role">角色：{{userInfo.roleName || '普通工作者'}}</view>
+      <view class="user-id">学号：{{userInfo.studentId || '--'}}</view>
+    </view>
+  </view>
+
+  <!-- 功能列表 -->
+  <view class="card menu-list">
+    <view class="menu-item" bindtap="onRewardRecordTap">
+      <text class="menu-icon">🎖️</text>
+      <text class="menu-text">奖惩记录</text>
+      <text class="menu-arrow">›</text>
+    </view>
+    <view class="menu-item" bindtap="onCheckRecordTap">
+      <text class="menu-icon">📋</text>
+      <text class="menu-text">签到记录</text>
+      <text class="menu-arrow">›</text>
+    </view>
+    <view class="menu-item" bindtap="onSettingsTap">
+      <text class="menu-icon">⚙️</text>
+      <text class="menu-text">设置</text>
+      <text class="menu-arrow">›</text>
+    </view>
+    <view class="menu-item" bindtap="onHelpTap">
+      <text class="menu-icon">📖</text>
+      <text class="menu-text">帮助说明</text>
+      <text class="menu-arrow">›</text>
+    </view>
+  </view>
+
+  <!-- 退出登录 -->
+  <view class="logout-btn" bindtap="onLogout">
+    退出登录
+  </view>
+</view>

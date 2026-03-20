@@ -1,0 +1,51 @@
+<!--pages/workHours/workHours.wxml-->
+<view class="container">
+  <!-- 工时汇总 -->
+  <view class="card summary-card">
+    <view class="summary-title">{{currentMonth}}</view>
+    <view class="summary-hours">
+      <text class="hours-number">{{totalHours}}</text>
+      <text class="hours-unit">小时</text>
+    </view>
+  </view>
+
+  <!-- 视图切换 -->
+  <view class="view-tabs">
+    <view 
+      class="tab-item {{viewMode === 'day' ? 'active' : ''}}" 
+      data-mode="day"
+      bindtap="onViewModeChange">日</view>
+    <view 
+      class="tab-item {{viewMode === 'week' ? 'active' : ''}}" 
+      data-mode="week"
+      bindtap="onViewModeChange">周</view>
+    <view 
+      class="tab-item {{viewMode === 'month' ? 'active' : ''}}" 
+      data-mode="month"
+      bindtap="onViewModeChange">月</view>
+  </view>
+
+  <!-- 工时列表 -->
+  <view class="card list-card">
+    <view class="list-header">
+      <text class="col-date">日期</text>
+      <text class="col-shift">班次</text>
+      <text class="col-hours">工时</text>
+    </view>
+    
+    <view 
+      class="list-item" 
+      wx:for="{{workHoursList}}" 
+      wx:key="date"
+      data-date="{{item.date}}"
+      bindtap="onItemTap">
+      <text class="col-date">{{item.date}}</text>
+      <text class="col-shift">{{item.shiftName}}</text>
+      <text class="col-hours text-primary">{{item.hours}}h</text>
+    </view>
+
+    <view class="empty-tip" wx:if="{{workHoursList.length === 0}}">
+      <text>暂无工时记录</text>
+    </view>
+  </view>
+</view>

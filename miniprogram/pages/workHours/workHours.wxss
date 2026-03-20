@@ -1,0 +1,103 @@
+/* pages/workHours/workHours.wxss */
+.container {
+  padding: 20rpx;
+  background: #f6f6f6;
+  min-height: 100vh;
+}
+
+.summary-card {
+  text-align: center;
+  padding: 50rpx 30rpx;
+  background: linear-gradient(135deg, #3cc51f 0%, #2baa15 100%);
+  color: #fff;
+}
+
+.summary-title {
+  font-size: 28rpx;
+  opacity: 0.9;
+  margin-bottom: 15rpx;
+}
+
+.summary-hours {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+}
+
+.hours-number {
+  font-size: 80rpx;
+  font-weight: bold;
+}
+
+.hours-unit {
+  font-size: 32rpx;
+  margin-left: 10rpx;
+}
+
+.view-tabs {
+  display: flex;
+  background: #fff;
+  border-radius: 12rpx;
+  padding: 8rpx;
+  margin: 20rpx 0;
+}
+
+.tab-item {
+  flex: 1;
+  text-align: center;
+  padding: 15rpx 0;
+  font-size: 28rpx;
+  color: #666;
+  border-radius: 8rpx;
+}
+
+.tab-item.active {
+  background: #3cc51f;
+  color: #fff;
+}
+
+.list-card {
+  padding: 0;
+}
+
+.list-header {
+  display: flex;
+  padding: 25rpx 30rpx;
+  background: #f9f9f9;
+  font-size: 26rpx;
+  color: #999;
+  border-bottom: 1rpx solid #eee;
+}
+
+.list-item {
+  display: flex;
+  padding: 25rpx 30rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.list-item:last-child {
+  border-bottom: none;
+}
+
+.col-date {
+  width: 200rpx;
+  color: #333;
+}
+
+.col-shift {
+  flex: 1;
+  color: #666;
+}
+
+.col-hours {
+  width: 100rpx;
+  text-align: right;
+  font-weight: bold;
+}
+
+.empty-tip {
+  text-align: center;
+  padding: 80rpx 0;
+  color: #999;
+  font-size: 28rpx;
+}

@@ -1,0 +1,36 @@
+<!--pages/myShift/myShift.wxml-->
+<view class="container">
+  <!-- 功能入口 -->
+  <view class="card action-cards">
+    <view class="action-item" bindtap="onLeaveTap">
+      <view class="action-icon">📝</view>
+      <view class="action-text">请假申请</view>
+    </view>
+    <view class="action-item" bindtap="onShiftChangeTap">
+      <view class="action-icon">🔄</view>
+      <view class="action-text">替班申请</view>
+    </view>
+  </view>
+
+  <!-- 我的班次列表 -->
+  <view class="section-title">我的班次</view>
+  <view class="card shift-list">
+    <view 
+      class="shift-item"
+      wx:for="{{shiftList}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      bindtap="onShiftTap">
+      <view class="shift-date">{{item.date}}</view>
+      <view class="shift-info">
+        <text class="shift-name">{{item.shiftName}}</text>
+        <text class="shift-time">{{item.startTime}} - {{item.endTime}}</text>
+      </view>
+      <view class="shift-status {{item.statusClass}}">{{item.statusText}}</view>
+    </view>
+
+    <view class="empty-tip" wx:if="{{shiftList.length === 0}}">
+      <text>暂无班次安排</text>
+    </view>
+  </view>
+</view>

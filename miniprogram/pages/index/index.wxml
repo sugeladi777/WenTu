@@ -2,34 +2,38 @@
 <view class="container">
   <!-- 今日班次信息 -->
   <view class="card shift-info">
-    <view class="shift-name">今日班次：{{todayShift.name || '暂无班次'}}</view>
-    <view class="shift-time">{{todayShift.startTime || '--:--'}} - {{todayShift.endTime || '--:--'}}</view>
+    <view class="shift-name">{{todayShift ? '今日班次：' + todayShift.name : '今日暂无班次'}}</view>
+    <view class="shift-time" wx:if="{{todayShift}}">{{todayShift.startTime || '--:--'}} - {{todayShift.endTime || '--:--'}}</view>
   </view>
 
-  <!-- 签到签退区域 -->
-  <view class="card check-buttons">
-    <button 
-      class="btn-checkin {{hasCheckedIn ? 'disabled' : ''}}" 
-      bindtap="onCheckIn"
-      disabled="{{hasCheckedIn}}">
-      {{hasCheckedIn ? '已签到' : '签到'}}
-    </button>
+  <!-- 签到签退按钮 - 单一圆形按钮 -->
+  <view class="check-section">
+    <view class="check-time" wx:if="{{todayRecord}}">
+      <text class="time-label">签到</text>
+      <text class="time-value">{{formatTime(todayRecord.checkInTime)}}</text>
+    </view>
     
     <button 
-      class="btn-checkout {{hasCheckedOut || !hasCheckedIn ? 'disabled' : ''}}" 
-      bindtap="onCheckOut"
-      disabled="{{hasCheckedOut || !hasCheckedIn}}">
-      {{hasCheckedOut ? '已签退' : '签退'}}
+      class="btn-check {{hasCheckedOut ? 'checked-out' : (hasCheckedIn ? 'check-out' : 'check-in')}}" 
+      bindtap="onCheck"
+      disabled="{{hasCheckedOut}}">
+      <text class="btn-icon">{{hasCheckedOut ? '✓' : (hasCheckedIn ? '↓' : '↑')}}</text>
+      <text class="btn-text">{{hasCheckedOut ? '已完成' : (hasCheckedIn ? '签退' : '签到')}}</text>
     </button>
+    
+    <view class="check-time" wx:if="{{todayRecord && hasCheckedOut}}">
+      <text class="time-label">签退</text>
+      <text class="time-value">{{formatTime(todayRecord.checkOutTime)}}</text>
+    </view>
   </view>
 
   <!-- 加班选择 -->
   <view class="card overtime-section" wx:if="{{hasCheckedIn && !hasCheckedOut}}">
     <view class="section-title">加班时长（可选）</view>
     <view class="overtime-buttons">
-      <button data-hours="0" bindtap="onCheckOut">无</button>
-      <button data-hours="1" bindtap="onCheckOut">1小时</button>
-      <button data-hours="2" bindtap="onCheckOut">2小时</button>
+      <button class="overtime-btn {{selectedOvertime === 0 ? 'active' : ''}}" data-hours="0" bindtap="onSelectOvertime">无</button>
+      <button class="overtime-btn {{selectedOvertime === 1 ? 'active' : ''}}" data-hours="1" bindtap="onSelectOvertime">+1小时</button>
+      <button class="overtime-btn {{selectedOvertime === 2 ? 'active' : ''}}" data-hours="2" bindtap="onSelectOvertime">+2小时</button>
     </view>
   </view>
 
@@ -37,16 +41,30 @@
   <view class="card today-record" wx:if="{{todayRecord}}">
     <view class="section-title">今日签到记录</view>
     <view class="record-item">
-      <text>签到时间：{{todayRecord.checkInTime || '--'}}</text>
+      <text class="record-label">签到时间</text>
+      <text class="record-value">{{formatTime(todayRecord.checkInTime)}}</text>
     </view>
     <view class="record-item">
-      <text>签退时间：{{todayRecord.checkOutTime || '--'}}</text>
+      <text class="record-label">签退时间</text>
+      <text class="record-value">{{formatTime(todayRecord.checkOutTime) || '--'}}</text>
     </view>
     <view class="record-item" wx:if="{{todayRecord.overtimeHours > 0}}">
-      <text>加班时长：{{todayRecord.overtimeHours}}小时</text>
-      <text class="status-tag {{todayRecord.overtimeApproved ? 'approved' : 'pending'}}">
-        {{todayRecord.overtimeApproved ? '已审批' : '待审批'}}
-      </text>
+      <text class="record-label">加班时长</text>
+      <view class="record-right">
+        <text class="record-value">{{todayRecord.overtimeHours}}小时</text>
+        <text class="status-tag {{todayRecord.overtimeApproved ? 'approved' : 'pending'}}">
+          {{todayRecord.overtimeApproved ? '已审批' : '待审批'}}
+        </text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 待办提醒 -->
+  <view class="card todo-section" wx:if="{{pendingApprovals.length > 0}}">
+    <view class="section-title">待办提醒</view>
+    <view class="todo-item" wx:for="{{pendingApprovals}}" wx:key="index">
+      <text class="todo-icon {{item.type === 'overtime' ? 'overtime' : 'leave'}}">●</text>
+      <text class="todo-message">{{item.message}}</text>
     </view>
   </view>
 </view>

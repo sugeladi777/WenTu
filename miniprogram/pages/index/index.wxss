@@ -1,91 +1,163 @@
-/* pages/index/index.wxss */
+/* pages/index/index.wxss - 图书馆柔和风格 */
 .container {
   padding: 20rpx;
-  background: #f6f6f6;
+  background: linear-gradient(180deg, #f5f9fc 0%, #ffffff 100%);
   min-height: 100vh;
 }
 
 .shift-info {
   text-align: center;
   padding: 40rpx 30rpx;
+  background: #ffffff;
+  border: 1rpx solid var(--border-color);
+  border-radius: 24rpx;
+  margin-bottom: 30rpx;
+  box-shadow: 0 8rpx 30rpx rgba(107, 155, 195, 0.08);
 }
 
 .shift-name {
   font-size: 36rpx;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 10rpx;
 }
 
 .shift-time {
   font-size: 28rpx;
-  color: #666;
+  color: var(--text-secondary);
 }
 
-.check-buttons {
+/* 签到签退区域 */
+.check-section {
   display: flex;
-  justify-content: space-around;
-  padding: 40rpx 20rpx;
-}
-
-.btn-checkin, .btn-checkout {
-  width: 280rpx;
-  height: 280rpx;
-  border-radius: 50%;
-  font-size: 36rpx;
-  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  border: none;
+  padding: 50rpx 0;
+  margin-bottom: 30rpx;
 }
 
-.btn-checkin {
-  background: #3cc51f;
+.check-time {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 20rpx 0;
+}
+
+.time-label {
+  font-size: 24rpx;
+  color: var(--text-secondary);
+  margin-bottom: 8rpx;
+}
+
+.time-value {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: var(--primary);
+}
+
+/* 圆形签到签退按钮 */
+.btn-check {
+  width: 550rpx !important;
+  height: 550rpx !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-shadow: 0 15rpx 50rpx rgba(0, 0, 0, 0.15);
+}
+
+.btn-check.check-in {
+  background: linear-gradient(135deg, #5cb85c, #7dc97d) !important;
+}
+
+.btn-check.check-out {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light)) !important;
+}
+
+.btn-check.checked-out {
+  background: #e0e0e0 !important;
+  box-shadow: none !important;
+}
+
+.btn-icon {
+  font-size: 100rpx;
   color: #fff;
+  margin-bottom: 10rpx;
 }
 
-.btn-checkout {
-  background: #ff6434;
+.btn-text {
+  font-size: 40rpx;
+  font-weight: bold;
   color: #fff;
+  letter-spacing: 8rpx;
 }
 
-.btn-checkin.disabled, .btn-checkout.disabled {
-  background: #ccc;
-  color: #fff;
+.btn-check.checked-out .btn-icon,
+.btn-check.checked-out .btn-text {
+  color: #999;
 }
 
+/* 加班选择 */
 .overtime-section {
   padding: 30rpx;
+  background: #ffffff;
+  border: 1rpx solid var(--border-color);
+  border-radius: 20rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 4rpx 15rpx rgba(107, 155, 195, 0.06);
 }
 
 .section-title {
-  font-size: 28rpx;
-  color: #666;
-  margin-bottom: 20rpx;
+  font-size: 26rpx;
+  color: var(--primary);
+  margin-bottom: 25rpx;
+  text-transform: uppercase;
+  letter-spacing: 2rpx;
+  font-weight: 500;
 }
 
 .overtime-buttons {
   display: flex;
   justify-content: space-around;
+  gap: 20rpx;
 }
 
-.overtime-buttons button {
+.overtime-btn {
   flex: 1;
-  margin: 0 10rpx;
-  background: #fff;
-  border: 1rpx solid #ddd;
-  font-size: 26rpx;
+  padding: 20rpx;
+  background: #f8f9fa;
+  border: 1rpx solid var(--border-color);
+  border-radius: 15rpx;
+  color: var(--text-primary);
+  font-size: 28rpx;
+  font-weight: 500;
 }
 
+.overtime-btn.active {
+  background: rgba(107, 155, 195, 0.1);
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+/* 今日签到记录 */
 .today-record {
   padding: 30rpx;
+  background: #ffffff;
+  border: 1rpx solid var(--border-color);
+  border-radius: 20rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 4rpx 15rpx rgba(107, 155, 195, 0.06);
 }
 
 .record-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15rpx 0;
+  padding: 20rpx 0;
   border-bottom: 1rpx solid #f0f0f0;
 }
 
@@ -93,18 +165,75 @@
   border-bottom: none;
 }
 
+.record-label {
+  font-size: 28rpx;
+  color: var(--text-secondary);
+}
+
+.record-value {
+  font-size: 28rpx;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.record-right {
+  display: flex;
+  align-items: center;
+  gap: 15rpx;
+}
+
 .status-tag {
   font-size: 22rpx;
-  padding: 5rpx 15rpx;
+  padding: 8rpx 16rpx;
   border-radius: 20rpx;
 }
 
 .status-tag.approved {
-  background: #e6f7e6;
-  color: #3cc51f;
+  background: rgba(107, 155, 195, 0.1);
+  color: var(--primary);
+  border: 1rpx solid var(--primary);
 }
 
 .status-tag.pending {
-  background: #fff3e6;
-  color: #ff9800;
+  background: rgba(212, 165, 116, 0.15);
+  color: #c4956a;
+  border: 1rpx solid #d4a574;
+}
+
+/* 待办提醒 */
+.todo-section {
+  padding: 30rpx;
+  background: #ffffff;
+  border: 1rpx solid var(--border-color);
+  border-radius: 20rpx;
+  box-shadow: 0 4rpx 15rpx rgba(107, 155, 195, 0.06);
+}
+
+.todo-item {
+  display: flex;
+  align-items: center;
+  padding: 18rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.todo-item:last-child {
+  border-bottom: none;
+}
+
+.todo-icon {
+  margin-right: 15rpx;
+  font-size: 20rpx;
+}
+
+.todo-icon.overtime {
+  color: #d4a574;
+}
+
+.todo-icon.leave {
+  color: var(--secondary);
+}
+
+.todo-message {
+  font-size: 26rpx;
+  color: var(--text-secondary);
 }

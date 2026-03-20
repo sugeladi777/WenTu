@@ -1,20 +1,35 @@
-/* pages/myShift/myShift.wxss */
+/* pages/myShift/myShift.wxss - 图书馆柔和风格 */
 .container {
   padding: 20rpx;
-  background: #f6f6f6;
+  background: linear-gradient(180deg, #f5f9fc 0%, #ffffff 100%);
   min-height: 100vh;
 }
 
 .action-cards {
   display: flex;
   justify-content: space-around;
-  padding: 40rpx 20rpx;
+  padding: 50rpx 30rpx;
+  background: #ffffff;
+  border: 1rpx solid var(--border-color);
+  border-radius: 24rpx;
+  margin-bottom: 30rpx;
+  box-shadow: 0 8rpx 30rpx rgba(107, 155, 195, 0.08);
 }
 
 .action-item {
   display: flex;
   flex-direction: column;
   align-items: center;
+  padding: 30rpx 40rpx;
+  background: #f8f9fa;
+  border: 1rpx solid var(--border-color);
+  border-radius: 20rpx;
+  transition: all 0.3s;
+}
+
+.action-item:active {
+  background: rgba(107, 155, 195, 0.1);
+  border-color: var(--primary);
 }
 
 .action-icon {
@@ -24,24 +39,32 @@
 
 .action-text {
   font-size: 28rpx;
-  color: #333;
+  color: var(--text-primary);
+  font-weight: 500;
 }
 
 .section-title {
-  font-size: 28rpx;
-  color: #666;
+  font-size: 26rpx;
+  color: var(--text-primary);
   padding: 20rpx 10rpx 15rpx;
   font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 2rpx;
 }
 
 .shift-list {
   padding: 0;
+  background: #ffffff;
+  border: 1rpx solid var(--border-color);
+  border-radius: 20rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 15rpx rgba(107, 155, 195, 0.06);
 }
 
 .shift-item {
   display: flex;
   align-items: center;
-  padding: 25rpx 30rpx;
+  padding: 30rpx;
   border-bottom: 1rpx solid #f0f0f0;
 }
 
@@ -52,8 +75,8 @@
 .shift-date {
   width: 150rpx;
   font-size: 28rpx;
-  color: #333;
-  font-weight: bold;
+  color: var(--primary);
+  font-weight: 500;
 }
 
 .shift-info {
@@ -64,39 +87,42 @@
 
 .shift-name {
   font-size: 28rpx;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 8rpx;
 }
 
 .shift-time {
   font-size: 24rpx;
-  color: #999;
+  color: var(--text-secondary);
 }
 
 .shift-status {
   font-size: 24rpx;
-  padding: 5rpx 15rpx;
+  padding: 8rpx 20rpx;
   border-radius: 20rpx;
 }
 
 .shift-status.checked {
-  background: #e6f7e6;
-  color: #3cc51f;
+  background: rgba(107, 155, 195, 0.1);
+  color: var(--primary);
+  border: 1rpx solid var(--primary);
 }
 
 .shift-status.pending {
-  background: #fff3e6;
-  color: #ff9800;
+  background: rgba(212, 165, 116, 0.15);
+  color: #c4956a;
+  border: 1rpx solid #d4a574;
 }
 
 .shift-status.not-checked {
-  background: #f5f5f5;
-  color: #999;
+  background: #f8f9fa;
+  color: var(--text-secondary);
+  border: 1rpx solid var(--border-color);
 }
 
 .empty-tip {
   text-align: center;
-  padding: 80rpx 0;
-  color: #999;
+  padding: 100rpx 0;
+  color: var(--text-secondary);
   font-size: 28rpx;
 }

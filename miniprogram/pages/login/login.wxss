@@ -1,76 +1,108 @@
-/* pages/login/login.wxss */
+/* pages/login/login.wxss - 图书馆柔和风格 */
 .container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #3cc51f 0%, #2baa15 100%);
+  background: linear-gradient(180deg, #f5f9fc 0%, #ffffff 100%);
   padding: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .logo-section {
-  padding: 100rpx 0 80rpx;
+  padding: 80rpx 0 60rpx;
   text-align: center;
 }
 
 .logo {
-  font-size: 120rpx;
+  font-size: 100rpx;
   margin-bottom: 20rpx;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10rpx);
+  }
 }
 
 .title {
-  font-size: 40rpx;
+  font-size: 44rpx;
   font-weight: bold;
-  color: #fff;
+  color: var(--text-primary);
+  letter-spacing: 2rpx;
 }
 
 .form-section {
-  background: #fff;
-  margin: 0 30rpx;
-  border-radius: 20rpx;
+  background: #ffffff;
+  margin: 0 40rpx;
+  border-radius: 24rpx;
   padding: 50rpx 40rpx;
-  box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.1);
+  border: 1rpx solid var(--border-color);
+  box-shadow: 0 10rpx 40rpx rgba(107, 155, 195, 0.1);
 }
 
 .form-item {
-  margin-bottom: 30rpx;
+  margin-bottom: 35rpx;
 }
 
 .label {
   display: block;
-  font-size: 28rpx;
-  color: #333;
+  font-size: 26rpx;
+  color: var(--primary);
   margin-bottom: 15rpx;
+  text-transform: uppercase;
+  letter-spacing: 2rpx;
+  font-weight: 500;
 }
 
 .input {
-  height: 80rpx;
-  padding: 0 20rpx;
-  border: 1rpx solid #ddd;
-  border-radius: 10rpx;
+  width: 100%;
+  height: 90rpx;
+  padding: 0 25rpx;
+  border: 1rpx solid var(--border-color);
+  border-radius: 15rpx;
   font-size: 28rpx;
+  background: #f8f9fa;
+  color: var(--text-primary);
+  box-sizing: border-box;
+}
+
+.input::placeholder {
+  color: #b0bec5;
 }
 
 .submit-btn {
-  margin-top: 40rpx;
-  height: 90rpx;
-  line-height: 90rpx;
-  background: #3cc51f;
+  margin-top: 50rpx;
+  height: 100rpx;
+  line-height: 100rpx;
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
   color: #fff;
   font-size: 32rpx;
-  border-radius: 45rpx;
+  font-weight: 500;
+  border-radius: 50rpx;
   border: none;
+  box-shadow: 0 8rpx 25rpx rgba(107, 155, 195, 0.25);
+  letter-spacing: 4rpx;
 }
 
 .submit-btn.disabled {
-  background: #ccc;
+  background: #d0d0d0;
+  color: #999;
+  box-shadow: none;
 }
 
 .toggle-mode {
   text-align: center;
-  margin-top: 40rpx;
+  margin-top: 50rpx;
   font-size: 26rpx;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .link {
-  color: #3cc51f;
+  color: var(--primary);
   margin-left: 10rpx;
+  font-weight: 500;
 }

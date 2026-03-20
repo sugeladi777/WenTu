@@ -7,16 +7,21 @@
     "pages/profile/profile"
   ],
   "window": {
-    "backgroundColor": "#F6F6F6",
-    "backgroundTextStyle": "light",
-    "navigationBarBackgroundColor": "#3cc51f",
+    "backgroundColor": "#f5f9fc",
+    "backgroundTextStyle": "dark",
+    "navigationBarBackgroundColor": "#ffffff",
     "navigationBarTitleText": "文小图",
-    "navigationBarTextStyle": "white"
+    "navigationBarTextStyle": "black"
+  },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "用于签到打卡，需要获取您的位置信息"
+    }
   },
   "tabBar": {
-    "color": "#7A7E83",
-    "selectedColor": "#3cc51f",
-    "borderStyle": "black",
+    "color": "#7a8b9a",
+    "selectedColor": "#6b9bc3",
+    "borderStyle": "white",
     "backgroundColor": "#ffffff",
     "list": [
       {

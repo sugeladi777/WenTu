@@ -1,4 +1,6 @@
 // pages/myShift/myShift.js
+const app = getApp();
+
 Page({
   data: {
     // 我的班次列表
@@ -8,10 +10,19 @@ Page({
   },
 
   onLoad() {
+    // 检查登录状态
+    if (!app.checkLogin()) {
+      app.goToLogin();
+      return;
+    }
     this.loadMyShifts();
   },
 
   onShow() {
+    if (!app.checkLogin()) {
+      app.goToLogin();
+      return;
+    }
     this.loadMyShifts();
   },
 

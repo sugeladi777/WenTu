@@ -1,0 +1,75 @@
+<!--pages/login/login.wxml-->
+<view class="container">
+  <!-- Logo区域 -->
+  <view class="logo-section">
+    <view class="logo">📚</view>
+    <view class="title">文小图</view>
+  </view>
+
+  <!-- 表单区域 -->
+  <view class="form-section">
+    <!-- 账号 -->
+    <view class="form-item">
+      <text class="label">学号</text>
+      <input 
+        class="input" 
+        type="number" 
+        placeholder="请输入学号"
+        value="{{studentId}}"
+        bindinput="onStudentIdInput"
+      />
+    </view>
+
+    <!-- 密码 -->
+    <view class="form-item">
+      <text class="label">密码</text>
+      <input 
+        class="input" 
+        password 
+        placeholder="请输入密码"
+        value="{{password}}"
+        bindinput="onPasswordInput"
+      />
+    </view>
+
+    <!-- 注册专属：姓名 -->
+    <view class="form-item" wx:if="{{mode === 'register'}}">
+      <text class="label">姓名</text>
+      <input 
+        class="input" 
+        placeholder="请输入姓名"
+        value="{{name}}"
+        bindinput="onNameInput"
+      />
+    </view>
+
+    <!-- 注册专属：电话 -->
+    <view class="form-item" wx:if="{{mode === 'register'}}">
+      <text class="label">电话</text>
+      <input 
+        class="input" 
+        type="number"
+        placeholder="请输入联系电话（选填）"
+        value="{{phone}}"
+        bindinput="onPhoneInput"
+      />
+    </view>
+
+    <!-- 提交按钮 -->
+    <button 
+      class="submit-btn {{loading ? 'disabled' : ''}}" 
+      bindtap="onSubmit"
+      disabled="{{loading}}">
+      {{mode === 'login' ? '登录' : '注册'}}
+    </button>
+
+    <!-- 切换模式 -->
+    <view class="toggle-mode">
+      <text wx:if="{{mode === 'login'}}">还没有账号？</text>
+      <text wx:if="{{mode === 'register'}}">已有账号？</text>
+      <text class="link" bindtap="onToggleMode">
+        {{mode === 'login' ? '立即注册' : '立即登录'}}
+      </text>
+    </view>
+  </view>
+</view>

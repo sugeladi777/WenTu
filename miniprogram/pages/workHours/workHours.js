@@ -1,4 +1,6 @@
 // pages/workHours/workHours.js
+const app = getApp();
+
 Page({
   data: {
     // 汇总数据
@@ -13,10 +15,19 @@ Page({
   },
 
   onLoad() {
+    // 检查登录状态
+    if (!app.checkLogin()) {
+      app.goToLogin();
+      return;
+    }
     this.loadWorkHours();
   },
 
   onShow() {
+    if (!app.checkLogin()) {
+      app.goToLogin();
+      return;
+    }
     this.loadWorkHours();
   },
 

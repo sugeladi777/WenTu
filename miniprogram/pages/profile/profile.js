@@ -1,14 +1,25 @@
 // pages/profile/profile.js
+const app = getApp();
+
 Page({
   data: {
     userInfo: null,
   },
 
   onLoad() {
+    // 检查登录状态
+    if (!app.checkLogin()) {
+      app.goToLogin();
+      return;
+    }
     this.loadUserInfo();
   },
 
   onShow() {
+    if (!app.checkLogin()) {
+      app.goToLogin();
+      return;
+    }
     this.loadUserInfo();
   },
 
@@ -54,7 +65,9 @@ Page({
       success: (res) => {
         if (res.confirm) {
           wx.clearStorageSync();
-          wx.reLaunch({
+          app.globalData.userInfo = null;
+          app.globalData.isLoggedIn = false;
+          wx.redirectTo({
             url: '/pages/login/login',
           });
         }

@@ -1,4 +1,6 @@
 // pages/index/index.js
+const app = getApp();
+
 Page({
   data: {
     // 今日班次信息
@@ -8,20 +10,33 @@ Page({
     hasCheckedOut: false,
     // 今日签到记录
     todayRecord: null,
+    // 用户信息
+    userInfo: null,
   },
 
   onLoad() {
-    // 加载今日数据
+    // 检查登录状态
+    if (!app.checkLogin()) {
+      app.goToLogin();
+      return;
+    }
+    this.setData({ userInfo: app.globalData.userInfo });
   },
 
   onShow() {
     // 每次显示页面时刷新数据
+    if (!app.checkLogin()) {
+      app.goToLogin();
+      return;
+    }
     this.loadTodayData();
   },
 
   // 加载今日数据
   loadTodayData() {
     // TODO: 从云数据库获取今日班次和签到状态
+    const userInfo = wx.getStorageSync('userInfo');
+    this.setData({ userInfo });
   },
 
   // 签到

@@ -1,0 +1,76 @@
+/* pages/login/login.wxss */
+.container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #3cc51f 0%, #2baa15 100%);
+  padding: 0;
+}
+
+.logo-section {
+  padding: 100rpx 0 80rpx;
+  text-align: center;
+}
+
+.logo {
+  font-size: 120rpx;
+  margin-bottom: 20rpx;
+}
+
+.title {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #fff;
+}
+
+.form-section {
+  background: #fff;
+  margin: 0 30rpx;
+  border-radius: 20rpx;
+  padding: 50rpx 40rpx;
+  box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.1);
+}
+
+.form-item {
+  margin-bottom: 30rpx;
+}
+
+.label {
+  display: block;
+  font-size: 28rpx;
+  color: #333;
+  margin-bottom: 15rpx;
+}
+
+.input {
+  height: 80rpx;
+  padding: 0 20rpx;
+  border: 1rpx solid #ddd;
+  border-radius: 10rpx;
+  font-size: 28rpx;
+}
+
+.submit-btn {
+  margin-top: 40rpx;
+  height: 90rpx;
+  line-height: 90rpx;
+  background: #3cc51f;
+  color: #fff;
+  font-size: 32rpx;
+  border-radius: 45rpx;
+  border: none;
+}
+
+.submit-btn.disabled {
+  background: #ccc;
+}
+
+.toggle-mode {
+  text-align: center;
+  margin-top: 40rpx;
+  font-size: 26rpx;
+  color: #666;
+}
+
+.link {
+  color: #3cc51f;
+  margin-left: 10rpx;
+}

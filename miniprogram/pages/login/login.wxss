@@ -16,7 +16,7 @@
 .logo {
   font-size: 100rpx;
   margin-bottom: 20rpx;
-  animation: float 3s ease-in-out infinite;
+  animation: float 3s ease-in-out infinite, glow 2s ease-in-out infinite alternate;
 }
 
 @keyframes float {
@@ -25,6 +25,15 @@
   }
   50% {
     transform: translateY(-10rpx);
+  }
+}
+
+@keyframes glow {
+  0% {
+    filter: drop-shadow(0 0 20rpx rgba(107, 155, 195, 0.5));
+  }
+  100% {
+    filter: drop-shadow(0 0 40rpx rgba(107, 155, 195, 0.9));
   }
 }
 

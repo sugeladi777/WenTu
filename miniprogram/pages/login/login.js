@@ -15,7 +15,7 @@ Page({
   onLoad() {
     // 检查是否已登录
     const userInfo = wx.getStorageSync('userInfo');
-    if (userInfo) {
+    if (userInfo && userInfo._id) {
       wx.switchTab({ url: '/pages/index/index' });
     }
   },
@@ -90,25 +90,28 @@ Page({
         wx.hideLoading();
         this.setData({ loading: false });
 
-        if (res.result.success) {
+        if (res.result && res.result.success) {
+          const userInfo = res.result.userInfo;
+          if (!userInfo || !userInfo._id) {
+            wx.showToast({ title: '用户信息获取失败', icon: 'none' });
+            return;
+          }
+
+          wx.setStorageSync('userInfo', userInfo);
+
           if (mode === 'login') {
-            // 登录成功，保存用户信息
-            wx.setStorageSync('userInfo', res.result.userInfo);
             wx.showToast({ title: '登录成功', icon: 'success' });
             setTimeout(() => {
               wx.switchTab({ url: '/pages/index/index' });
             }, 1000);
           } else {
-            // 注册成功，切换到登录
-            wx.showToast({ title: '注册成功，请登录', icon: 'success' });
-            this.setData({
-              mode: 'login',
-              name: '',
-              phone: '',
-            });
+            wx.showToast({ title: '注册成功', icon: 'success' });
+            setTimeout(() => {
+              wx.redirectTo({ url: '/pages/selectSchedule/selectSchedule' });
+            }, 1000);
           }
         } else {
-          wx.showToast({ title: res.result.error, icon: 'none' });
+          wx.showToast({ title: res.result.error || '操作失败', icon: 'none' });
         }
       },
       fail: (err) => {

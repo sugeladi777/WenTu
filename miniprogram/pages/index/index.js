@@ -142,63 +142,38 @@ Page({
     this.setData({ selectedOvertime: hours });
   },
 
-  // 签到
+  // 签到（无需位置）
   onCheckIn() {
     if (this.data.hasCheckedIn) return;
     
-    this.setData({ loading: true });
-    wx.showLoading({ title: '获取位置...' });
-
-    // 获取用户位置
-    wx.getLocation({
-      type: 'gcj02',
-      success: (res) => {
-        this.doCheckIn(res.latitude, res.longitude);
-      },
-      fail: () => {
-        wx.hideLoading();
-        this.setData({ loading: false });
-        wx.showModal({
-          title: '提示',
-          content: '签到需要获取位置权限，请在设置中开启',
-          confirmText: '去设置',
-          success: (modalRes) => {
-            if (modalRes.confirm) {
-              wx.openSetting();
-            }
-          }
-        });
-      }
-    });
-  },
-116.32847291187238,40.00429438366638
-  // 执行签到
-  doCheckIn(latitude, longitude) {
     const userInfo = this.data.userInfo;
+    if (!userInfo || !userInfo._id) {
+      wx.showToast({ title: '用户信息异常', icon: 'none' });
+      return;
+    }
     
+    this.setData({ loading: true });
     wx.showLoading({ title: '签到中...' });
-    
+
     wx.cloud.callFunction({
       name: 'checkIn',
       data: {
         userId: userInfo._id,
         scheduleId: null,
         date: this.formatDate(new Date()),
-        latitude: latitude,
-        longitude: longitude,
       },
     }).then(res => {
       wx.hideLoading();
       this.setData({ loading: false });
       
-      if (res.result.success) {
+      if (res.result && res.result.success) {
         wx.showToast({ 
           title: res.result.status || '签到成功', 
           icon: 'success' 
         });
         this.loadTodayData();
       } else {
-        wx.showToast({ title: res.result.error, icon: 'none' });
+        wx.showToast({ title: res.result?.error || '签到失败', icon: 'none' });
       }
     }).catch(err => {
       wx.hideLoading();
@@ -213,12 +188,11 @@ Page({
     if (!this.data.hasCheckedIn || this.data.hasCheckedOut) return;
     
     const overtimeHours = this.data.selectedOvertime;
+    const userInfo = this.data.userInfo;
     
     this.setData({ loading: true });
     wx.showLoading({ title: '签退中...' });
 
-    const userInfo = this.data.userInfo;
-    
     wx.cloud.callFunction({
       name: 'checkOut',
       data: {
@@ -230,12 +204,12 @@ Page({
       wx.hideLoading();
       this.setData({ loading: false });
       
-      if (res.result.success) {
+      if (res.result && res.result.success) {
         const msg = overtimeHours > 0 ? `签退成功（加班${overtimeHours}小时）` : '签退成功';
         wx.showToast({ title: msg, icon: 'success' });
         this.loadTodayData();
       } else {
-        wx.showToast({ title: res.result.error, icon: 'none' });
+        wx.showToast({ title: res.result?.error || '签退失败', icon: 'none' });
       }
     }).catch(err => {
       wx.hideLoading();

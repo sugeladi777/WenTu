@@ -49,7 +49,7 @@
       <input 
         class="input" 
         type="number"
-        placeholder="请输入联系电话（选填）"
+        placeholder="请输入联系电话"
         value="{{phone}}"
         bindinput="onPhoneInput"
       />

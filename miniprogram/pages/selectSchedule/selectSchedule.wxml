@@ -1,0 +1,58 @@
+<!--pages/selectSchedule/selectSchedule.wxml-->
+<view class="container">
+  <!-- 标题 -->
+  <view class="header">
+    <text class="title">选择你的班次</text>
+    <text class="subtitle">勾选你每周固定工作的班次</text>
+  </view>
+
+  <!-- 横向滚动容器 -->
+  <scroll-view class="table-scroll" scroll-x>
+    <!-- 班次表格 -->
+    <view class="schedule-table">
+      <!-- 表头：星期 -->
+      <view class="table-header">
+        <view class="th shift-col">班次</view>
+        <view 
+          class="th weekday-col"
+          wx:for="{{weekDays}}" 
+          wx:key="dayIndex">
+          <text class="day-name">{{item.dayName}}</text>
+        </view>
+      </view>
+
+      <!-- 表格内容：每个班次一行 -->
+      <view 
+        class="table-row"
+        wx:for="{{shifts}}"
+        wx:for-index="shiftIdx"
+        wx:for-item="shiftItem"
+        wx:key="_id">
+        <view class="td shift-col">
+          <text class="shift-name">{{shiftItem.name}}</text>
+          <text class="shift-time">{{shiftItem.startTime}}-{{shiftItem.endTime}}</text>
+        </view>
+        <view 
+          class="td weekday-col"
+          wx:for="{{weekDays}}"
+          wx:for-index="dayIdx"
+          wx:key="dayIndex"
+          data-shiftidx="{{shiftIdx}}"
+          data-dayidx="{{dayIdx}}"
+          bindtap="onToggleShift">
+          <view class="shift-btn {{selectedMatrix[shiftIdx][dayIdx] ? 'selected' : ''}}">
+            <text class="btn-time">{{shiftItem.startTime}}</text>
+            <text class="btn-time">{{shiftItem.endTime}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- 提交按钮 -->
+  <view class="submit-section">
+    <button class="submit-btn" bindtap="onSubmit" loading="{{loading}}">
+      确认班次
+    </button>
+  </view>
+</view>

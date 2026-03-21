@@ -19,7 +19,7 @@ const comparePassword = async (password, hash) => {
 // 注册用户（创建用户时调用）
 const registerUser = async (studentId, password, userInfo) => {
   const hashedPassword = await hashPassword(password);
-  return await db.collection('users').add({
+  const result = await db.collection('users').add({
     data: {
       studentId,
       password: hashedPassword,
@@ -32,6 +32,7 @@ const registerUser = async (studentId, password, userInfo) => {
       updatedAt: new Date(),
     }
   });
+  return result;
 };
 
 exports.main = async (event, context) => {
@@ -50,8 +51,15 @@ exports.main = async (event, context) => {
         return { success: false, error: '用户已存在' };
       }
 
+      // 注册用户
       await registerUser(studentId, password, event);
-      return { success: true, message: '注册成功' };
+
+      // 获取新注册的用户信息
+      const newUser = await db.collection('users').where({ studentId }).get();
+      const user = newUser.data[0];
+      const { password: _, ...userInfo } = user;
+
+      return { success: true, message: '注册成功', userInfo };
     } catch (e) {
       return { success: false, error: e.message };
     }

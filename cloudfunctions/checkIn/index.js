@@ -4,7 +4,7 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 
 exports.main = async (event, context) => {
-  const { userId, scheduleId, date, latitude, longitude } = event;
+  const { userId, date, latitude, longitude } = event;
 
   if (!userId) {
     return { success: false, error: '用户ID不能为空' };
@@ -26,16 +26,20 @@ exports.main = async (event, context) => {
       return { success: false, error: '今日已签到' };
     }
 
-    // 获取今日排班信息
+    // 从 schedules 获取今日班次
     const schedules = await schedulesCollection.where({
       userId,
       date: today,
     }).get();
 
     let shiftStartTime = null;
+    let scheduleId = null;
+    let shiftName = null;
 
     if (schedules.data.length > 0) {
       const schedule = schedules.data[0];
+      scheduleId = schedule._id;
+      shiftName = schedule.shiftName;
       // 解析班次时间
       const [startHour, startMin] = (schedule.startTime || '08:00').split(':');
       shiftStartTime = new Date(today);
@@ -64,13 +68,13 @@ exports.main = async (event, context) => {
       data: {
         userId,
         scheduleId,
+        shiftName,
         date: today,
         checkInTime: now,
         checkOutTime: null,
         overtimeHours: 0,
         overtimeApproved: false,
         attendanceStatus, // 0:正常, 1:迟到
-        // 位置信息暂时不验证，可选择性保存
         checkInLocation: latitude && longitude ? { latitude, longitude } : null,
         createdAt: now,
       }

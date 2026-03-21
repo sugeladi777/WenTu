@@ -7,7 +7,15 @@ const db = cloud.database();
 exports.main = async (event, context) => {
   try {
     // 创建集合
-    const collections = ['users', 'schedules', 'checkRecords', 'leaves', 'shiftChanges', 'rewards'];
+    const collections = [
+      'users',           // 用户表
+      'semesters',       // 学期表
+      'shiftTemplates',  // 班次模板
+      'schedules',       // 班次表
+      'shiftRequests',   // 调班申请
+      'checkRecords',    // 签到记录
+      'leaves',          // 请假记录
+    ];
     
     for (const name of collections) {
       try {

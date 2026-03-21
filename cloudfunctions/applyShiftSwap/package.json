@@ -1,0 +1,9 @@
+{
+  "name": "applyShiftSwap",
+  "version": "1.0.0",
+  "description": "申请调班",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

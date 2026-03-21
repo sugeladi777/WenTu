@@ -2,7 +2,7 @@
 <view class="container">
   <!-- 今日班次信息 -->
   <view class="card shift-info">
-    <view class="shift-name">{{todayShift ? '今日班次：' + todayShift.name : '今日暂无班次'}}</view>
+    <view class="shift-name">{{todayShift ? '今日班次：' + todayShift.shiftName : '今日暂无班次'}}</view>
     <view class="shift-time" wx:if="{{todayShift}}">{{todayShift.startTime || '--:--'}} - {{todayShift.endTime || '--:--'}}</view>
   </view>
 

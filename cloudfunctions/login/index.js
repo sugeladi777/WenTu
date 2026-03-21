@@ -16,7 +16,7 @@ const comparePassword = async (password, hash) => {
   return await bcrypt.compare(password, hash);
 };
 
-// 注册用户（创建用户时调用）
+// 注册用户
 const registerUser = async (studentId, password, userInfo) => {
   const hashedPassword = await hashPassword(password);
   const result = await db.collection('users').add({
@@ -25,7 +25,6 @@ const registerUser = async (studentId, password, userInfo) => {
       password: hashedPassword,
       name: userInfo.name || '',
       role: userInfo.role || 0,
-      phone: userInfo.phone || '',
       avatar: '',
       rewardScore: 0,
       createdAt: new Date(),

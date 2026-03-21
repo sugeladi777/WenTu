@@ -6,7 +6,6 @@ Page({
     password: '',
     // 注册表单
     name: '',
-    phone: '',
     // 切换模式
     mode: 'login', // login | register
     loading: false,
@@ -33,10 +32,6 @@ Page({
     this.setData({ name: e.detail.value });
   },
 
-  onPhoneInput(e) {
-    this.setData({ phone: e.detail.value });
-  },
-
   // 切换模式
   onToggleMode() {
     this.setData({
@@ -46,7 +41,7 @@ Page({
 
   // 提交表单
   onSubmit() {
-    const { studentId, password, name, phone, mode } = this.data;
+    const { studentId, password, name, mode } = this.data;
 
     if (!studentId || !password) {
       wx.showToast({ title: '请填写学号和密码', icon: 'none' });
@@ -56,15 +51,6 @@ Page({
     if (mode === 'register') {
       if (!name) {
         wx.showToast({ title: '请输入姓名', icon: 'none' });
-        return;
-      }
-      if (!phone) {
-        wx.showToast({ title: '请输入手机号', icon: 'none' });
-        return;
-      }
-      // 验证手机号格式
-      if (!/^1[3-9]\d{9}$/.test(phone)) {
-        wx.showToast({ title: '手机号格式不正确', icon: 'none' });
         return;
       }
     }
@@ -80,7 +66,6 @@ Page({
 
     if (mode === 'register') {
       params.name = name;
-      params.phone = phone;
     }
 
     wx.cloud.callFunction({

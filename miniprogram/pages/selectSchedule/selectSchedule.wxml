@@ -1,13 +1,19 @@
 <!--pages/selectSchedule/selectSchedule.wxml-->
 <view class="container">
-  <!-- 标题 -->
-  <view class="header">
-    <text class="title">选择你的班次</text>
-    <text class="subtitle">勾选你每周固定工作的班次</text>
+  <!-- 学期信息卡片 -->
+  <view class="card semester-card" wx:if="{{semester}}">
+    <text class="semester-name">{{semester.name}}</text>
+    <text class="semester-date">{{semester.startDate}} 至 {{semester.endDate}}</text>
+  </view>
+
+  <!-- 无班次模板 -->
+  <view class="empty" wx:if="{{!loading && shiftTemplates.length === 0}}">
+    <text>当前学期暂无班次模板</text>
+    <text class="empty-hint">请联系管理员设置班次</text>
   </view>
 
   <!-- 横向滚动容器 -->
-  <scroll-view class="table-scroll" scroll-x>
+  <scroll-view class="table-scroll" scroll-x wx:if="{{shiftTemplates.length > 0}}">
     <!-- 班次表格 -->
     <view class="schedule-table">
       <!-- 表头：星期 -->
@@ -24,7 +30,7 @@
       <!-- 表格内容：每个班次一行 -->
       <view 
         class="table-row"
-        wx:for="{{shifts}}"
+        wx:for="{{shiftTemplates}}"
         wx:for-index="shiftIdx"
         wx:for-item="shiftItem"
         wx:key="_id">
@@ -39,10 +45,10 @@
           wx:key="dayIndex"
           data-shiftidx="{{shiftIdx}}"
           data-dayidx="{{dayIdx}}"
-          bindtap="onToggleShift">
+          bindtap="onSelectShift">
           <view class="shift-btn {{selectedMatrix[shiftIdx][dayIdx] ? 'selected' : ''}}">
-            <text class="btn-time">{{shiftItem.startTime}}</text>
-            <text class="btn-time">{{shiftItem.endTime}}</text>
+            <text class="btn-check" wx:if="{{selectedMatrix[shiftIdx][dayIdx]}}">✓</text>
+            <text class="btn-count" wx:else>{{capacityMatrix[shiftIdx][dayIdx].remaining}}</text>
           </view>
         </view>
       </view>
@@ -50,7 +56,7 @@
   </scroll-view>
 
   <!-- 提交按钮 -->
-  <view class="submit-section">
+  <view class="submit-section" wx:if="{{shiftTemplates.length > 0}}">
     <button class="submit-btn" bindtap="onSubmit" loading="{{loading}}">
       确认班次
     </button>

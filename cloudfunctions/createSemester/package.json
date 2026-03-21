@@ -1,7 +1,7 @@
 {
-  "name": "getTodaySchedule",
+  "name": "createSemester",
   "version": "1.0.0",
-  "description": "获取今日排班",
+  "description": "创建学期",
   "main": "index.js",
   "dependencies": {
     "wx-server-sdk": "~2.6.3"

@@ -43,18 +43,6 @@
       />
     </view>
 
-    <!-- 注册专属：电话 -->
-    <view class="form-item" wx:if="{{mode === 'register'}}">
-      <text class="label">电话</text>
-      <input 
-        class="input" 
-        type="number"
-        placeholder="请输入联系电话"
-        value="{{phone}}"
-        bindinput="onPhoneInput"
-      />
-    </view>
-
     <!-- 提交按钮 -->
     <button 
       class="submit-btn {{loading ? 'disabled' : ''}}" 

@@ -3,6 +3,8 @@ const app = getApp();
 
 Page({
   data: {
+    // 当前学期信息
+    semester: null,
     // 今日班次信息
     todayShift: null,
     // 签到状态
@@ -14,6 +16,8 @@ Page({
     userInfo: null,
     // 待办提醒
     pendingApprovals: [],
+    // 待处理的调班申请
+    swapRequests: [],
     // 选中的加班时长
     selectedOvertime: 0,
     loading: false,
@@ -44,29 +48,51 @@ Page({
     wx.showLoading({ title: '加载中...' });
 
     try {
-      // 获取今日排班和签到记录
-      const scheduleRes = await wx.cloud.callFunction({
-        name: 'getTodaySchedule',
-        data: {
-          userId: userInfo._id,
-          date: this.formatDate(new Date()),
-        },
+      // 获取当前学期
+      const semesterRes = await wx.cloud.callFunction({
+        name: 'getCurrentSemester',
       });
 
-      if (scheduleRes.result.success) {
-        const { schedule, checkRecord } = scheduleRes.result;
-        
+      if (semesterRes.result && semesterRes.result.success) {
+        this.setData({ semester: semesterRes.result.semester });
+      }
+
+      // 获取今日班次
+      const shiftRes = await wx.cloud.callFunction({
+        name: 'getTodayShift',
+        data: { userId: userInfo._id },
+      });
+
+      if (shiftRes.result && shiftRes.result.success) {
+        this.setData({ todayShift: shiftRes.result.schedule || null });
+      }
+
+      // 获取签到记录
+      const db = wx.cloud.database();
+      const today = new Date().toISOString().split('T')[0];
+      const recordRes = await db.collection('checkRecords')
+        .where({ userId: userInfo._id, date: today })
+        .get();
+
+      if (recordRes.data && recordRes.data.length > 0) {
+        const record = recordRes.data[0];
         this.setData({
-          todayShift: schedule?.shift || null,
-          todayRecord: checkRecord || null,
-          hasCheckedIn: !!checkRecord,
-          hasCheckedOut: checkRecord?.checkOutTime ? true : false,
-          selectedOvertime: checkRecord?.overtimeHours || 0,
+          todayRecord: record,
+          hasCheckedIn: true,
+          hasCheckedOut: !!record.checkOutTime,
+          selectedOvertime: record.overtimeHours || 0,
+        });
+      } else {
+        this.setData({
+          todayRecord: null,
+          hasCheckedIn: false,
+          hasCheckedOut: false,
+          selectedOvertime: 0,
         });
       }
 
-      // 获取待审批提醒
-      await this.loadPendingApprovals(userInfo._id);
+      // 获取待处理的调班申请
+      await this.loadSwapRequests(userInfo._id);
 
     } catch (err) {
       console.error('加载数据失败:', err);
@@ -76,62 +102,28 @@ Page({
     }
   },
 
-  // 加载待审批提醒
-  async loadPendingApprovals(userId) {
+  // 获取待处理的调班申请
+  async loadSwapRequests(userId) {
     try {
       const db = wx.cloud.database();
-      
-      // 查询待审批的加班申请
-      const overtimeRecords = await db.collection('checkRecords')
+      const res = await db.collection('shiftRequests')
         .where({
-          userId,
-          overtimeHours: db.command.gt(0),
-          overtimeApproved: false,
-        })
-        .limit(5)
-        .get();
-
-      // 查询待审批的请假
-      const leaveRecords = await db.collection('leaves')
-        .where({
-          userId,
+          toUserId: userId,
           status: 'pending',
         })
-        .limit(5)
         .get();
 
-      const pending = [];
-      
-      overtimeRecords.data.forEach(record => {
-        pending.push({
-          type: 'overtime',
-          date: record.date,
-          message: `${record.date} 加班${record.overtimeHours}小时待审批`,
-        });
-      });
-
-      leaveRecords.data.forEach(record => {
-        pending.push({
-          type: 'leave',
-          date: record.date,
-          message: `${record.date} 请假待审批`,
-        });
-      });
-
-      this.setData({ pendingApprovals: pending });
-
+      this.setData({ swapRequests: res.data || [] });
     } catch (err) {
-      console.error('加载待审批失败:', err);
+      console.error('加载调班申请失败:', err);
     }
   },
 
   // 点击签到/签退按钮
   onCheck() {
     if (this.data.hasCheckedIn) {
-      // 签退
       this.onCheckOut();
     } else {
-      // 签到
       this.onCheckIn();
     }
   },
@@ -142,7 +134,7 @@ Page({
     this.setData({ selectedOvertime: hours });
   },
 
-  // 签到（无需位置）
+  // 签到
   onCheckIn() {
     if (this.data.hasCheckedIn) return;
     
@@ -159,7 +151,6 @@ Page({
       name: 'checkIn',
       data: {
         userId: userInfo._id,
-        scheduleId: null,
         date: this.formatDate(new Date()),
       },
     }).then(res => {
@@ -217,6 +208,40 @@ Page({
       wx.showToast({ title: '网络错误', icon: 'none' });
       console.error(err);
     });
+  },
+
+  // 处理调班申请
+  onSwapRequest(e) {
+    const { requestid, action } = e.currentTarget.dataset;
+    
+    wx.showModal({
+      title: '确认',
+      content: action === 'accept' ? '确认接受调班？' : '确认拒绝调班？',
+      success: async (res) => {
+        if (res.confirm) {
+          await this.handleSwapRequest(requestid, action);
+        }
+      }
+    });
+  },
+
+  async handleSwapRequest(requestId, action) {
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'confirmShiftSwap',
+        data: { requestId, action },
+      });
+
+      if (res.result && res.result.success) {
+        wx.showToast({ title: res.result.message, icon: 'success' });
+        this.loadTodayData();
+      } else {
+        wx.showToast({ title: res.result?.error || '操作失败', icon: 'none' });
+      }
+    } catch (err) {
+      wx.showToast({ title: '网络错误', icon: 'none' });
+      console.error(err);
+    }
   },
 
   // 格式化日期

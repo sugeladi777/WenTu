@@ -1,34 +1,30 @@
-/* pages/selectSchedule/selectSchedule.wxss */
+/* 班次选择页面样式 - 马卡龙清新风格 */
 .container {
   padding: 20rpx;
-  background-color: #f5f9fc;
+  background: linear-gradient(180deg, #faf9f7 0%, #fff5f5 100%);
   min-height: 100vh;
 }
 
-.card {
-  background: #fff;
-  border-radius: 16rpx;
-  padding: 30rpx;
-  margin-bottom: 20rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
-}
-
 .semester-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  background: linear-gradient(135deg, #a8e6cf 0%, #dcedc1 100%);
+  border-radius: 20rpx;
+  padding: 25rpx;
+  text-align: center;
+  margin-bottom: 20rpx;
 }
 
 .semester-name {
-  font-size: 36rpx;
+  display: block;
+  font-size: 32rpx;
   font-weight: bold;
-  color: #333;
+  color: #2e8b57;
   margin-bottom: 10rpx;
 }
 
 .semester-date {
+  display: block;
   font-size: 24rpx;
-  color: #999;
+  color: #5a5a5a;
 }
 
 .empty {
@@ -36,123 +32,143 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 100rpx 0;
-  color: #999;
+  padding: 120rpx 40rpx;
+  color: #aaa;
+  font-size: 28rpx;
 }
 
 .empty-hint {
   font-size: 24rpx;
-  margin-top: 20rpx;
+  margin-top: 15rpx;
+  color: #ccc;
 }
 
 .table-scroll {
   white-space: nowrap;
-  margin-bottom: 20rpx;
+  margin-bottom: 150rpx;
 }
 
 .schedule-table {
   display: inline-block;
   background: #fff;
-  border-radius: 16rpx;
+  border-radius: 20rpx;
   overflow: hidden;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.05);
 }
 
 .table-header {
   display: flex;
-  background: #6b9bc3;
-  color: #fff;
+  background: linear-gradient(135deg, #faf9f7 0%, #fff5f5 100%);
+}
+
+.th {
+  padding: 25rpx 15rpx;
+  text-align: center;
+  font-size: 26rpx;
+  color: #5a5a5a;
+  font-weight: 600;
+}
+
+.th.shift-col {
+  width: 180rpx;
+  min-width: 180rpx;
+}
+
+.th.weekday-col {
+  width: 100rpx;
+  min-width: 100rpx;
 }
 
 .table-row {
   display: flex;
-  border-bottom: 1rpx solid #eee;
+  border-top: 1rpx solid #f0f0f0;
 }
 
-.table-row:last-child {
-  border-bottom: none;
-}
-
-.th, .td {
-  padding: 20rpx;
+.td {
+  padding: 20rpx 15rpx;
   text-align: center;
-  font-size: 26rpx;
-}
-
-.shift-col {
-  width: 180rpx;
-  background: #f8f8f8;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  align-items: center;
+}
+
+.td.shift-col {
+  width: 180rpx;
+  min-width: 180rpx;
+  border-right: 1rpx solid #f0f0f0;
+}
+
+.td.weekday-col {
+  width: 100rpx;
+  min-width: 100rpx;
+  border-right: 1rpx solid #f0f0f0;
+}
+
+.td.weekday-col:last-child {
+  border-right: none;
 }
 
 .shift-name {
-  font-size: 28rpx;
-  font-weight: bold;
-  color: #333;
+  display: block;
+  font-size: 26rpx;
+  color: #5a5a5a;
+  font-weight: 600;
 }
 
 .shift-time {
-  font-size: 22rpx;
-  color: #999;
+  display: block;
+  font-size: 20rpx;
+  color: #aaa;
   margin-top: 5rpx;
 }
 
-.weekday-col {
-  width: 100rpx;
-}
-
-.day-name {
-  font-size: 26rpx;
-}
-
 .shift-btn {
-  width: 70rpx;
-  height: 70rpx;
+  width: 60rpx;
+  height: 60rpx;
   border-radius: 50%;
-  background: #f0f0f0;
+  background: #faf9f7;
+  border: 2rpx solid #dcedc1;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto;
 }
 
 .shift-btn.selected {
-  background: #6b9bc3;
-  color: #fff;
-}
-
-.shift-btn.full {
-  background: #ffebee;
+  background: linear-gradient(135deg, #ffaaa5 0%, #ffd3b6 100%);
+  border-color: #ffaaa5;
 }
 
 .btn-check {
   font-size: 28rpx;
+  color: #fff;
 }
 
 .btn-count {
-  font-size: 22rpx;
-  color: #666;
-}
-
-.btn-count.full-count {
-  color: #e53935;
+  font-size: 24rpx;
+  color: #aaa;
 }
 
 .submit-section {
-  padding: 20rpx;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  padding: 30rpx 40rpx;
+  box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.05);
 }
 
 .submit-btn {
   width: 100%;
   height: 88rpx;
-  line-height: 88rpx;
-  background: #6b9bc3;
+  background: linear-gradient(135deg, #ffaaa5 0%, #ffd3b6 100%);
   color: #fff;
+  border: none;
   border-radius: 44rpx;
   font-size: 32rpx;
-  border: none;
+  font-weight: bold;
+  box-shadow: 0 4rpx 20rpx rgba(255, 170, 165, 0.3);
 }
 
 .submit-btn::after {

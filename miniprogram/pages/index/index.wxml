@@ -1,16 +1,32 @@
 <!--pages/index/index.wxml-->
 <view class="container">
   <!-- 今日班次信息 -->
-  <view class="card shift-info">
-    <view class="shift-name">{{todayShift ? '今日班次：' + todayShift.shiftName : '今日暂无班次'}}</view>
-    <view class="shift-time" wx:if="{{todayShift}}">{{todayShift.startTime || '--:--'}} - {{todayShift.endTime || '--:--'}}</view>
+  <view class="card shift-info" wx:if="{{todayShifts.length > 0}}">
+    <view class="section-title">今日班次</view>
+    <view class="shift-tabs">
+      <view 
+        class="shift-tab {{currentShiftIndex === index ? 'active' : ''}}"
+        wx:for="{{todayShifts}}"
+        wx:key="_id"
+        data-index="{{index}}"
+        bindtap="onShiftChange">
+        <text class="tab-name">{{item.shiftName}}</text>
+        <text class="tab-time">{{item.startTime}} - {{item.endTime}}</text>
+      </view>
+    </view>
   </view>
 
-  <!-- 签到签退按钮 - 单一圆形按钮 -->
-  <view class="check-section">
-    <view class="check-time" wx:if="{{todayRecord}}">
-      <text class="time-label">签到</text>
-      <text class="time-value">{{formatTime(todayRecord.checkInTime)}}</text>
+  <!-- 无班次提示 -->
+  <view class="no-shift" wx:if="{{todayShifts.length === 0}}">
+    <text class="no-shift-icon">📅</text>
+    <text>今日暂无班次</text>
+  </view>
+
+  <!-- 签到签退按钮 -->
+  <view class="check-section" wx:if="{{todayShifts.length > 0}}">
+    <view class="check-time" wx:if="{{hasCheckedIn && !hasCheckedOut}}">
+      <text class="time-label">签到时间</text>
+      <text class="time-value">{{formatTime(todayRecords[0].checkInTime)}}</text>
     </view>
     
     <button 
@@ -21,50 +37,34 @@
       <text class="btn-text">{{hasCheckedOut ? '已完成' : (hasCheckedIn ? '签退' : '签到')}}</text>
     </button>
     
-    <view class="check-time" wx:if="{{todayRecord && hasCheckedOut}}">
-      <text class="time-label">签退</text>
-      <text class="time-value">{{formatTime(todayRecord.checkOutTime)}}</text>
-    </view>
-  </view>
-
-  <!-- 加班选择 -->
-  <view class="card overtime-section" wx:if="{{hasCheckedIn && !hasCheckedOut}}">
-    <view class="section-title">加班时长（可选）</view>
-    <view class="overtime-buttons">
-      <button class="overtime-btn {{selectedOvertime === 0 ? 'active' : ''}}" data-hours="0" bindtap="onSelectOvertime">无</button>
-      <button class="overtime-btn {{selectedOvertime === 1 ? 'active' : ''}}" data-hours="1" bindtap="onSelectOvertime">+1小时</button>
-      <button class="overtime-btn {{selectedOvertime === 2 ? 'active' : ''}}" data-hours="2" bindtap="onSelectOvertime">+2小时</button>
+    <view class="check-time" wx:if="{{hasCheckedOut}}">
+      <text class="time-label">签退时间</text>
+      <text class="time-value">{{formatTime(todayRecords[todayRecords.length - 1].checkOutTime)}}</text>
     </view>
   </view>
 
   <!-- 今日签到记录 -->
-  <view class="card today-record" wx:if="{{todayRecord}}">
+  <view class="card today-record" wx:if="{{todayRecords.length > 0}}">
     <view class="section-title">今日签到记录</view>
-    <view class="record-item">
-      <text class="record-label">签到时间</text>
-      <text class="record-value">{{formatTime(todayRecord.checkInTime)}}</text>
-    </view>
-    <view class="record-item">
-      <text class="record-label">签退时间</text>
-      <text class="record-value">{{formatTime(todayRecord.checkOutTime) || '--'}}</text>
-    </view>
-    <view class="record-item" wx:if="{{todayRecord.overtimeHours > 0}}">
-      <text class="record-label">加班时长</text>
-      <view class="record-right">
-        <text class="record-value">{{todayRecord.overtimeHours}}小时</text>
-        <text class="status-tag {{todayRecord.overtimeApproved ? 'approved' : 'pending'}}">
-          {{todayRecord.overtimeApproved ? '已审批' : '待审批'}}
-        </text>
+    <view class="record-list">
+      <view class="record-item" wx:for="{{todayRecords}}" wx:key="_id">
+        <view class="record-header">
+          <text class="record-shift">{{item.shiftName || '班次'}}</text>
+          <text class="record-status {{item.attendanceStatus === 1 ? 'late' : ''}}">
+            {{item.attendanceStatus === 1 ? '迟到' : '正常'}}
+          </text>
+        </view>
+        <view class="record-times">
+          <view class="time-block">
+            <text class="time-label">签到</text>
+            <text class="time-value">{{formatTime(item.checkInTime)}}</text>
+          </view>
+          <view class="time-block">
+            <text class="time-label">签退</text>
+            <text class="time-value">{{formatTime(item.checkOutTime) || '--'}}</text>
+          </view>
+        </view>
       </view>
-    </view>
-  </view>
-
-  <!-- 待办提醒 -->
-  <view class="card todo-section" wx:if="{{pendingApprovals.length > 0}}">
-    <view class="section-title">待办提醒</view>
-    <view class="todo-item" wx:for="{{pendingApprovals}}" wx:key="index">
-      <text class="todo-icon {{item.type === 'overtime' ? 'overtime' : 'leave'}}">●</text>
-      <text class="todo-message">{{item.message}}</text>
     </view>
   </view>
 </view>

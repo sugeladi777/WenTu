@@ -11,7 +11,8 @@ exports.main = async (event, context) => {
       'users',           // 用户表
       'semesters',       // 学期表
       'shiftTemplates',  // 班次模板
-      'schedules',       // 班次表
+      'schedules',       // 具体班次
+      'weeklySelections', // 用户周班次选择
       'shiftRequests',   // 调班申请
       'checkRecords',    // 签到记录
       'leaves',          // 请假记录

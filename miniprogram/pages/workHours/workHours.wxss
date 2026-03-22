@@ -1,122 +1,115 @@
-/* pages/workHours/workHours.wxss - 图书馆柔和风格 */
+/* 工时页面样式 - 马卡龙清新风格 */
 .container {
   padding: 20rpx;
-  background: linear-gradient(180deg, #f5f9fc 0%, #ffffff 100%);
+  background: linear-gradient(180deg, #faf9f7 0%, #fff5f5 100%);
   min-height: 100vh;
 }
 
 .summary-card {
+  background: linear-gradient(135deg, #ffaaa5 0%, #ffd3b6 100%);
+  border-radius: 20rpx;
+  padding: 40rpx;
   text-align: center;
-  padding: 60rpx 30rpx;
-  background: linear-gradient(135deg, var(--primary), var(--primary-light));
-  color: #fff;
-  border-radius: 24rpx;
-  margin-bottom: 30rpx;
-  box-shadow: 0 10rpx 30rpx rgba(107, 155, 195, 0.25);
+  margin-bottom: 20rpx;
+  box-shadow: 0 8rpx 30rpx rgba(255, 170, 165, 0.3);
 }
 
 .summary-title {
   font-size: 28rpx;
-  margin-bottom: 20rpx;
-  opacity: 0.9;
-  text-transform: uppercase;
-  letter-spacing: 2rpx;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 15rpx;
 }
 
 .summary-hours {
   display: flex;
-  justify-content: center;
   align-items: baseline;
+  justify-content: center;
 }
 
 .hours-number {
-  font-size: 100rpx;
+  font-size: 80rpx;
   font-weight: bold;
   color: #fff;
+  line-height: 1;
 }
 
 .hours-unit {
   font-size: 32rpx;
-  margin-left: 15rpx;
-  opacity: 0.9;
+  color: rgba(255, 255, 255, 0.9);
+  margin-left: 10rpx;
 }
 
 .view-tabs {
   display: flex;
-  background: #ffffff;
-  border-radius: 20rpx;
+  background: #fff;
+  border-radius: 16rpx;
   padding: 8rpx;
-  margin: 20rpx 0;
-  border: 1rpx solid var(--border-color);
-  box-shadow: 0 4rpx 15rpx rgba(107, 155, 195, 0.06);
+  margin-bottom: 20rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.05);
 }
 
 .tab-item {
   flex: 1;
   text-align: center;
-  padding: 20rpx 0;
+  padding: 20rpx;
   font-size: 28rpx;
-  color: var(--text-secondary);
-  border-radius: 15rpx;
-  transition: all 0.3s;
+  color: #aaa;
+  border-radius: 12rpx;
 }
 
 .tab-item.active {
-  background: linear-gradient(135deg, var(--primary), var(--primary-light));
-  color: #fff;
-  font-weight: 500;
-  box-shadow: 0 4rpx 15rpx rgba(107, 155, 195, 0.25);
+  background: linear-gradient(135deg, #a8e6cf 0%, #dcedc1 100%);
+  color: #2e8b57;
+  font-weight: 600;
 }
 
 .list-card {
-  padding: 0;
-  background: #ffffff;
-  border: 1rpx solid var(--border-color);
+  background: #fff;
   border-radius: 20rpx;
   overflow: hidden;
-  box-shadow: 0 4rpx 15rpx rgba(107, 155, 195, 0.06);
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.05);
 }
 
 .list-header {
   display: flex;
-  padding: 25rpx 30rpx;
-  background: rgba(107, 155, 195, 0.05);
+  padding: 25rpx;
+  background: linear-gradient(135deg, #faf9f7 0%, #fff5f5 100%);
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.col-date, .col-shift, .col-hours {
+  flex: 1;
+  text-align: center;
   font-size: 26rpx;
-  color: var(--primary);
-  border-bottom: 1rpx solid var(--border-color);
+  color: #aaa;
+  font-weight: 600;
 }
 
 .list-item {
   display: flex;
-  padding: 25rpx 30rpx;
+  padding: 25rpx;
   border-bottom: 1rpx solid #f0f0f0;
-  color: var(--text-secondary);
 }
 
 .list-item:last-child {
   border-bottom: none;
 }
 
-.col-date {
-  width: 200rpx;
-  color: var(--text-primary);
-}
-
-.col-shift {
+.col-date, .col-shift, .col-hours {
   flex: 1;
-  color: var(--text-secondary);
+  text-align: center;
+  font-size: 26rpx;
+  color: #5a5a5a;
 }
 
-.col-hours {
-  width: 100rpx;
-  text-align: right;
-  color: var(--primary);
-  font-weight: 500;
+.col-hours.text-primary {
+  color: #2e8b57;
+  font-weight: 600;
 }
 
 .empty-tip {
   text-align: center;
-  padding: 100rpx 0;
-  color: var(--text-secondary);
+  padding: 80rpx;
+  color: #aaa;
   font-size: 28rpx;
 }

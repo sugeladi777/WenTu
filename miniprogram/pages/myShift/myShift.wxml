@@ -1,36 +1,55 @@
 <!--pages/myShift/myShift.wxml-->
 <view class="container">
-  <!-- 功能入口 -->
-  <view class="card action-cards">
-    <view class="action-item" bindtap="onLeaveTap">
-      <view class="action-icon">📝</view>
-      <view class="action-text">请假申请</view>
-    </view>
-    <view class="action-item" bindtap="onShiftChangeTap">
-      <view class="action-icon">🔄</view>
-      <view class="action-text">替班申请</view>
-    </view>
+  <!-- 学期信息 -->
+  <view class="semester-banner" wx:if="{{semester}}">
+    <text class="semester-name">{{semester.name}}</text>
   </view>
 
-  <!-- 我的班次列表 -->
-  <view class="section-title">我的班次</view>
-  <view class="card shift-list">
-    <view 
-      class="shift-item"
-      wx:for="{{shiftList}}"
-      wx:key="id"
-      data-id="{{item.id}}"
-      bindtap="onShiftTap">
-      <view class="shift-date">{{item.date}}</view>
-      <view class="shift-info">
-        <text class="shift-name">{{item.shiftName}}</text>
-        <text class="shift-time">{{item.startTime}} - {{item.endTime}}</text>
+  <!-- 周滑动视图 -->
+  <swiper 
+    class="week-swiper" 
+    indicator-dots="{{weeklyShifts.length > 1}}"
+    current="{{currentWeekIndex}}"
+    bindchange="onWeekChange"
+    wx:if="{{weeklyShifts.length > 0}}">
+    <swiper-item wx:for="{{weeklyShifts}}" wx:for-item="week" wx:key="weekStart">
+      <view class="week-card">
+        <!-- 星期头部 -->
+        <view class="day-header">
+          <view class="day-header-cell" wx:for="{{weekDayNames}}" wx:for-index="dayIdx" wx:key="index">
+            <text class="day-name">{{item}}</text>
+            <text class="day-date">{{week.dates[dayIdx]}}</text>
+          </view>
+        </view>
+        
+        <!-- 班次内容 -->
+        <view class="day-content">
+          <block wx:for="{{week.days}}" wx:for-index="dayIdx" wx:key="index">
+            <view class="day-content-cell">
+              <block wx:for="{{item}}" wx:for-item="shift" wx:key="_id">
+                <view 
+                  class="shift-item"
+                  data-id="{{shift._id}}"
+                  bindtap="onShiftTap">
+                  <text class="shift-name">{{shift.shiftName}}</text>
+                  <text class="shift-time">{{shift.startTime}}</text>
+                </view>
+              </block>
+            </view>
+          </block>
+        </view>
       </view>
-      <view class="shift-status {{item.statusClass}}">{{item.statusText}}</view>
-    </view>
+    </swiper-item>
+  </swiper>
 
-    <view class="empty-tip" wx:if="{{shiftList.length === 0}}">
-      <text>暂无班次安排</text>
-    </view>
+  <!-- 空状态 -->
+  <view class="empty" wx:if="{{!loading && shiftList.length === 0}}">
+    <text>暂无班次安排</text>
+    <button class="btn-add" bindtap="onEditShiftTap">去选择班次</button>
+  </view>
+
+  <!-- 编辑班次按钮 -->
+  <view class="bottom-action" wx:if="{{shiftList.length > 0}}">
+    <button class="btn-edit" bindtap="onEditShiftTap">修改班次</button>
   </view>
 </view>

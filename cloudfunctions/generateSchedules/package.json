@@ -1,0 +1,9 @@
+{
+  "name": "generateSchedules",
+  "version": "1.0.0",
+  "description": "根据周选择生成具体班次",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

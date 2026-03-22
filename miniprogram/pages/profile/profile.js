@@ -29,34 +29,6 @@ Page({
     this.setData({ userInfo });
   },
 
-  // 跳转到奖惩记录
-  onRewardRecordTap() {
-    wx.navigateTo({
-      url: '/pages/rewardRecord/rewardRecord',
-    });
-  },
-
-  // 跳转到签到记录
-  onCheckRecordTap() {
-    wx.navigateTo({
-      url: '/pages/checkRecord/checkRecord',
-    });
-  },
-
-  // 跳转到设置
-  onSettingsTap() {
-    wx.navigateTo({
-      url: '/pages/settings/settings',
-    });
-  },
-
-  // 跳转到帮助
-  onHelpTap() {
-    wx.navigateTo({
-      url: '/pages/help/help',
-    });
-  },
-
   // 退出登录
   onLogout() {
     wx.showModal({

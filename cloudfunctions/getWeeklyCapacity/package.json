@@ -1,7 +1,7 @@
 {
-  "name": "selectShifts",
+  "name": "getWeeklyCapacity",
   "version": "1.0.0",
-  "description": "用户选择班次偏好并生成具体日期",
+  "description": "获取周班次容量",
   "main": "index.js",
   "dependencies": {
     "wx-server-sdk": "~2.6.3"

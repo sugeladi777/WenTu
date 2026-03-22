@@ -1,18 +1,22 @@
-// 云函数入口文件
+/**
+ * 生成班次
+ * 根据 weeklySelections 生成具体的 schedules 记录
+ */
 const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 
 exports.main = async (event, context) => {
-  const { semesterId, userId, userName, preferences } = event;
+  const { semesterId, userId, userName } = event;
 
-  if (!semesterId || !userId || !preferences || !Array.isArray(preferences)) {
+  if (!semesterId || !userId) {
     return { success: false, error: '参数错误' };
   }
 
   try {
     const schedulesCollection = db.collection('schedules');
     const shiftTemplatesCollection = db.collection('shiftTemplates');
+    const weeklySelectionsCollection = db.collection('weeklySelections');
 
     // 获取学期信息
     const semester = await db.collection('semesters').doc(semesterId).get();
@@ -21,8 +25,19 @@ exports.main = async (event, context) => {
     }
 
     if (semester.data.status !== 'active') {
-      return { success: false, error: '当前学期未开放选择' };
+      return { success: false, error: '当前学期未开放' };
     }
+
+    // 获取用户的周选择
+    const selection = await weeklySelectionsCollection
+      .where({ semesterId, userId })
+      .get();
+
+    if (!selection.data || selection.data.length === 0 || !selection.data[0].preferences) {
+      return { success: false, error: '未找到班次选择' };
+    }
+
+    const preferences = selection.data[0].preferences;
 
     // 获取所有班次模板
     const templates = await shiftTemplatesCollection.where({ semesterId }).get();
@@ -31,53 +46,34 @@ exports.main = async (event, context) => {
       templateMap[t._id] = t;
     });
 
-    // 获取所有已选择的班次（用于统计人数）
-    const allSchedules = await schedulesCollection
-      .where({ semesterId, status: 'normal' })
-      .get();
+    // 确定班次生成开始日期
+    const semesterStartDate = new Date(semester.data.startDate);
+    const semesterEndDate = new Date(semester.data.endDate);
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    
+    // 当前时间晚于学期开始，则从今天开始
+    let startDate = now > semesterStartDate ? now : semesterStartDate;
 
-    // 统计每个 shiftId + dayOfWeek 组合的人数（按 userId 去重）
-    const userCountMap = {};
-    allSchedules.data.forEach(s => {
-      const key = `${s.shiftId}_${s.dayOfWeek}`;
-      if (!userCountMap[key]) {
-        userCountMap[key] = new Set();
-      }
-      userCountMap[key].add(s.userId);
-    });
-
-    // 检查容量限制
-    for (const pref of preferences) {
-      const template = templateMap[pref.shiftId];
-      if (template) {
-        const key = `${pref.shiftId}_${pref.dayOfWeek}`;
-        const currentCount = userCountMap[key] ? userCountMap[key].size : 0;
-        
-        if (currentCount >= template.maxCapacity) {
-          return { success: false, error: `${template.name}在周${pref.dayOfWeek + 1}已满员` };
-        }
-      }
-    }
-
-    // 删除用户原有的班次
+    // 删除用户原有的班次（保留调班的）
     await schedulesCollection.where({
       semesterId,
       userId,
       status: db.command.neq('swapped')
     }).remove();
 
-    // 生成日期范围内的所有班次
-    const startDate = new Date(semester.data.startDate);
-    const endDate = new Date(semester.data.endDate);
+    // 生成班次
     const schedules = [];
-
     let currentDate = new Date(startDate);
-    while (currentDate <= endDate) {
+    
+    while (currentDate <= semesterEndDate) {
       const dayOfWeek = currentDate.getDay();
       const ourDayOfWeek = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
 
-      const pref = preferences.find(p => p.dayOfWeek === ourDayOfWeek);
-      if (pref) {
+      // 获取该天的所有班次选择（不只是第一个）
+      const dayPrefs = preferences.filter(p => p.dayOfWeek === ourDayOfWeek);
+      
+      dayPrefs.forEach(pref => {
         const template = templateMap[pref.shiftId];
         if (template) {
           const dateStr = currentDate.toISOString().split('T')[0];
@@ -96,7 +92,7 @@ exports.main = async (event, context) => {
             createdAt: new Date(),
           });
         }
-      }
+      });
 
       currentDate.setDate(currentDate.getDate() + 1);
     }
@@ -110,7 +106,7 @@ exports.main = async (event, context) => {
       }
     }
 
-    return { success: true, message: `已生成${schedules.length}条班次记录` };
+    return { success: true, message: `已生成${schedules.length}条班次` };
   } catch (e) {
     return { success: false, error: e.message };
   }

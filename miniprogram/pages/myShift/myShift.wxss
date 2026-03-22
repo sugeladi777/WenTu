@@ -1,128 +1,136 @@
-/* pages/myShift/myShift.wxss - 图书馆柔和风格 */
+/* 我的班次页面样式 - 马卡龙清新风格 */
 .container {
   padding: 20rpx;
-  background: linear-gradient(180deg, #f5f9fc 0%, #ffffff 100%);
+  background: linear-gradient(180deg, #faf9f7 0%, #fff5f5 100%);
   min-height: 100vh;
 }
 
-.action-cards {
-  display: flex;
-  justify-content: space-around;
-  padding: 50rpx 30rpx;
-  background: #ffffff;
-  border: 1rpx solid var(--border-color);
-  border-radius: 24rpx;
-  margin-bottom: 30rpx;
-  box-shadow: 0 8rpx 30rpx rgba(107, 155, 195, 0.08);
-}
-
-.action-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 30rpx 40rpx;
-  background: #f8f9fa;
-  border: 1rpx solid var(--border-color);
+.semester-banner {
+  background: linear-gradient(135deg, #ffaaa5 0%, #ffd3b6 100%);
+  color: #fff;
+  padding: 25rpx;
   border-radius: 20rpx;
-  transition: all 0.3s;
+  text-align: center;
+  margin-bottom: 20rpx;
+  box-shadow: 0 4rpx 20rpx rgba(255, 170, 165, 0.3);
 }
 
-.action-item:active {
-  background: rgba(107, 155, 195, 0.1);
-  border-color: var(--primary);
+.semester-name {
+  font-size: 32rpx;
+  font-weight: bold;
 }
 
-.action-icon {
-  font-size: 60rpx;
+.week-swiper {
+  height: 500rpx;
+  margin-bottom: 20rpx;
+}
+
+.week-card {
+  padding: 20rpx;
+  height: 100%;
+  background: #fff;
+  border-radius: 20rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.05);
+}
+
+.day-header {
+  display: flex;
+  border-bottom: 2rpx solid #f0f0f0;
+  padding-bottom: 15rpx;
   margin-bottom: 15rpx;
 }
 
-.action-text {
+.day-header-cell {
+  flex: 1;
+  text-align: center;
+}
+
+.day-name {
+  display: block;
+  font-size: 22rpx;
+  color: #aaa;
+  margin-bottom: 5rpx;
+}
+
+.day-date {
+  display: block;
   font-size: 28rpx;
-  color: var(--text-primary);
-  font-weight: 500;
+  font-weight: 600;
+  color: #5a5a5a;
 }
 
-.section-title {
-  font-size: 26rpx;
-  color: var(--text-primary);
-  padding: 20rpx 10rpx 15rpx;
-  font-weight: bold;
-  text-transform: uppercase;
-  letter-spacing: 2rpx;
+.day-content {
+  display: flex;
 }
 
-.shift-list {
-  padding: 0;
-  background: #ffffff;
-  border: 1rpx solid var(--border-color);
-  border-radius: 20rpx;
-  overflow: hidden;
-  box-shadow: 0 4rpx 15rpx rgba(107, 155, 195, 0.06);
+.day-content-cell {
+  flex: 1;
+  min-height: 350rpx;
+  border-right: 1rpx solid #f0f0f0;
+  padding: 5rpx;
+}
+
+.day-content-cell:last-child {
+  border-right: none;
 }
 
 .shift-item {
-  display: flex;
-  align-items: center;
-  padding: 30rpx;
-  border-bottom: 1rpx solid #f0f0f0;
-}
-
-.shift-item:last-child {
-  border-bottom: none;
-}
-
-.shift-date {
-  width: 150rpx;
-  font-size: 28rpx;
-  color: var(--primary);
-  font-weight: 500;
-}
-
-.shift-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.shift-name {
-  font-size: 28rpx;
-  color: var(--text-primary);
+  background: linear-gradient(135deg, #a8e6cf 0%, #dcedc1 100%);
+  border-radius: 12rpx;
+  padding: 10rpx;
   margin-bottom: 8rpx;
 }
 
+.shift-name {
+  display: block;
+  font-size: 22rpx;
+  color: #2e8b57;
+  font-weight: 600;
+}
+
 .shift-time {
-  font-size: 24rpx;
-  color: var(--text-secondary);
+  display: block;
+  font-size: 20rpx;
+  color: #5a5a5a;
+  margin-top: 4rpx;
 }
 
-.shift-status {
-  font-size: 24rpx;
-  padding: 8rpx 20rpx;
-  border-radius: 20rpx;
-}
-
-.shift-status.checked {
-  background: rgba(107, 155, 195, 0.1);
-  color: var(--primary);
-  border: 1rpx solid var(--primary);
-}
-
-.shift-status.pending {
-  background: rgba(212, 165, 116, 0.15);
-  color: #c4956a;
-  border: 1rpx solid #d4a574;
-}
-
-.shift-status.not-checked {
-  background: #f8f9fa;
-  color: var(--text-secondary);
-  border: 1rpx solid var(--border-color);
-}
-
-.empty-tip {
-  text-align: center;
-  padding: 100rpx 0;
-  color: var(--text-secondary);
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 120rpx 0;
+  color: #aaa;
   font-size: 28rpx;
+}
+
+.btn-add {
+  margin-top: 30rpx;
+  background: linear-gradient(135deg, #ffaaa5 0%, #ffd3b6 100%);
+  color: #fff;
+  border-radius: 50rpx;
+  padding: 0 50rpx;
+  font-size: 28rpx;
+  border: none;
+}
+
+.bottom-action {
+  padding: 20rpx;
+}
+
+.btn-edit {
+  width: 100%;
+  height: 88rpx;
+  line-height: 88rpx;
+  background: linear-gradient(135deg, #ffaaa5 0%, #ffd3b6 100%);
+  color: #fff;
+  border-radius: 44rpx;
+  font-size: 32rpx;
+  border: none;
+  box-shadow: 0 4rpx 20rpx rgba(255, 170, 165, 0.3);
+}
+
+.btn-edit::after {
+  border: none;
 }

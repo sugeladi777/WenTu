@@ -1,239 +1,232 @@
-/* pages/index/index.wxss - 图书馆柔和风格 */
+/* 首页样式 - 马卡龙清新风格 */
 .container {
   padding: 20rpx;
-  background: linear-gradient(180deg, #f5f9fc 0%, #ffffff 100%);
+  background: linear-gradient(180deg, #faf9f7 0%, #fff5f5 100%);
   min-height: 100vh;
 }
 
-.shift-info {
-  text-align: center;
-  padding: 40rpx 30rpx;
-  background: #ffffff;
-  border: 1rpx solid var(--border-color);
+.card {
+  background: #fff;
   border-radius: 24rpx;
-  margin-bottom: 30rpx;
-  box-shadow: 0 8rpx 30rpx rgba(107, 155, 195, 0.08);
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.05);
 }
 
-.shift-name {
-  font-size: 36rpx;
+/* 今日班次卡片 */
+.shift-info {
+  background: linear-gradient(135deg, #fff 0%, #fff5f5 100%);
+  border: 2rpx solid #ffd3b6;
+}
+
+.section-title {
+  font-size: 28rpx;
   font-weight: bold;
-  color: var(--text-primary);
+  color: #5a5a5a;
+  margin-bottom: 20rpx;
+  display: flex;
+  align-items: center;
+}
+
+.section-title::before {
+  content: '';
+  width: 6rpx;
+  height: 30rpx;
+  background: linear-gradient(135deg, #ffaaa5 0%, #ffd3b6 100%);
+  border-radius: 3rpx;
+  margin-right: 15rpx;
+}
+
+.shift-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20rpx;
   margin-bottom: 10rpx;
 }
 
-.shift-time {
-  font-size: 28rpx;
-  color: var(--text-secondary);
+.shift-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 25rpx 35rpx;
+  background: #fff;
+  border-radius: 20rpx;
+  min-width: 180rpx;
+  border: 2rpx solid #f0f0f0;
+  transition: all 0.3s ease;
 }
 
-/* 签到签退区域 */
+.shift-tab.active {
+  background: linear-gradient(135deg, #ffaaa5 0%, #ffd3b6 100%);
+  border-color: #ffaaa5;
+  box-shadow: 0 8rpx 25rpx rgba(255, 170, 165, 0.35);
+}
+
+.tab-name {
+  font-size: 30rpx;
+  color: #5a5a5a;
+  font-weight: 600;
+}
+
+.tab-time {
+  font-size: 22rpx;
+  color: #aaa;
+  margin-top: 8rpx;
+}
+
+.shift-tab.active .tab-name,
+.shift-tab.active .tab-time {
+  color: #fff;
+}
+
+.no-shift {
+  text-align: center;
+  color: #aaa;
+  padding: 80rpx;
+  font-size: 28rpx;
+  background: linear-gradient(135deg, #fff 0%, #f0fff0 100%);
+  border-radius: 20rpx;
+  border: 2rpx dashed #dcedc1;
+}
+
+.no-shift-icon {
+  font-size: 80rpx;
+  margin-bottom: 20rpx;
+}
+
 .check-section {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 50rpx 0;
-  margin-bottom: 30rpx;
+  padding: 60rpx 40rpx;
+  background: #fff;
+  border-radius: 24rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.05);
 }
 
 .check-time {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 20rpx 0;
+  margin-bottom: 30rpx;
 }
 
 .time-label {
-  font-size: 24rpx;
-  color: var(--text-secondary);
-  margin-bottom: 8rpx;
+  font-size: 26rpx;
+  color: #aaa;
 }
 
 .time-value {
-  font-size: 36rpx;
+  font-size: 40rpx;
+  color: #5a5a5a;
   font-weight: bold;
-  color: var(--primary);
+  margin-top: 8rpx;
 }
 
-/* 圆形签到签退按钮 */
 .btn-check {
-  width: 550rpx !important;
-  height: 550rpx !important;
-  border-radius: 50% !important;
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
+  width: 500rpx !important;
+  height: 500rpx !important;
+  border-radius: 250rpx !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   border: none !important;
   padding: 0 !important;
   margin: 0 !important;
-  box-shadow: 0 15rpx 50rpx rgba(0, 0, 0, 0.15);
+  box-sizing: border-box !important;
+  box-shadow: 0 15rpx 50rpx rgba(255, 170, 165, 0.4);
 }
 
 .btn-check.check-in {
-  background: linear-gradient(135deg, #5cb85c, #7dc97d) !important;
+  background: linear-gradient(135deg, #ffaaa5 0%, #ffd3b6 100%) !important;
+  color: #fff !important;
 }
 
 .btn-check.check-out {
-  background: linear-gradient(135deg, var(--primary), var(--primary-light)) !important;
+  background: linear-gradient(135deg, #ffd3b6 0%, #dcedc1 100%) !important;
+  color: #5a5a5a !important;
 }
 
 .btn-check.checked-out {
-  background: #e0e0e0 !important;
-  box-shadow: none !important;
+  background: linear-gradient(135deg, #a8e6cf 0%, #98d8aa 100%) !important;
+  color: #fff !important;
+}
+
+.btn-check[disabled] {
+  opacity: 0.8;
 }
 
 .btn-icon {
   font-size: 100rpx;
-  color: #fff;
-  margin-bottom: 10rpx;
+  margin-bottom: 15rpx;
 }
 
 .btn-text {
   font-size: 40rpx;
   font-weight: bold;
-  color: #fff;
-  letter-spacing: 8rpx;
 }
 
-.btn-check.checked-out .btn-icon,
-.btn-check.checked-out .btn-text {
-  color: #999;
+.today-record {
+  margin-top: 20rpx;
 }
 
-/* 加班选择 */
-.overtime-section {
-  padding: 30rpx;
-  background: #ffffff;
-  border: 1rpx solid var(--border-color);
-  border-radius: 20rpx;
-  margin-bottom: 20rpx;
-  box-shadow: 0 4rpx 15rpx rgba(107, 155, 195, 0.06);
-}
-
-.section-title {
-  font-size: 26rpx;
-  color: var(--primary);
-  margin-bottom: 25rpx;
-  text-transform: uppercase;
-  letter-spacing: 2rpx;
-  font-weight: 500;
-}
-
-.overtime-buttons {
+.record-list {
   display: flex;
-  justify-content: space-around;
+  flex-direction: column;
   gap: 20rpx;
 }
 
-.overtime-btn {
-  flex: 1;
-  padding: 20rpx;
-  background: #f8f9fa;
-  border: 1rpx solid var(--border-color);
-  border-radius: 15rpx;
-  color: var(--text-primary);
-  font-size: 28rpx;
-  font-weight: 500;
-}
-
-.overtime-btn.active {
-  background: rgba(107, 155, 195, 0.1);
-  color: var(--primary);
-  border-color: var(--primary);
-}
-
-/* 今日签到记录 */
-.today-record {
-  padding: 30rpx;
-  background: #ffffff;
-  border: 1rpx solid var(--border-color);
-  border-radius: 20rpx;
-  margin-bottom: 20rpx;
-  box-shadow: 0 4rpx 15rpx rgba(107, 155, 195, 0.06);
-}
-
 .record-item {
+  padding: 25rpx;
+  background: linear-gradient(135deg, #fff 0%, #faf9f7 100%);
+  border-radius: 20rpx;
+  border: 1rpx solid #f0f0f0;
+}
+
+.record-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20rpx 0;
-  border-bottom: 1rpx solid #f0f0f0;
+  margin-bottom: 15rpx;
 }
 
-.record-item:last-child {
-  border-bottom: none;
-}
-
-.record-label {
+.record-shift {
   font-size: 28rpx;
-  color: var(--text-secondary);
+  font-weight: 600;
+  color: #5a5a5a;
 }
 
-.record-value {
-  font-size: 28rpx;
-  color: var(--text-primary);
-  font-weight: 500;
-}
-
-.record-right {
-  display: flex;
-  align-items: center;
-  gap: 15rpx;
-}
-
-.status-tag {
+.record-status {
   font-size: 22rpx;
-  padding: 8rpx 16rpx;
-  border-radius: 20rpx;
+  padding: 8rpx 20rpx;
+  background: linear-gradient(135deg, #a8e6cf 0%, #dcedc1 100%);
+  color: #2e8b57;
+  border-radius: 30rpx;
 }
 
-.status-tag.approved {
-  background: rgba(107, 155, 195, 0.1);
-  color: var(--primary);
-  border: 1rpx solid var(--primary);
+.record-status.late {
+  background: linear-gradient(135deg, #ffd3b6 0%, #ffaaa5 100%);
+  color: #c75b39;
 }
 
-.status-tag.pending {
-  background: rgba(212, 165, 116, 0.15);
-  color: #c4956a;
-  border: 1rpx solid #d4a574;
-}
-
-/* 待办提醒 */
-.todo-section {
-  padding: 30rpx;
-  background: #ffffff;
-  border: 1rpx solid var(--border-color);
-  border-radius: 20rpx;
-  box-shadow: 0 4rpx 15rpx rgba(107, 155, 195, 0.06);
-}
-
-.todo-item {
+.record-times {
   display: flex;
-  align-items: center;
-  padding: 18rpx 0;
-  border-bottom: 1rpx solid #f0f0f0;
+  gap: 60rpx;
 }
 
-.todo-item:last-child {
-  border-bottom: none;
+.time-block {
+  display: flex;
+  flex-direction: column;
 }
 
-.todo-icon {
-  margin-right: 15rpx;
-  font-size: 20rpx;
+.time-block .time-label {
+  font-size: 22rpx;
+  color: #aaa;
 }
 
-.todo-icon.overtime {
-  color: #d4a574;
-}
-
-.todo-icon.leave {
-  color: var(--secondary);
-}
-
-.todo-message {
-  font-size: 26rpx;
-  color: var(--text-secondary);
+.time-block .time-value {
+  font-size: 30rpx;
+  color: #5a5a5a;
+  font-weight: 500;
 }

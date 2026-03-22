@@ -8,15 +8,15 @@
     "pages/profile/profile"
   ],
   "window": {
-    "backgroundColor": "#f5f9fc",
+    "backgroundColor": "#faf9f7",
     "backgroundTextStyle": "dark",
     "navigationBarBackgroundColor": "#ffffff",
     "navigationBarTitleText": "文小图",
     "navigationBarTextStyle": "black"
   },
   "tabBar": {
-    "color": "#7a8b9a",
-    "selectedColor": "#6b9bc3",
+    "color": "#999999",
+    "selectedColor": "#ffaaa5",
     "borderStyle": "white",
     "backgroundColor": "#ffffff",
     "list": [

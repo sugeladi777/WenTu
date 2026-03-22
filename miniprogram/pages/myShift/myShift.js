@@ -3,15 +3,10 @@ const app = getApp();
 
 Page({
   data: {
-    // 学期信息
     semester: null,
-    // 我的班次列表
     shiftList: [],
-    // 待审批数量
-    pendingCount: 0,
-    // 调班申请列表
-    swapRequests: [],
-    // 星期名称映射
+    weeklyShifts: [],
+    currentWeekIndex: 0,
     weekDayNames: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
     loading: false,
   },
@@ -22,7 +17,6 @@ Page({
       return;
     }
     this.loadMyShifts();
-    this.loadSwapRequests();
   },
 
   onShow() {
@@ -31,43 +25,48 @@ Page({
       return;
     }
     this.loadMyShifts();
-    this.loadSwapRequests();
   },
 
-  // 加载我的班次
   async loadMyShifts() {
     const userInfo = wx.getStorageSync('userInfo');
-    if (!userInfo || !userInfo._id) return;
+    if (!userInfo?._id) {
+      wx.showToast({ title: '用户信息缺失', icon: 'none' });
+      return;
+    }
 
     this.setData({ loading: true });
 
     try {
-      // 获取当前学期
       const semesterRes = await wx.cloud.callFunction({
         name: 'getCurrentSemester',
       });
 
-      if (semesterRes.result && semesterRes.result.success) {
+      if (semesterRes.result?.success) {
         this.setData({ semester: semesterRes.result.semester });
-        
-        // 获取该学期的班次
-        const db = wx.cloud.database();
-        const today = new Date().toISOString().split('T')[0];
-        
-        const res = await db.collection('schedules')
-          .where({
-            userId: userInfo._id,
-            semesterId: semesterRes.result.semester._id,
-            date: db.command.gte(today), // 只显示今天及以后的
-          })
-          .orderBy('date', 'asc')
-          .get();
+      }
 
-        if (res.data && res.data.length > 0) {
-          this.setData({ shiftList: res.data });
-        } else {
-          this.setData({ shiftList: [] });
-        }
+      const shiftRes = await wx.cloud.callFunction({
+        name: 'getMyShifts',
+        data: { userId: userInfo._id },
+      });
+
+      if (shiftRes.result?.success && shiftRes.result.shifts) {
+        const weeklyData = this.buildWeeklyCalendarData(shiftRes.result.shifts);
+        // 找到当前周
+        const today = new Date().toISOString().split('T')[0];
+        let currentIndex = 0;
+        weeklyData.forEach((week, i) => {
+          if (today >= week.weekStart) {
+            currentIndex = i;
+          }
+        });
+        this.setData({ 
+          shiftList: shiftRes.result.shifts,
+          weeklyShifts: weeklyData,
+          currentWeekIndex: currentIndex,
+        });
+      } else {
+        this.setData({ shiftList: [], weeklyShifts: [], currentWeekIndex: 0 });
       }
     } catch (err) {
       console.error('加载班次失败:', err);
@@ -77,95 +76,59 @@ Page({
     }
   },
 
-  // 加载调班申请
-  async loadSwapRequests() {
-    const userInfo = wx.getStorageSync('userInfo');
-    if (!userInfo || !userInfo._id) return;
-
-    try {
-      const db = wx.cloud.database();
+  buildWeeklyCalendarData(shifts) {
+    const weekMap = {};
+    
+    shifts.forEach(shift => {
+      const dateStr = shift.date;
+      const date = new Date(dateStr);
+      const dayOfWeekRaw = date.getDay();
+      const dayIndex = dayOfWeekRaw === 0 ? 6 : dayOfWeekRaw - 1;
       
-      // 我发起的调班申请
-      const myRequests = await db.collection('shiftRequests')
-        .where({
-          applicantId: userInfo._id,
-        })
-        .orderBy('createdAt', 'desc')
-        .get();
-
-      // 待我确认的调班申请
-      const toConfirm = await db.collection('shiftRequests')
-        .where({
-          toUserId: userInfo._id,
-          status: 'pending',
-        })
-        .get();
-
-      this.setData({
-        swapRequests: [...toConfirm.data || [], ...myRequests.data || []],
-        pendingCount: toConfirm.data?.length || 0,
-      });
-    } catch (err) {
-      console.error('加载调班申请失败:', err);
-    }
-  },
-
-  // 跳转到选择班次页面
-  onEditShiftTap() {
-    wx.navigateTo({
-      url: '/pages/selectSchedule/selectSchedule',
+      const mondayOffset = dayOfWeekRaw === 0 ? -6 : 1 - dayOfWeekRaw;
+      const monday = new Date(date);
+      monday.setDate(date.getDate() + mondayOffset);
+      const weekKey = monday.toISOString().split('T')[0];
+      
+      if (!weekMap[weekKey]) {
+        const dates = [];
+        for (let i = 0; i < 7; i++) {
+          const d = new Date(monday);
+          d.setDate(monday.getDate() + i);
+          dates.push(`${d.getMonth() + 1}/${d.getDate()}`);
+        }
+        
+        weekMap[weekKey] = {
+          weekStart: weekKey,
+          dates: dates,
+          days: [[], [], [], [], [], [], []],
+        };
+      }
+      
+      weekMap[weekKey].days[dayIndex].push(shift);
     });
+    
+    return Object.keys(weekMap).sort().map(key => weekMap[key]);
   },
 
-  // 班次点击
+  onWeekChange(e) {
+    this.setData({ currentWeekIndex: e.detail.current });
+  },
+
+  onEditShiftTap() {
+    wx.navigateTo({ url: '/pages/selectSchedule/selectSchedule' });
+  },
+
   onShiftTap(e) {
     const { id } = e.currentTarget.dataset;
     const shift = this.data.shiftList.find(s => s._id === id);
     if (shift) {
       const weekDayName = this.data.weekDayNames[shift.dayOfWeek] || '未知';
-      let statusText = '正常';
-      if (shift.status === 'swapped') statusText = '已调班';
-      
       wx.showModal({
         title: '班次详情',
-        content: `${shift.date} ${weekDayName}\n班次：${shift.shiftName}\n时间：${shift.startTime} - ${shift.endTime}\n状态：${statusText}`,
+        content: `${shift.date} ${weekDayName}\n班次：${shift.shiftName}\n时间：${shift.startTime} - ${shift.endTime}`,
         showCancel: false,
       });
-    }
-  },
-
-  // 处理调班申请
-  onHandleSwap(e) {
-    const { requestid, action } = e.currentTarget.dataset;
-    
-    wx.showModal({
-      title: '确认',
-      content: action === 'accept' ? '确认接受调班？' : '确认拒绝调班？',
-      success: async (res) => {
-        if (res.confirm) {
-          await this.handleSwapRequest(requestid, action);
-        }
-      }
-    });
-  },
-
-  async handleSwapRequest(requestId, action) {
-    try {
-      const res = await wx.cloud.callFunction({
-        name: 'confirmShiftSwap',
-        data: { requestId, action },
-      });
-
-      if (res.result && res.result.success) {
-        wx.showToast({ title: res.result.message, icon: 'success' });
-        this.loadMyShifts();
-        this.loadSwapRequests();
-      } else {
-        wx.showToast({ title: res.result?.error || '操作失败', icon: 'none' });
-      }
-    } catch (err) {
-      wx.showToast({ title: '网络错误', icon: 'none' });
-      console.error(err);
     }
   },
 });

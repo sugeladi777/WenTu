@@ -1,4 +1,6 @@
-// 云函数入口文件
+/**
+ * 获取今日班次
+ */
 const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
@@ -13,19 +15,12 @@ exports.main = async (event, context) => {
   try {
     const today = new Date().toISOString().split('T')[0];
 
-    // 获取今日班次
-    const schedule = await db.collection('schedules')
-      .where({
-        userId,
-        date: today,
-      })
+    const res = await db.collection('schedules')
+      .where({ userId, date: today })
+      .orderBy('startTime', 'asc')
       .get();
 
-    if (schedule.data.length === 0) {
-      return { success: true, schedule: null };
-    }
-
-    return { success: true, schedule: schedule.data[0] };
+    return { success: true, schedules: res.data || [] };
   } catch (e) {
     return { success: false, error: e.message };
   }

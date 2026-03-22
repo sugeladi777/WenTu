@@ -3,37 +3,19 @@ const app = getApp();
 
 Page({
   data: {
-    // 当前学期信息
     semester: null,
-    // 班次模板列表
     shiftTemplates: [],
-    // 班次容量 - 二维数组 [shiftIdx][dayIdx]
     capacityMatrix: [],
-    // 星期列表
-    weekDays: [
-      { dayIndex: 0, dayName: '周一' },
-      { dayIndex: 1, dayName: '周二' },
-      { dayIndex: 2, dayName: '周三' },
-      { dayIndex: 3, dayName: '周四' },
-      { dayIndex: 4, dayName: '周五' },
-      { dayIndex: 5, dayName: '周六' },
-      { dayIndex: 6, dayName: '周日' },
-    ],
-    // 用户选择的班次 - 二维数组 [shiftIdx][dayIdx]
+    weekDays: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
     selectedMatrix: [],
     loading: false,
   },
 
   onLoad() {
-    const userInfo = wx.getStorageSync('userInfo');
-    if (!userInfo || !userInfo._id) {
-      wx.showToast({ title: '请先登录', icon: 'none' });
-      setTimeout(() => {
-        wx.redirectTo({ url: '/pages/login/login' });
-      }, 1500);
+    if (!app.checkLogin()) {
+      wx.redirectTo({ url: '/pages/login/login' });
       return;
     }
-    
     this.loadData();
   },
 
@@ -47,42 +29,44 @@ Page({
         name: 'getCurrentSemester',
       });
 
-      if (!semesterRes.result || !semesterRes.result.success) {
+      if (!semesterRes.result?.success) {
         wx.showToast({ title: '暂无学期信息', icon: 'none' });
         return;
       }
 
       const semester = semesterRes.result.semester;
-      
+      this.setData({ semester });
+
       // 获取班次模板
       const db = wx.cloud.database();
       const templatesRes = await db.collection('shiftTemplates')
         .where({ semesterId: semester._id })
         .get();
 
-      // 获取班次容量
+      const shiftTemplates = templatesRes.data || [];
+      const shiftCount = shiftTemplates.length;
+
+      // 获取容量
       const capacityRes = await wx.cloud.callFunction({
-        name: 'getShiftCapacity',
+        name: 'getWeeklyCapacity',
         data: { semesterId: semester._id },
       });
 
-      // 构建容量矩阵 [shiftIdx][dayIdx]
-      const shiftCount = templatesRes.data.length;
+      // 构建容量矩阵
       const capacityMatrix = [];
       for (let i = 0; i < shiftCount; i++) {
-        capacityMatrix.push([]);
+        capacityMatrix[i] = [];
         for (let j = 0; j < 7; j++) {
-          capacityMatrix[i].push({ remaining: templatesRes.data[i].maxCapacity });
+          capacityMatrix[i][j] = { remaining: shiftTemplates[i].maxCapacity };
         }
       }
 
-      // 填充实际容量数据
-      if (capacityRes.result && capacityRes.result.success) {
+      if (capacityRes.result?.success) {
         capacityRes.result.capacityList.forEach(item => {
-          const shiftIdx = templatesRes.data.findIndex(t => t._id === item.shiftId);
-          if (shiftIdx !== -1) {
-            capacityMatrix[shiftIdx][item.dayOfWeek] = {
-              remaining: item.remaining,
+          const idx = shiftTemplates.findIndex(t => t._id === item.shiftId);
+          if (idx !== -1) {
+            capacityMatrix[idx][item.dayOfWeek] = {
+              remaining: Math.max(0, item.remaining),
               currentCount: item.currentCount,
               maxCapacity: item.maxCapacity,
             };
@@ -90,82 +74,66 @@ Page({
         });
       }
 
-      // 初始化选择矩阵
+      // 初始化选择矩阵（全为 false）
       const selectedMatrix = [];
       for (let i = 0; i < shiftCount; i++) {
-        selectedMatrix.push([false, false, false, false, false, false, false]);
+        selectedMatrix[i] = [false, false, false, false, false, false, false];
       }
 
       this.setData({
-        semester,
-        shiftTemplates: templatesRes.data,
+        shiftTemplates,
         capacityMatrix,
         selectedMatrix,
+        loading: false,
       });
 
-    } catch (err) {
-      console.error('加载数据失败:', err);
-      wx.showToast({ title: '加载失败', icon: 'none' });
-    } finally {
-      this.setData({ loading: false });
       wx.hideLoading();
+
+    } catch (err) {
+      console.error('加载失败:', err);
+      wx.hideLoading();
+      this.setData({ loading: false });
+      wx.showToast({ title: '加载失败', icon: 'none' });
     }
   },
 
   onSelectShift(e) {
     const { shiftidx, dayidx } = e.currentTarget.dataset;
     const { selectedMatrix, capacityMatrix } = this.data;
-    const capacity = capacityMatrix[shiftidx][dayidx];
     
     // 取消选择
     if (selectedMatrix[shiftidx][dayidx]) {
-      const matrix = JSON.parse(JSON.stringify(selectedMatrix));
-      matrix[shiftidx][dayidx] = false;
-      this.setData({ selectedMatrix: matrix });
+      selectedMatrix[shiftidx][dayidx] = false;
+      this.setData({ selectedMatrix: [...selectedMatrix] });
       return;
     }
 
-    // 检查是否满员
-    if (capacity.remaining <= 0) {
+    // 检查容量
+    if (capacityMatrix[shiftidx][dayidx].remaining <= 0) {
       wx.showToast({ title: '该班次已满员', icon: 'none' });
       return;
     }
 
-    // 选中该班次
-    const matrix = JSON.parse(JSON.stringify(selectedMatrix));
-    
-    // 同一列（同一星期）只能选一个
-    for (let i = 0; i < matrix.length; i++) {
-      matrix[i][dayidx] = false;
-    }
-    
-    matrix[shiftidx][dayidx] = true;
-    this.setData({ selectedMatrix: matrix });
+    // 选中
+    selectedMatrix[shiftidx][dayidx] = true;
+    this.setData({ selectedMatrix: [...selectedMatrix] });
   },
 
   async onSubmit() {
     const { selectedMatrix, shiftTemplates, semester } = this.data;
-    
-    if (!semester) {
-      wx.showToast({ title: '无学期信息', icon: 'none' });
-      return;
-    }
-
     const userInfo = wx.getStorageSync('userInfo');
-    if (!userInfo || !userInfo._id) {
-      wx.showToast({ title: '请先登录', icon: 'none' });
+    
+    if (!semester || !userInfo?._id) {
+      wx.showToast({ title: '登录信息异常', icon: 'none' });
       return;
     }
 
-    // 整理选中的班次
+    // 整理选择
     const preferences = [];
     for (let i = 0; i < shiftTemplates.length; i++) {
       for (let j = 0; j < 7; j++) {
-        if (selectedMatrix[i] && selectedMatrix[i][j]) {
-          preferences.push({
-            dayOfWeek: j,
-            shiftId: shiftTemplates[i]._id,
-          });
+        if (selectedMatrix[i]?.[j]) {
+          preferences.push({ dayOfWeek: j, shiftId: shiftTemplates[i]._id });
         }
       }
     }
@@ -177,49 +145,60 @@ Page({
 
     wx.showModal({
       title: '确认提交',
-      content: `将生成${semester.name}的班次，确定吗？`,
+      content: `将保存您的班次选择，确定吗？`,
       success: async (res) => {
         if (res.confirm) {
-          this.submitShifts(preferences, semester, userInfo);
+          await this.saveSelection(preferences, semester, userInfo);
         }
       }
     });
   },
 
-  async submitShifts(preferences, semester, userInfo) {
+  async saveSelection(preferences, semester, userInfo) {
     this.setData({ loading: true });
     wx.showLoading({ title: '保存中...' });
 
     try {
-      const res = await wx.cloud.callFunction({
-        name: 'selectShifts',
+      // 1. 保存周选择
+      const saveRes = await wx.cloud.callFunction({
+        name: 'saveWeeklySelection',
+        data: {
+          semesterId: semester._id,
+          userId: userInfo._id,
+          preferences,
+        },
+      });
+
+      if (!saveRes.result?.success) {
+        wx.hideLoading();
+        this.setData({ loading: false });
+        wx.showToast({ title: '保存失败', icon: 'none' });
+        return;
+      }
+
+      // 2. 生成班次
+      const genRes = await wx.cloud.callFunction({
+        name: 'generateSchedules',
         data: {
           semesterId: semester._id,
           userId: userInfo._id,
           userName: userInfo.name || '',
-          preferences,
         },
       });
 
       wx.hideLoading();
       this.setData({ loading: false });
 
-      if (res.result && res.result.success) {
-        wx.showToast({ 
-          title: res.result.message || '班次保存成功', 
-          icon: 'success' 
-        });
-        setTimeout(() => {
-          wx.switchTab({ url: '/pages/index/index' });
-        }, 1500);
+      if (genRes.result?.success) {
+        wx.showToast({ title: '保存成功', icon: 'success' });
+        setTimeout(() => wx.switchTab({ url: '/pages/index/index' }), 1500);
       } else {
-        wx.showToast({ title: res.result?.error || '保存失败', icon: 'none' });
+        wx.showToast({ title: '保存成功，生成班次失败', icon: 'none' });
       }
     } catch (err) {
       wx.hideLoading();
       this.setData({ loading: false });
       wx.showToast({ title: '网络错误', icon: 'none' });
-      console.error(err);
     }
   },
 });

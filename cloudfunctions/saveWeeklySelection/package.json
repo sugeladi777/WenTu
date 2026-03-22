@@ -1,7 +1,7 @@
 {
-  "name": "getShiftCapacity",
+  "name": "saveWeeklySelection",
   "version": "1.0.0",
-  "description": "获取班次容量",
+  "description": "保存用户的周班次选择",
   "main": "index.js",
   "dependencies": {
     "wx-server-sdk": "~2.6.3"

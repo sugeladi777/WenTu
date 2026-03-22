@@ -22,8 +22,8 @@
         <view 
           class="th weekday-col"
           wx:for="{{weekDays}}" 
-          wx:key="dayIndex">
-          <text class="day-name">{{item.dayName}}</text>
+          wx:key="index">
+          <text class="day-name">{{item}}</text>
         </view>
       </view>
 
@@ -32,17 +32,16 @@
         class="table-row"
         wx:for="{{shiftTemplates}}"
         wx:for-index="shiftIdx"
-        wx:for-item="shiftItem"
         wx:key="_id">
         <view class="td shift-col">
-          <text class="shift-name">{{shiftItem.name}}</text>
-          <text class="shift-time">{{shiftItem.startTime}}-{{shiftItem.endTime}}</text>
+          <text class="shift-name">{{item.name}}</text>
+          <text class="shift-time">{{item.startTime}}-{{item.endTime}}</text>
         </view>
         <view 
           class="td weekday-col"
           wx:for="{{weekDays}}"
           wx:for-index="dayIdx"
-          wx:key="dayIndex"
+          wx:key="index"
           data-shiftidx="{{shiftIdx}}"
           data-dayidx="{{dayIdx}}"
           bindtap="onSelectShift">

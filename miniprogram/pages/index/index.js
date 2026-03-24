@@ -131,11 +131,17 @@ Page({
 
       // 直接从 schedules 表获取今日签到状态（包含签到签退信息）
       const schedules = this.data.todayShifts;
+      // 格式化时间为时分显示
+      const formattedRecords = schedules.map(s => ({
+        ...s,
+        checkInTimeStr: s.checkInTime ? this.formatTimeStr(s.checkInTime) : null,
+        checkOutTimeStr: s.checkOutTime ? this.formatTimeStr(s.checkOutTime) : null,
+      }));
       const checkedInRecords = schedules.filter(s => s.checkInTime);
       const checkedOutRecords = checkedInRecords.filter(s => s.checkOutTime);
 
       this.setData({
-        todayRecords: schedules,
+        todayRecords: formattedRecords,
         hasCheckedIn: checkedInRecords.length > 0,
         hasCheckedOut: checkedOutRecords.length === checkedInRecords.length && checkedInRecords.length > 0,
       });
@@ -175,12 +181,18 @@ Page({
 
       if (shiftRes.result && shiftRes.result.success) {
         const schedules = shiftRes.result.schedules || [];
+        // 格式化时间为时分显示
+        const formattedRecords = schedules.map(s => ({
+          ...s,
+          checkInTimeStr: s.checkInTime ? this.formatTimeStr(s.checkInTime) : null,
+          checkOutTimeStr: s.checkOutTime ? this.formatTimeStr(s.checkOutTime) : null,
+        }));
         const checkedInRecords = schedules.filter(s => s.checkInTime);
         const checkedOutRecords = checkedInRecords.filter(s => s.checkOutTime);
 
         this.setData({
           todayShifts: schedules,
-          todayRecords: schedules,
+          todayRecords: formattedRecords,
           hasCheckedIn: checkedInRecords.length > 0,
           hasCheckedOut: checkedOutRecords.length === checkedInRecords.length && checkedInRecords.length > 0,
           currentShift: schedules.length > 0 ? schedules[0] : null,
@@ -297,12 +309,13 @@ Page({
     return `${year}-${month}-${day}`;
   },
 
-  // 格式化时间
-  formatTime(date) {
+  // 格式化时间为时分字符串
+  formatTimeStr(date) {
     if (!date) return '--';
     const d = new Date(date);
-    const hours = String(d.getHours()).padStart(2, '0');
-    const minutes = String(d.getMinutes()).padStart(2, '0');
-    return `${hours}:${minutes}`;
+    if (isNaN(d.getTime())) return '--';
+    const h = String(d.getHours()).padStart(2, '0');
+    const m = String(d.getMinutes()).padStart(2, '0');
+    return `${h}:${m}`;
   },
 });

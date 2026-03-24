@@ -26,19 +26,16 @@ function getBeijingTime() {
   return new Date(now.getTime() + offsetDiff * 60 * 1000);
 }
 
-// 获取北京时间字符串（格式：YYYY-MM-DDTHH:mm:ss.sssZ）
-function getBeijingISODate() {
+// 获取北京时间字符串（格式：2026-03-24 21:45:04）
+function getBeijingTimeStr() {
   const now = getBeijingTime();
-  // 手动构建 UTC 格式的时间字符串
   const year = now.getUTCFullYear();
   const month = String(now.getUTCMonth() + 1).padStart(2, '0');
   const day = String(now.getUTCDate()).padStart(2, '0');
   const hours = String(now.getUTCHours()).padStart(2, '0');
   const minutes = String(now.getUTCMinutes()).padStart(2, '0');
   const seconds = String(now.getUTCSeconds()).padStart(2, '0');
-  const ms = String(now.getUTCMilliseconds()).padStart(3, '0');
-  
-  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${ms}Z`;
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
 
 exports.main = async (event, context) => {
@@ -120,8 +117,8 @@ exports.main = async (event, context) => {
       attendanceStatus = ATTENDANCE_LATE; // 迟到
     }
 
-    // 获取北京时间的 ISO 字符串用于存储
-    const checkInTimeStr = getBeijingISODate();
+    // 获取北京时间字符串用于存储
+    const checkInTimeStr = getBeijingTimeStr();
 
     // 更新 schedules 表
     await schedulesCollection.doc(schedule._id).update({

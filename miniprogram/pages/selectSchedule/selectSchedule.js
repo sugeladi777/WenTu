@@ -30,6 +30,7 @@ Page({
       });
 
       if (!semesterRes.result?.success) {
+        wx.hideLoading();
         wx.showToast({ title: '暂无学期信息', icon: 'none' });
         return;
       }
@@ -91,8 +92,8 @@ Page({
 
     } catch (err) {
       console.error('加载失败:', err);
-      wx.hideLoading();
       this.setData({ loading: false });
+      wx.hideLoading();
       wx.showToast({ title: '加载失败', icon: 'none' });
     }
   },

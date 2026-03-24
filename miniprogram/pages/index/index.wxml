@@ -24,11 +24,6 @@
 
   <!-- 签到签退按钮 -->
   <view class="check-section" wx:if="{{todayShifts.length > 0}}">
-    <view class="check-time" wx:if="{{hasCheckedIn && !hasCheckedOut}}">
-      <text class="time-label">签到时间</text>
-      <text class="time-value">{{formatTime(todayRecords[0].checkInTime)}}</text>
-    </view>
-    
     <button 
       class="btn-check {{hasCheckedOut ? 'checked-out' : (hasCheckedIn ? 'check-out' : 'check-in')}}" 
       bindtap="onCheck"
@@ -37,11 +32,6 @@
       <text class="btn-icon">{{hasCheckedOut ? '✓' : (hasCheckedIn ? '↓' : '↑')}}</text>
       <text class="btn-text">{{hasCheckedOut ? '已完成' : (hasCheckedIn ? '签退' : '签到')}}</text>
     </button>
-    
-    <view class="check-time" wx:if="{{hasCheckedOut}}">
-      <text class="time-label">签退时间</text>
-      <text class="time-value">{{formatTime(todayRecords[todayRecords.length - 1].checkOutTime)}}</text>
-    </view>
   </view>
 
   <!-- 今日签到记录（从 schedules 表获取） -->
@@ -58,11 +48,11 @@
         <view class="record-times">
           <view class="time-block">
             <text class="time-label">签到</text>
-            <text class="time-value">{{formatTime(item.checkInTime)}}</text>
+            <text class="time-value">{{item.checkInTimeStr || '--'}}</text>
           </view>
           <view class="time-block">
             <text class="time-label">签退</text>
-            <text class="time-value">{{formatTime(item.checkOutTime) || '--'}}</text>
+            <text class="time-value">{{item.checkOutTimeStr || '--'}}</text>
           </view>
         </view>
       </view>

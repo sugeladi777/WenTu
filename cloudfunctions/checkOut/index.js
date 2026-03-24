@@ -3,6 +3,27 @@ const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 
+// 获取北京时间
+function getBeijingTime() {
+  const now = new Date();
+  const beijingOffset = 480; // 北京时区偏移（分钟）
+  const localOffset = now.getTimezoneOffset();
+  const offsetDiff = beijingOffset - (-localOffset);
+  return new Date(now.getTime() + offsetDiff * 60 * 1000);
+}
+
+// 获取北京时间字符串（格式：2026-03-24 21:45:04）
+function getBeijingTimeStr() {
+  const now = getBeijingTime();
+  const year = now.getUTCFullYear();
+  const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(now.getUTCDate()).padStart(2, '0');
+  const hours = String(now.getUTCHours()).padStart(2, '0');
+  const minutes = String(now.getUTCMinutes()).padStart(2, '0');
+  const seconds = String(now.getUTCSeconds()).padStart(2, '0');
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
 exports.main = async (event, context) => {
   const { userId, date, scheduleId, overtimeHours } = event;
 
@@ -12,7 +33,8 @@ exports.main = async (event, context) => {
 
   try {
     const schedulesCollection = db.collection('schedules');
-    const today = date || new Date().toISOString().split('T')[0];
+    const beijingTime = getBeijingTime();
+    const today = date || `${beijingTime.getUTCFullYear()}-${String(beijingTime.getUTCMonth() + 1).padStart(2, '0')}-${String(beijingTime.getUTCDate()).padStart(2, '0')}`;
 
     // 构建查询条件
     const query = { userId, date: today };
@@ -44,13 +66,12 @@ exports.main = async (event, context) => {
     }
 
     // 更新签退时间和加班时长
-    const now = new Date();
     await schedulesCollection.doc(scheduleToUpdate._id).update({
       data: {
-        checkOutTime: now,
+        checkOutTime: db.serverDate(),
         overtimeHours: overtimeHours || 0,
         overtimeApproved: false,
-        updatedAt: now,
+        updatedAt: db.serverDate(),
       }
     });
 

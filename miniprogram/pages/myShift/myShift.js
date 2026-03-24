@@ -135,10 +135,16 @@ Page({
       let content = `${shift.date} ${weekDayName}\n班次：${shift.shiftName}\n时间：${shift.startTime} - ${shift.endTime}\n状态：${statusText}`;
       
       if (shift.checkInTime) {
-        content += `\n签到：${this.formatTime(shift.checkInTime)}`;
+        const d = new Date(shift.checkInTime);
+        const h = String(d.getHours()).padStart(2, '0');
+        const m = String(d.getMinutes()).padStart(2, '0');
+        content += `\n签到：${h}:${m}`;
       }
       if (shift.checkOutTime) {
-        content += `\n签退：${this.formatTime(shift.checkOutTime)}`;
+        const d = new Date(shift.checkOutTime);
+        const h = String(d.getHours()).padStart(2, '0');
+        const m = String(d.getMinutes()).padStart(2, '0');
+        content += `\n签退：${h}:${m}`;
       }
       
       wx.showModal({
@@ -152,8 +158,7 @@ Page({
   formatTime(date) {
     if (!date) return '--';
     const d = new Date(date);
-    const hours = String(d.getHours()).padStart(2, '0');
-    const minutes = String(d.getMinutes()).padStart(2, '0');
-    return `${hours}:${minutes}`;
+    if (isNaN(d.getTime())) return '--';
+    return d.toTimeString().slice(0, 5);
   },
 });

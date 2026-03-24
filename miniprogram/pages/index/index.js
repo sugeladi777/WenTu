@@ -14,8 +14,10 @@ Page({
     // 签到状态
     hasCheckedIn: false,
     hasCheckedOut: false,
-    // 今日签到记录
+    // 今日签到记录（从 schedules 表获取）
     todayRecords: [],
+    // 当前时间
+    currentTime: '',
     loading: false,
   },
 
@@ -26,6 +28,14 @@ Page({
     }
     this.setData({ userInfo: app.globalData.userInfo });
     this.loadTodayData(true);
+    this.startTimeUpdate();
+  },
+
+  onUnload() {
+    // 页面卸载时停止定时器
+    if (this.timeInterval) {
+      clearInterval(this.timeInterval);
+    }
   },
 
   onShow() {
@@ -35,6 +45,27 @@ Page({
     }
     // 检查是否需要刷新（签到状态可能已变化）
     this.loadTodayData(false);
+  },
+
+  // 启动时间更新定时器
+  startTimeUpdate() {
+    // 立即更新一次
+    this.updateCurrentTime();
+    // 每秒更新
+    this.timeInterval = setInterval(() => {
+      this.updateCurrentTime();
+    }, 1000);
+  },
+
+  // 更新当前时间
+  updateCurrentTime() {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    this.setData({
+      currentTime: `${hours}:${minutes}:${seconds}`
+    });
   },
 
   // 加载今日数据
@@ -79,7 +110,7 @@ Page({
         this.setData({ semester: semesterRes.result.semester });
       }
 
-      // 获取今日所有班次
+      // 获取今日所有班次（从 schedules 表）
       const shiftRes = await wx.cloud.callFunction({
         name: 'getTodayShift',
         data: { userId: userInfo._id },
@@ -98,27 +129,16 @@ Page({
         });
       }
 
-      // 获取今日所有签到记录
-      const db = wx.cloud.database();
-      const recordRes = await db.collection('checkRecords')
-        .where({ userId: userInfo._id, date: today })
-        .orderBy('checkInTime', 'asc')
-        .get();
+      // 直接从 schedules 表获取今日签到状态（包含签到签退信息）
+      const schedules = this.data.todayShifts;
+      const checkedInRecords = schedules.filter(s => s.checkInTime);
+      const checkedOutRecords = checkedInRecords.filter(s => s.checkOutTime);
 
-      if (recordRes.data && recordRes.data.length > 0) {
-        const lastRecord = recordRes.data[recordRes.data.length - 1];
-        this.setData({
-          todayRecords: recordRes.data,
-          hasCheckedIn: true,
-          hasCheckedOut: !!lastRecord.checkOutTime,
-        });
-      } else {
-        this.setData({
-          todayRecords: [],
-          hasCheckedIn: false,
-          hasCheckedOut: false,
-        });
-      }
+      this.setData({
+        todayRecords: schedules,
+        hasCheckedIn: checkedInRecords.length > 0,
+        hasCheckedOut: checkedOutRecords.length === checkedInRecords.length && checkedInRecords.length > 0,
+      });
 
       // 缓存数据
       wx.setStorageSync(cacheKey, {
@@ -147,19 +167,23 @@ Page({
     if (!userInfo) return;
 
     try {
-      const db = wx.cloud.database();
-      const today = new Date().toISOString().split('T')[0];
-      const recordRes = await db.collection('checkRecords')
-        .where({ userId: userInfo._id, date: today })
-        .orderBy('checkInTime', 'asc')
-        .get();
+      // 直接从 schedules 表获取最新状态
+      const shiftRes = await wx.cloud.callFunction({
+        name: 'getTodayShift',
+        data: { userId: userInfo._id },
+      });
 
-      if (recordRes.data && recordRes.data.length > 0) {
-        const lastRecord = recordRes.data[recordRes.data.length - 1];
+      if (shiftRes.result && shiftRes.result.success) {
+        const schedules = shiftRes.result.schedules || [];
+        const checkedInRecords = schedules.filter(s => s.checkInTime);
+        const checkedOutRecords = checkedInRecords.filter(s => s.checkOutTime);
+
         this.setData({
-          todayRecords: recordRes.data,
-          hasCheckedIn: true,
-          hasCheckedOut: !!lastRecord.checkOutTime,
+          todayShifts: schedules,
+          todayRecords: schedules,
+          hasCheckedIn: checkedInRecords.length > 0,
+          hasCheckedOut: checkedOutRecords.length === checkedInRecords.length && checkedInRecords.length > 0,
+          currentShift: schedules.length > 0 ? schedules[0] : null,
         });
       }
     } catch (err) {

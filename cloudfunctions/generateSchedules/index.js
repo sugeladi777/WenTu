@@ -6,6 +6,12 @@ const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 
+// 班次类型常量
+const SHIFT_TYPE_NORMAL = 0;   // 正常
+const SHIFT_TYPE_LEAVE = 1;    // 请假
+const SHIFT_TYPE_SWAP = 2;    // 替班
+const SHIFT_TYPE_BORROW = 3;  // 蹭班
+
 exports.main = async (event, context) => {
   const { semesterId, userId, userName } = event;
 
@@ -55,11 +61,11 @@ exports.main = async (event, context) => {
     // 当前时间晚于学期开始，则从今天开始
     let startDate = now > semesterStartDate ? now : semesterStartDate;
 
-    // 删除用户原有的班次（保留调班的）
+    // 删除用户原有的班次（保留调班的班次类型为替班的）
     await schedulesCollection.where({
       semesterId,
       userId,
-      status: db.command.neq('swapped')
+      shiftType: db.command.neq(SHIFT_TYPE_SWAP)
     }).remove();
 
     // 生成班次
@@ -70,7 +76,7 @@ exports.main = async (event, context) => {
       const dayOfWeek = currentDate.getDay();
       const ourDayOfWeek = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
 
-      // 获取该天的所有班次选择（不只是第一个）
+      // 获取该天的所有班次选择
       const dayPrefs = preferences.filter(p => p.dayOfWeek === ourDayOfWeek);
       
       dayPrefs.forEach(pref => {
@@ -88,8 +94,25 @@ exports.main = async (event, context) => {
             startTime: template.startTime,
             endTime: template.endTime,
             fixedHours: template.fixedHours || 2,
-            status: 'normal',
+            // 新增字段
+            shiftType: SHIFT_TYPE_NORMAL,  // 默认为正常
+            checkInTime: null,
+            checkOutTime: null,
+            attendanceStatus: null,
+            overtimeHours: 0,
+            overtimeApproved: false,
+            leaveReason: '',
+            leaveStatus: null,
+            leaveApprovedBy: null,
+            leaveApprovedAt: null,
+            originalUserId: null,
+            salaryPaid: false,
+            salaryWeek: null,
+            salaryAmount: null,
+            salaryPaidAt: null,
+            salaryPaidBy: null,
             createdAt: new Date(),
+            updatedAt: new Date(),
           });
         }
       });

@@ -13,28 +13,11 @@
   box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.05);
 }
 
-/* 今日班次卡片 */
-.shift-info {
-  background: linear-gradient(135deg, #fff 0%, #fff5f5 100%);
-  border: 2rpx solid #ffd3b6;
-}
-
 .section-title {
   font-size: 28rpx;
   font-weight: bold;
   color: #5a5a5a;
   margin-bottom: 20rpx;
-  display: flex;
-  align-items: center;
-}
-
-.section-title::before {
-  content: '';
-  width: 6rpx;
-  height: 30rpx;
-  background: linear-gradient(135deg, #ffaaa5 0%, #ffd3b6 100%);
-  border-radius: 3rpx;
-  margin-right: 15rpx;
 }
 
 .shift-tabs {
@@ -57,9 +40,9 @@
 }
 
 .shift-tab.active {
-  background: linear-gradient(135deg, #ffaaa5 0%, #ffd3b6 100%);
-  border-color: #ffaaa5;
-  box-shadow: 0 8rpx 25rpx rgba(255, 170, 165, 0.35);
+  background: linear-gradient(135deg, #a8e6cf 0%, #dcedc1 100%);
+  border-color: #a8e6cf;
+  box-shadow: 0 8rpx 25rpx rgba(168, 230, 207, 0.4);
 }
 
 .tab-name {
@@ -76,7 +59,7 @@
 
 .shift-tab.active .tab-name,
 .shift-tab.active .tab-time {
-  color: #fff;
+  color: #2e8b57;
 }
 
 .no-shift {
@@ -92,6 +75,7 @@
 .no-shift-icon {
   font-size: 80rpx;
   margin-bottom: 20rpx;
+  display: block;
 }
 
 .check-section {
@@ -136,6 +120,14 @@
   margin: 0 !important;
   box-sizing: border-box !important;
   box-shadow: 0 15rpx 50rpx rgba(255, 170, 165, 0.4);
+}
+
+.current-time {
+  font-size: 50rpx;
+  font-weight: bold;
+  color: inherit;
+  margin-bottom: 10rpx;
+  letter-spacing: 2rpx;
 }
 
 .btn-check.check-in {

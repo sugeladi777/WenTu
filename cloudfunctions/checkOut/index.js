@@ -1,4 +1,4 @@
-// 云函数入口文件
+// 云函数入口文件 - 签退
 const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
@@ -11,45 +11,46 @@ exports.main = async (event, context) => {
   }
 
   try {
-    const checkRecordsCollection = db.collection('checkRecords');
+    const schedulesCollection = db.collection('schedules');
     const today = date || new Date().toISOString().split('T')[0];
 
     // 构建查询条件
     const query = { userId, date: today };
     if (scheduleId) {
-      query.scheduleId = scheduleId;
+      query._id = scheduleId;
     }
 
-    // 查找今日该班次的签到记录
-    const existing = await checkRecordsCollection
+    // 查找今日该班次
+    const schedules = await schedulesCollection
       .where(query)
-      .orderBy('checkInTime', 'desc')
+      .orderBy('startTime', 'asc')
       .get();
 
-    if (existing.data.length === 0) {
-      return { success: false, error: '今日未签到' };
+    if (schedules.data.length === 0) {
+      return { success: false, error: '今日没有班次' };
     }
 
-    // 找到第一个未签退的记录
-    let recordToUpdate = null;
-    for (const record of existing.data) {
-      if (!record.checkOutTime) {
-        recordToUpdate = record;
+    // 找到第一个未签退的班次
+    let scheduleToUpdate = null;
+    for (const schedule of schedules.data) {
+      if (schedule.checkInTime && !schedule.checkOutTime) {
+        scheduleToUpdate = schedule;
         break;
       }
     }
 
-    if (!recordToUpdate) {
-      return { success: false, error: '今日已签退' };
+    if (!scheduleToUpdate) {
+      return { success: false, error: '今日已全部签退' };
     }
 
     // 更新签退时间和加班时长
     const now = new Date();
-    await checkRecordsCollection.doc(recordToUpdate._id).update({
+    await schedulesCollection.doc(scheduleToUpdate._id).update({
       data: {
         checkOutTime: now,
         overtimeHours: overtimeHours || 0,
         overtimeApproved: false,
+        updatedAt: now,
       }
     });
 

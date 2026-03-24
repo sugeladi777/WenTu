@@ -1,46 +1,44 @@
-/**
- * 获取我的班次
- * 获取用户的所有班次记录
- */
+// 云函数入口文件 - 获取我的班次
 const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 
 exports.main = async (event, context) => {
-  const { userId, startDate, endDate } = event;
+  const { userId, semesterId, startDate, endDate } = event;
 
   if (!userId) {
     return { success: false, error: '用户ID不能为空' };
   }
 
   try {
-    const query = { userId };
+    const schedulesCollection = db.collection('schedules');
+
+    // 构建查询条件
+    let query = { userId };
     
-    // 可选：按日期范围筛选
+    // 学期筛选
+    if (semesterId) {
+      query.semesterId = semesterId;
+    }
+    
+    // 日期范围筛选
     if (startDate && endDate) {
-      query.date = db.command.and(
-        db.command.gte(startDate),
-        db.command.lte(endDate)
-      );
-    } else if (startDate) {
-      query.date = db.command.gte(startDate);
+      query.date = db.command.gte(startDate).and(db.command.lte(endDate));
     }
 
-    const res = await db.collection('schedules')
+    // 查询班次列表
+    const schedules = await schedulesCollection
       .where(query)
       .orderBy('date', 'asc')
       .orderBy('startTime', 'asc')
-      .limit(500)  // 添加限制防止数据过多
       .get();
 
-    // 打印日志用于调试
-    console.log('查询条件:', query);
-    console.log('查询结果数量:', res.data.length);
-    console.log('数据示例:', JSON.stringify(res.data.slice(0, 5)));
-
-    return { success: true, shifts: res.data || [] };
+    return { 
+      success: true, 
+      schedules: schedules.data || [],
+      count: schedules.data ? schedules.data.length : 0
+    };
   } catch (e) {
-    console.error('查询失败:', e);
     return { success: false, error: e.message };
   }
 };

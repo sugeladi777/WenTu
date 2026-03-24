@@ -1,10 +1,13 @@
-// 云函数入口文件
+// 云函数入口文件 - 确认替班
 const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 
+// 班次类型常量
+const SHIFT_TYPE_SWAP = 2;  // 替班
+
 exports.main = async (event, context) => {
-  const { requestId, action } = event; // action: 'accept' | 'reject'
+  const { requestId, action, approverId, approverName } = event; // action: 'accept' | 'reject'
 
   if (!requestId || !action) {
     return { success: false, error: '参数错误' };
@@ -24,6 +27,8 @@ exports.main = async (event, context) => {
       return { success: false, error: '该申请已处理' };
     }
 
+    const now = new Date();
+
     // 执行调班或拒绝
     if (action === 'accept') {
       // 交换两个班次的用户
@@ -31,7 +36,9 @@ exports.main = async (event, context) => {
         data: {
           userId: request.data.toUserId,
           userName: request.data.toUserName,
-          status: 'swapped',
+          originalUserId: request.data.fromUserId,  // 记录原用户
+          shiftType: SHIFT_TYPE_SWAP,  // 更新为替班类型
+          updatedAt: now,
         }
       });
 
@@ -39,7 +46,9 @@ exports.main = async (event, context) => {
         data: {
           userId: request.data.fromUserId,
           userName: request.data.fromUserName,
-          status: 'swapped',
+          originalUserId: request.data.toUserId,  // 记录原用户
+          shiftType: SHIFT_TYPE_SWAP,  // 更新为替班类型
+          updatedAt: now,
         }
       });
 
@@ -47,7 +56,10 @@ exports.main = async (event, context) => {
       await shiftRequestsCollection.doc(requestId).update({
         data: {
           status: 'accepted',
-          updatedAt: new Date(),
+          approverId: approverId || '',
+          approverName: approverName || '',
+          approvedAt: now,
+          updatedAt: now,
         }
       });
 
@@ -57,7 +69,10 @@ exports.main = async (event, context) => {
       await shiftRequestsCollection.doc(requestId).update({
         data: {
           status: 'rejected',
-          updatedAt: new Date(),
+          approverId: approverId || '',
+          approverName: approverName || '',
+          approvedAt: now,
+          updatedAt: now,
         }
       });
 

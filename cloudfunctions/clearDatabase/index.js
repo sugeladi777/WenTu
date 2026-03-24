@@ -15,8 +15,7 @@ exports.main = async (event, context) => {
       'schedules',
       'weeklySelections',
       'shiftRequests',
-      'checkRecords',
-      'leaves',
+      'rewards'
     ];
 
     const results = [];

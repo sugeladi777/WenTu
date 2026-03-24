@@ -33,6 +33,7 @@
       class="btn-check {{hasCheckedOut ? 'checked-out' : (hasCheckedIn ? 'check-out' : 'check-in')}}" 
       bindtap="onCheck"
       disabled="{{hasCheckedOut}}">
+      <text class="current-time">{{currentTime}}</text>
       <text class="btn-icon">{{hasCheckedOut ? '✓' : (hasCheckedIn ? '↓' : '↑')}}</text>
       <text class="btn-text">{{hasCheckedOut ? '已完成' : (hasCheckedIn ? '签退' : '签到')}}</text>
     </button>
@@ -43,7 +44,7 @@
     </view>
   </view>
 
-  <!-- 今日签到记录 -->
+  <!-- 今日签到记录（从 schedules 表获取） -->
   <view class="card today-record" wx:if="{{todayRecords.length > 0}}">
     <view class="section-title">今日签到记录</view>
     <view class="record-list">

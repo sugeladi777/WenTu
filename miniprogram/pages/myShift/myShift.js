@@ -50,8 +50,11 @@ Page({
         data: { userId: userInfo._id },
       });
 
-      if (shiftRes.result?.success && shiftRes.result.shifts) {
-        const weeklyData = this.buildWeeklyCalendarData(shiftRes.result.shifts);
+      // 兼容新的返回格式（schedules）
+      const shifts = shiftRes.result?.schedules || shiftRes.result?.shifts || [];
+      
+      if (shiftRes.result?.success && shifts.length > 0) {
+        const weeklyData = this.buildWeeklyCalendarData(shifts);
         // 找到当前周
         const today = new Date().toISOString().split('T')[0];
         let currentIndex = 0;
@@ -61,7 +64,7 @@ Page({
           }
         });
         this.setData({ 
-          shiftList: shiftRes.result.shifts,
+          shiftList: shifts,
           weeklyShifts: weeklyData,
           currentWeekIndex: currentIndex,
         });
@@ -124,11 +127,33 @@ Page({
     const shift = this.data.shiftList.find(s => s._id === id);
     if (shift) {
       const weekDayName = this.data.weekDayNames[shift.dayOfWeek] || '未知';
+      let statusText = '正常';
+      if (shift.shiftType === 1) statusText = '请假';
+      else if (shift.shiftType === 2) statusText = '替班';
+      else if (shift.shiftType === 3) statusText = '蹭班';
+      
+      let content = `${shift.date} ${weekDayName}\n班次：${shift.shiftName}\n时间：${shift.startTime} - ${shift.endTime}\n状态：${statusText}`;
+      
+      if (shift.checkInTime) {
+        content += `\n签到：${this.formatTime(shift.checkInTime)}`;
+      }
+      if (shift.checkOutTime) {
+        content += `\n签退：${this.formatTime(shift.checkOutTime)}`;
+      }
+      
       wx.showModal({
         title: '班次详情',
-        content: `${shift.date} ${weekDayName}\n班次：${shift.shiftName}\n时间：${shift.startTime} - ${shift.endTime}`,
+        content: content,
         showCancel: false,
       });
     }
+  },
+
+  formatTime(date) {
+    if (!date) return '--';
+    const d = new Date(date);
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
   },
 });

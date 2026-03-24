@@ -1,0 +1,5 @@
+{
+  "name": "updateAbsentStatus",
+  "version": "1.0.0",
+  "description": "定时更新旷岗状态"
+}

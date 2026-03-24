@@ -1,4 +1,4 @@
-// 云函数入口文件
+// 云函数入口文件 - 初始化数据库
 const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
@@ -11,11 +11,10 @@ exports.main = async (event, context) => {
       'users',           // 用户表
       'semesters',       // 学期表
       'shiftTemplates',  // 班次模板
-      'schedules',       // 具体班次
+      'schedules',       // 排班表（整合签到、请假、替班、工资）
       'weeklySelections', // 用户周班次选择
       'shiftRequests',   // 调班申请
-      'checkRecords',    // 签到记录
-      'leaves',          // 请假记录
+      'rewards',        // 奖惩记录
     ];
     
     for (const name of collections) {

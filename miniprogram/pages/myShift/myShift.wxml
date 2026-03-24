@@ -28,11 +28,14 @@
             <view class="day-content-cell">
               <block wx:for="{{item}}" wx:for-item="shift" wx:key="_id">
                 <view 
-                  class="shift-item"
+                  class="shift-item {{shift.shiftType === 1 ? 'shift-leave' : (shift.shiftType === 2 ? 'shift-swap' : (shift.shiftType === 3 ? 'shift-borrow' : ''))}}"
                   data-id="{{shift._id}}"
                   bindtap="onShiftTap">
                   <text class="shift-name">{{shift.shiftName}}</text>
                   <text class="shift-time">{{shift.startTime}}</text>
+                  <text class="shift-type" wx:if="{{shift.shiftType > 0}}">
+                    {{shift.shiftType === 1 ? '请假' : (shift.shiftType === 2 ? '替班' : '蹭班')}}
+                  </text>
                 </view>
               </block>
             </view>

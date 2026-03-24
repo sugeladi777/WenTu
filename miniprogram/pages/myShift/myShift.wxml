@@ -48,11 +48,5 @@
   <!-- 空状态 -->
   <view class="empty" wx:if="{{!loading && shiftList.length === 0}}">
     <text>暂无班次安排</text>
-    <button class="btn-add" bindtap="onEditShiftTap">去选择班次</button>
-  </view>
-
-  <!-- 编辑班次按钮 -->
-  <view class="bottom-action" wx:if="{{shiftList.length > 0}}">
-    <button class="btn-edit" bindtap="onEditShiftTap">修改班次</button>
   </view>
 </view>

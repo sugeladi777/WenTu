@@ -1,0 +1,107 @@
+<!--pages/shiftDetail/shiftDetail.wxml-->
+<view class="container">
+  <view class="card" wx:if="{{shift}}">
+    <!-- 基本信息 -->
+    <view class="section">
+      <view class="section-title">基本信息</view>
+      <view class="info-row">
+        <text class="info-label">日期</text>
+        <text class="info-value">{{shift.date}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">班次名称</text>
+        <text class="info-value">{{shift.shiftName}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">开始时间</text>
+        <text class="info-value">{{shift.startTime}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">结束时间</text>
+        <text class="info-value">{{shift.endTime}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">班次工时</text>
+        <text class="info-value">{{shift.hours || shift.shiftHours || 0}}小时</text>
+      </view>
+    </view>
+
+    <!-- 考勤信息 -->
+    <view class="section">
+      <view class="section-title">考勤信息</view>
+      <view class="info-row">
+        <text class="info-label">签到时间</text>
+        <text class="info-value {{shift.checkInTime ? 'text-primary' : 'text-muted'}}">
+          {{shift.checkInTime ? shift.checkInTime : '未签到'}}
+        </text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">签退时间</text>
+        <text class="info-value {{shift.checkOutTime ? 'text-primary' : 'text-muted'}}">
+          {{shift.checkOutTime ? shift.checkOutTime : '未签退'}}
+        </text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">考勤状态</text>
+        <text class="info-value {{shift.attendanceStatus === 0 ? 'text-success' : (shift.attendanceStatus === 1 ? 'text-warning' : 'text-danger')}}">
+          {{shift.attendanceStatus === 0 ? '正常' : (shift.attendanceStatus === 1 ? '迟到' : (shift.attendanceStatus === 3 ? '旷岗' : '未知'))}}
+        </text>
+      </view>
+    </view>
+
+    <!-- 类型信息 -->
+    <view class="section" wx:if="{{shift.shiftType > 0}}">
+      <view class="section-title">类型信息</view>
+      <view class="info-row">
+        <text class="info-label">班次类型</text>
+        <text class="info-value {{shift.shiftType === 1 ? 'text-leave' : (shift.shiftType === 2 ? 'text-swap' : 'text-borrow')}}">
+          {{shift.shiftType === 1 ? '请假' : (shift.shiftType === 2 ? '替班' : '蹭班')}}
+        </text>
+      </view>
+    </view>
+
+    <!-- 工时统计 -->
+    <view class="section">
+      <view class="section-title">工时统计</view>
+      <view class="info-row">
+        <text class="info-label">实际工时</text>
+        <text class="info-value text-primary">{{shift.actualHours || shift.hours || 0}}小时</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">加班工时</text>
+        <text class="info-value">{{shift.overtimeHours || 0}}小时</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">是否有效</text>
+        <text class="info-value {{shift.isValid ? 'text-success' : 'text-muted'}}">
+          {{shift.isValid ? '有效' : '无效'}}
+        </text>
+      </view>
+    </view>
+
+    <!-- 其他信息 -->
+    <view class="section" wx:if="{{shift._id}}">
+      <view class="section-title">其他信息</view>
+      <view class="info-row">
+        <text class="info-label">记录ID</text>
+        <text class="info-value text-muted small">{{shift._id}}</text>
+      </view>
+      <view class="info-row" wx:if="{{shift.scheduleId}}">
+        <text class="info-label">排班ID</text>
+        <text class="info-value text-muted small">{{shift.scheduleId}}</text>
+      </view>
+      <view class="info-row" wx:if="{{shift.templateId}}">
+        <text class="info-label">模板ID</text>
+        <text class="info-value text-muted small">{{shift.templateId}}</text>
+      </view>
+      <view class="info-row" wx:if="{{shift.templateName}}">
+        <text class="info-label">模板名称</text>
+        <text class="info-value">{{shift.templateName}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty" wx:if="{{!shift && !loading}}">
+    <text>数据加载失败</text>
+  </view>
+</view>

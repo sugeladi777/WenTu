@@ -30,18 +30,17 @@
     <view class="list-header">
       <text class="col-date">日期</text>
       <text class="col-shift">班次</text>
+      <text class="col-status">状态</text>
       <text class="col-hours">工时</text>
+      <text class="col-paid">工资</text>
     </view>
     
-    <view 
-      class="list-item" 
-      wx:for="{{workHoursList}}" 
-      wx:key="date"
-      data-date="{{item.date}}"
-      bindtap="onItemTap">
+    <view class="list-item" wx:for="{{workHoursList}}" wx:key="_id" data-date="{{item.date}}" bindtap="onItemTap">
       <text class="col-date">{{item.date}}</text>
       <text class="col-shift">{{item.shiftName}}</text>
-      <text class="col-hours text-primary">{{item.hours}}h</text>
+      <text class="col-status {{item.statusClass}}">{{item.statusText}}</text>
+      <text class="col-hours {{item.isValid ? 'text-primary' : 'text-muted'}}">{{item.hours}}h</text>
+      <text class="col-paid {{item.isPaid ? 'text-paid' : ''}}">{{item.isPaid ? '已发' : '未发'}}</text>
     </view>
 
     <view class="empty-tip" wx:if="{{workHoursList.length === 0}}">

@@ -77,9 +77,27 @@ Page({
       });
 
       if (res.result && res.result.success) {
+        // 计算状态文本
+        const list = (res.result.list || []).map(item => {
+          let statusText = '未签退';
+          let statusClass = 'text-muted';
+          if (item.checkOutTime) {
+            if (item.attendanceStatus === 1) {
+              statusText = '迟到';
+              statusClass = 'text-warning';
+            } else if (item.attendanceStatus === 3) {
+              statusText = '旷岗';
+              statusClass = 'text-danger';
+            } else {
+              statusText = '正常';
+              statusClass = 'text-success';
+            }
+          }
+          return { ...item, statusText, statusClass };
+        });
         this.setData({
           totalHours: res.result.totalHours || 0,
-          workHoursList: res.result.list || [],
+          workHoursList: list,
         });
       } else {
         wx.showToast({ title: '加载失败', icon: 'none' });
@@ -129,13 +147,9 @@ Page({
     const record = this.data.workHoursList.find(item => item.date === date);
     
     if (record) {
-      const checkInTime = record.checkInTime ? this.formatDateTime(record.checkInTime) : '--';
-      const checkOutTime = record.checkOutTime ? this.formatDateTime(record.checkOutTime) : '--';
-      
-      wx.showModal({
-        title: `${date} 工时详情`,
-        content: `班次：${record.shiftName || '未排班'}\n班次工时：${record.shiftHours || 0}小时\n加班：${record.overtimeHours || 0}小时\n签到：${checkInTime}\n签退：${checkOutTime}\n实际工时：${record.hours || 0}小时`,
-        showCancel: false,
+      const shiftData = encodeURIComponent(JSON.stringify(record));
+      wx.navigateTo({
+        url: `/pages/shiftDetail/shiftDetail?shiftData=${shiftData}`,
       });
     }
   },

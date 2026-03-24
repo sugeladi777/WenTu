@@ -1,4 +1,4 @@
-/* 工时页面样式 - 马卡龙清新风格 */
+/* 工时页面样式 */
 .container {
   padding: 20rpx;
   background: linear-gradient(180deg, #faf9f7 0%, #fff5f5 100%);
@@ -70,24 +70,19 @@
   box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.05);
 }
 
-.list-header {
+.list-header, .list-item {
   display: flex;
-  padding: 25rpx;
+  flex-direction: row;
+  padding: 20rpx 10rpx;
+  background: #fff;
+}
+
+.list-header {
   background: linear-gradient(135deg, #faf9f7 0%, #fff5f5 100%);
   border-bottom: 1rpx solid #f0f0f0;
 }
 
-.col-date, .col-shift, .col-hours {
-  flex: 1;
-  text-align: center;
-  font-size: 26rpx;
-  color: #aaa;
-  font-weight: 600;
-}
-
 .list-item {
-  display: flex;
-  padding: 25rpx;
   border-bottom: 1rpx solid #f0f0f0;
 }
 
@@ -95,17 +90,28 @@
   border-bottom: none;
 }
 
-.col-date, .col-shift, .col-hours {
+.list-header text, .list-item text {
   flex: 1;
   text-align: center;
-  font-size: 26rpx;
-  color: #5a5a5a;
+  font-size: 24rpx;
+  line-height: 1.6;
 }
 
-.col-hours.text-primary {
-  color: #2e8b57;
+.list-header text {
+  color: #999;
   font-weight: 600;
 }
+
+.list-item text {
+  color: #666;
+}
+
+.text-success { color: #2e8b57; }
+.text-warning { color: #ff9800; }
+.text-danger { color: #f44336; }
+.text-muted { color: #aaa; }
+.text-paid { color: #2196f3; }
+.text-primary { color: #2e8b57; font-weight: 600; }
 
 .empty-tip {
   text-align: center;

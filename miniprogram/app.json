@@ -5,6 +5,7 @@
     "pages/index/index",
     "pages/workHours/workHours",
     "pages/myShift/myShift",
+    "pages/shiftDetail/shiftDetail",
     "pages/profile/profile"
   ],
   "window": {

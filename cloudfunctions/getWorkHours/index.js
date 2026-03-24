@@ -26,25 +26,31 @@ exports.main = async (event, context) => {
       query.semesterId = semesterId;
     }
 
-    // 查询已签退的班次（只有签退后才能计入工时）
-    query.checkOutTime = db.command.exists(true);
-
+    // 查询所有班次（不管是否签退）
     const schedules = await schedulesCollection.where(query).orderBy('date', 'desc').get();
     
-    // 计算总工时
+    // 计算总工时（只计入正常或迟到的已签退班次）
     let totalHours = 0;
     const list = schedules.data.map(schedule => {
-      // 计算工时 = 固定工时 + 加班工时（需审批通过）
-      const baseHours = schedule.fixedHours || 0;
-      const overtimeHours = schedule.overtimeApproved ? (schedule.overtimeHours || 0) : 0;
+      // 只有签退且考勤状态为正常(0)或迟到(1)才计入工时
+      const isValid = schedule.checkOutTime && 
+                      (schedule.attendanceStatus === 0 || schedule.attendanceStatus === 1);
+      
+      const baseHours = isValid ? (schedule.fixedHours || 0) : 0;
+      const overtimeHours = (isValid && schedule.overtimeApproved) ? (schedule.overtimeHours || 0) : 0;
       const hours = baseHours + overtimeHours;
-      totalHours += hours;
+      
+      if (isValid) {
+        totalHours += hours;
+      }
       
       return { 
         ...schedule, 
         hours: Math.round(hours * 100) / 100,
         shiftHours: baseHours,
         overtimeHours: overtimeHours,
+        isValid: isValid,
+        isPaid: schedule.salaryPaid || false,
       };
     });
 

@@ -1,13 +1,16 @@
-// 云函数入口文件 - 确认替班
 const cloud = require('wx-server-sdk');
+
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
+
 const db = cloud.database();
 
-// 班次类型常量
-const SHIFT_TYPE_SWAP = 2;  // 替班
+const SHIFT_TYPE_SWAP = 2;
 
-exports.main = async (event, context) => {
-  const { requestId, action, approverId, approverName } = event; // action: 'accept' | 'reject'
+exports.main = async (event) => {
+  const requestId = String(event.requestId || '').trim();
+  const action = String(event.action || '').trim();
+  const approverId = String(event.approverId || '').trim();
+  const approverName = String(event.approverName || '').trim();
 
   if (!requestId || !action) {
     return { success: false, error: '参数错误' };
@@ -16,69 +19,76 @@ exports.main = async (event, context) => {
   try {
     const shiftRequestsCollection = db.collection('shiftRequests');
     const schedulesCollection = db.collection('schedules');
+    const requestResult = await shiftRequestsCollection.doc(requestId).get();
+    const request = requestResult.data;
 
-    // 获取申请
-    const request = await shiftRequestsCollection.doc(requestId).get();
-    if (!request.data) {
+    if (!request) {
       return { success: false, error: '申请不存在' };
     }
 
-    if (request.data.status !== 'pending') {
+    if (request.status !== 'pending') {
       return { success: false, error: '该申请已处理' };
     }
 
-    const now = new Date();
-
-    // 执行调班或拒绝
     if (action === 'accept') {
-      // 交换两个班次的用户
-      await schedulesCollection.doc(request.data.fromScheduleId).update({
+      const fromScheduleResult = await schedulesCollection.doc(request.fromScheduleId).get();
+      const toScheduleResult = await schedulesCollection.doc(request.toScheduleId).get();
+      const fromSchedule = fromScheduleResult.data;
+      const toSchedule = toScheduleResult.data;
+
+      if (!fromSchedule || !toSchedule) {
+        return { success: false, error: '班次不存在' };
+      }
+
+      if (fromSchedule.checkInTime || fromSchedule.checkOutTime || toSchedule.checkInTime || toSchedule.checkOutTime) {
+        return { success: false, error: '班次已产生考勤记录，不能调班' };
+      }
+
+      await schedulesCollection.doc(request.fromScheduleId).update({
         data: {
-          userId: request.data.toUserId,
-          userName: request.data.toUserName,
-          originalUserId: request.data.fromUserId,  // 记录原用户
-          shiftType: SHIFT_TYPE_SWAP,  // 更新为替班类型
-          updatedAt: now,
-        }
+          userId: request.toUserId,
+          userName: request.toUserName,
+          originalUserId: request.fromUserId,
+          shiftType: SHIFT_TYPE_SWAP,
+          updatedAt: db.serverDate(),
+        },
       });
 
-      await schedulesCollection.doc(request.data.toScheduleId).update({
+      await schedulesCollection.doc(request.toScheduleId).update({
         data: {
-          userId: request.data.fromUserId,
-          userName: request.data.fromUserName,
-          originalUserId: request.data.toUserId,  // 记录原用户
-          shiftType: SHIFT_TYPE_SWAP,  // 更新为替班类型
-          updatedAt: now,
-        }
+          userId: request.fromUserId,
+          userName: request.fromUserName,
+          originalUserId: request.toUserId,
+          shiftType: SHIFT_TYPE_SWAP,
+          updatedAt: db.serverDate(),
+        },
       });
 
-      // 更新申请状态
       await shiftRequestsCollection.doc(requestId).update({
         data: {
           status: 'accepted',
-          approverId: approverId || '',
-          approverName: approverName || '',
-          approvedAt: now,
-          updatedAt: now,
-        }
+          approverId,
+          approverName,
+          approvedAt: db.serverDate(),
+          updatedAt: db.serverDate(),
+        },
       });
 
       return { success: true, message: '调班成功' };
-    } else {
-      // 拒绝
-      await shiftRequestsCollection.doc(requestId).update({
-        data: {
-          status: 'rejected',
-          approverId: approverId || '',
-          approverName: approverName || '',
-          approvedAt: now,
-          updatedAt: now,
-        }
-      });
-
-      return { success: true, message: '已拒绝调班' };
     }
-  } catch (e) {
-    return { success: false, error: e.message };
+
+    await shiftRequestsCollection.doc(requestId).update({
+      data: {
+        status: 'rejected',
+        approverId,
+        approverName,
+        approvedAt: db.serverDate(),
+        updatedAt: db.serverDate(),
+      },
+    });
+
+    return { success: true, message: '已拒绝调班' };
+  } catch (error) {
+    return { success: false, error: error.message };
   }
 };

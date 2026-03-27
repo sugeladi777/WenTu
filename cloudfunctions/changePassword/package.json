@@ -1,0 +1,10 @@
+{
+  "name": "changePassword",
+  "version": "1.0.0",
+  "description": "修改用户密码",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3",
+    "bcryptjs": "^2.4.3"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "issueSalary",
+  "version": "1.0.0",
+  "description": "Issue salary for unpaid valid schedules in a semester",
+  "main": "index.js"
+}

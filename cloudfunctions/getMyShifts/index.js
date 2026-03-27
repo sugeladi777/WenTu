@@ -1,44 +1,65 @@
-// 云函数入口文件 - 获取我的班次
 const cloud = require('wx-server-sdk');
+
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
+
 const db = cloud.database();
 
-exports.main = async (event, context) => {
-  const { userId, semesterId, startDate, endDate } = event;
+async function loadAllDocuments(collection, filter) {
+  const pageSize = 100;
+  const documents = [];
+  let offset = 0;
+
+  while (true) {
+    const result = await collection.where(filter).orderBy('date', 'asc').skip(offset).limit(pageSize).get();
+    const currentPage = result.data || [];
+    documents.push(...currentPage);
+
+    if (currentPage.length < pageSize) {
+      break;
+    }
+
+    offset += currentPage.length;
+  }
+
+  return documents;
+}
+
+exports.main = async (event) => {
+  const userId = String(event.userId || '').trim();
+  const semesterId = String(event.semesterId || '').trim();
+  const startDate = String(event.startDate || '').trim();
+  const endDate = String(event.endDate || '').trim();
 
   if (!userId) {
     return { success: false, error: '用户ID不能为空' };
   }
 
   try {
-    const schedulesCollection = db.collection('schedules');
+    const query = { userId };
 
-    // 构建查询条件
-    let query = { userId };
-    
-    // 学期筛选
     if (semesterId) {
       query.semesterId = semesterId;
     }
-    
-    // 日期范围筛选
+
     if (startDate && endDate) {
       query.date = db.command.gte(startDate).and(db.command.lte(endDate));
     }
 
-    // 查询班次列表
-    const schedules = await schedulesCollection
-      .where(query)
-      .orderBy('date', 'asc')
-      .orderBy('startTime', 'asc')
-      .get();
+    const schedules = await loadAllDocuments(db.collection('schedules'), query);
+    schedules.sort((left, right) => {
+      if (left.date !== right.date) {
+        return String(left.date || '').localeCompare(String(right.date || ''));
+      }
 
-    return { 
-      success: true, 
-      schedules: schedules.data || [],
-      count: schedules.data ? schedules.data.length : 0
+      return String(left.startTime || '').localeCompare(String(right.startTime || ''));
+    });
+
+    return {
+      success: true,
+      schedules,
+      count: schedules.length,
     };
-  } catch (e) {
-    return { success: false, error: e.message };
+  } catch (error) {
+    return { success: false, error: error.message };
   }
 };

@@ -1,58 +1,107 @@
-<!--pages/index/index.wxml-->
-<view class="container">
-  <!-- 今日班次信息 -->
-  <view class="card shift-info" wx:if="{{todayShifts.length > 0}}">
-    <view class="section-title">今日班次</view>
-    <view class="shift-tabs">
-      <view 
-        class="shift-tab {{currentShiftIndex === index ? 'active' : ''}}"
-        wx:for="{{todayShifts}}"
-        wx:key="_id"
-        data-index="{{index}}"
-        bindtap="onShiftChange">
-        <text class="tab-name">{{item.shiftName}}</text>
-        <text class="tab-time">{{item.startTime}} - {{item.endTime}}</text>
-      </view>
+<view class="container {{roleTheme}}">
+  <view class="hero-card {{roleTheme}}">
+    <view class="hero-copy">
+      <text class="hero-kicker">{{greetingLabel}} · {{roleText}}</text>
+      <text class="hero-title">{{heroTitle}}</text>
+      <text class="hero-subtitle" wx:if="{{heroSubtitle}}">{{heroSubtitle}}</text>
+    </view>
+    <view class="hero-badge">
+      <text class="hero-badge-value">{{heroBadgeValue}}</text>
+      <text class="hero-badge-label">{{heroBadgeLabel}}</text>
     </view>
   </view>
 
-  <!-- 无班次提示 -->
-  <view class="no-shift" wx:if="{{todayShifts.length === 0}}">
-    <text class="no-shift-icon">📅</text>
-    <text>今日暂无班次</text>
+  <view class="stats-grid {{statsCards.length > 2 ? 'four' : 'two'}}" wx:if="{{statsCards.length > 0}}">
+    <view class="stat-card {{item.theme}}" wx:for="{{statsCards}}" wx:key="key">
+      <text class="stat-value">{{item.value}}</text>
+      <text class="stat-label">{{item.label}}</text>
+    </view>
   </view>
 
-  <!-- 签到签退按钮 -->
-  <view class="check-section" wx:if="{{todayShifts.length > 0}}">
-    <button 
-      class="btn-check {{hasCheckedOut ? 'checked-out' : (hasCheckedIn ? 'check-out' : 'check-in')}}" 
-      bindtap="onCheck"
-      disabled="{{hasCheckedOut}}">
-      <text class="current-time">{{currentTime}}</text>
-      <text class="btn-icon">{{hasCheckedOut ? '✓' : (hasCheckedIn ? '↓' : '↑')}}</text>
-      <text class="btn-text">{{hasCheckedOut ? '已完成' : (hasCheckedIn ? '签退' : '签到')}}</text>
+  <view class="mission-card {{roleMission.theme}}" wx:if="{{roleMission}}">
+    <view class="mission-copy">
+      <text class="mission-kicker">{{roleMission.title}}</text>
+      <text class="mission-text">{{roleMission.desc}}</text>
+    </view>
+    <button class="mission-btn" hover-class="tap-button-hover" bindtap="onMissionTap">
+      {{roleMission.buttonText}}
     </button>
   </view>
 
-  <!-- 今日签到记录（从 schedules 表获取） -->
-  <view class="card today-record" wx:if="{{todayRecords.length > 0}}">
-    <view class="section-title">今日签到记录</view>
+  <view class="focus-card compact card" wx:if="{{showShiftWorkspace && todayShifts.length > 0}}">
+    <text class="focus-heading">切换班次</text>
+
+    <scroll-view class="shift-tabs-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+      <view class="shift-tabs">
+        <view
+          class="shift-tab {{currentShiftIndex === index ? 'active' : ''}}"
+          wx:for="{{todayShifts}}"
+          wx:key="_id"
+          data-index="{{index}}"
+          bindtap="onShiftChange">
+          <text class="tab-name">{{item.shiftName}}</text>
+          <text class="tab-time">{{item.startTime}} - {{item.endTime}}</text>
+        </view>
+      </view>
+    </scroll-view>
+
+    <view class="focus-action">
+      <button
+        class="btn-check {{checkButtonClass}}"
+        hover-class="tap-button-hover"
+        bindtap="onCheck"
+        disabled="{{checkDisabled}}">
+        <view class="btn-beam beam-a"></view>
+        <view class="btn-beam beam-b"></view>
+        <view class="btn-spark spark-a"></view>
+        <view class="btn-spark spark-b"></view>
+        <view class="btn-spark spark-c"></view>
+        <text class="btn-text">{{checkButtonText}}</text>
+      </button>
+    </view>
+  </view>
+
+  <view class="no-shift card" wx:if="{{showShiftWorkspace && todayShifts.length === 0}}">
+    <text class="no-shift-icon">{{activeRole === 1 ? '班' : '空'}}</text>
+    <text class="no-shift-title">
+      {{activeRole === 1 ? '今天还没有需要处理的班次' : '今天没有值班安排'}}
+    </text>
+    <text class="no-shift-text">
+      {{activeRole === 1
+        ? '如果你今天被排到班次，这里会显示自己的签到签退按钮；班负签到确认入口仍可继续进入。'
+        : '你可以先去我的班次里查看排班、请假记录和替班入口。'}}
+    </text>
+  </view>
+
+  <view class="card today-record" wx:if="{{showShiftWorkspace && todayRecords.length > 0}}">
+    <view class="record-title-row">
+      <view>
+        <text class="section-title">今日签到记录</text>
+      </view>
+      <text class="pill pill-ink">{{todayRecords.length}} 条</text>
+    </view>
+
     <view class="record-list">
       <view class="record-item" wx:for="{{todayRecords}}" wx:key="_id">
         <view class="record-header">
-          <text class="record-shift">{{item.shiftName || '班次'}}</text>
-          <text class="record-status {{item.attendanceStatus === 1 ? 'late' : ''}}">
-            {{item.attendanceStatus === 1 ? '迟到' : '正常'}}
+          <view class="record-copy">
+            <text class="record-shift">{{item.shiftName || '班次'}}</text>
+            <text class="record-window">{{item.startTime}} - {{item.endTime}}</text>
+          </view>
+          <text class="record-status {{item.recordStatusClass}}">
+            {{item.attendanceText}}
           </text>
         </view>
+
         <view class="record-times">
           <view class="time-block">
             <text class="time-label">签到</text>
-            <text class="time-value">{{item.checkInTimeStr || '--'}}</text>
+            <text class="time-value">{{item.checkInTimeShort}}</text>
           </view>
+          <view class="time-divider"></view>
           <view class="time-block">
             <text class="time-label">签退</text>
-            <text class="time-value">{{item.checkOutTimeStr || '--'}}</text>
+            <text class="time-value">{{item.checkOutTimeShort}}</text>
           </view>
         </view>
       </view>

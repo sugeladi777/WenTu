@@ -1,7 +1,16 @@
-<!--pages/shiftDetail/shiftDetail.wxml-->
 <view class="container">
-  <view class="card" wx:if="{{shift}}">
-    <!-- 基本信息 -->
+  <view class="header-card" wx:if="{{shift}}">
+    <text class="header-kicker">{{shift.date}}</text>
+    <text class="header-title">{{shift.shiftName}}</text>
+    <view class="header-tags">
+      <text class="header-tag {{shift.attendanceClass}}">{{shift.attendanceText}}</text>
+      <text class="header-tag soft">{{shift.startTime}} - {{shift.endTime}}</text>
+      <text class="header-tag salary" wx:if="{{shift.salaryPaid}}">工资已发</text>
+      <text class="header-tag soft" wx:if="{{source === 'market'}}">可替班</text>
+    </view>
+  </view>
+
+  <view class="card detail-card" wx:if="{{shift}}">
     <view class="section">
       <view class="section-title">基本信息</view>
       <view class="info-row">
@@ -9,99 +18,145 @@
         <text class="info-value">{{shift.date}}</text>
       </view>
       <view class="info-row">
-        <text class="info-label">班次名称</text>
-        <text class="info-value">{{shift.shiftName}}</text>
-      </view>
-      <view class="info-row">
-        <text class="info-label">开始时间</text>
-        <text class="info-value">{{shift.startTime}}</text>
-      </view>
-      <view class="info-row">
-        <text class="info-label">结束时间</text>
-        <text class="info-value">{{shift.endTime}}</text>
-      </view>
-      <view class="info-row">
         <text class="info-label">班次工时</text>
-        <text class="info-value">{{shift.hours || shift.shiftHours || 0}}小时</text>
+        <text class="info-value">{{shift.fixedHoursDisplay}} 小时</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">时段</text>
+        <text class="info-value">{{shift.startTime}} - {{shift.endTime}}</text>
       </view>
     </view>
 
-    <!-- 考勤信息 -->
+    <view class="section" wx:if="{{shift.showLeaveSection}}">
+      <view class="section-title">请假信息</view>
+      <view class="info-row">
+        <text class="info-label">请假人</text>
+        <text class="info-value">{{shift.leaveOwnerName}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">请假状态</text>
+        <text class="info-value {{shift.leaveProgressClass || shift.attendanceClass}}">{{shift.leaveStatusText}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">请假原因</text>
+        <text class="info-value">{{shift.leaveReasonText}}</text>
+      </view>
+      <view class="info-row" wx:if="{{shift.replacementUserName}}">
+        <text class="info-label">替班同学</text>
+        <text class="info-value text-primary">{{shift.replacementName}}</text>
+      </view>
+    </view>
+
+    <view class="section" wx:if="{{shift.showSwapSection}}">
+      <view class="section-title">替班信息</view>
+      <view class="info-row">
+        <text class="info-label">替班类型</text>
+        <text class="info-value text-swap">{{shift.shiftTypeText}}</text>
+      </view>
+      <view class="info-row" wx:if="{{shift.originalOwnerName}}">
+        <text class="info-label">原班次同学</text>
+        <text class="info-value">{{shift.originalOwnerName}}</text>
+      </view>
+    </view>
+
     <view class="section">
       <view class="section-title">考勤信息</view>
       <view class="info-row">
         <text class="info-label">签到时间</text>
         <text class="info-value {{shift.checkInTime ? 'text-primary' : 'text-muted'}}">
-          {{shift.checkInTime ? shift.checkInTime : '未签到'}}
+          {{shift.checkInTime ? shift.checkInTimeLabel : '未签到'}}
         </text>
       </view>
       <view class="info-row">
         <text class="info-label">签退时间</text>
         <text class="info-value {{shift.checkOutTime ? 'text-primary' : 'text-muted'}}">
-          {{shift.checkOutTime ? shift.checkOutTime : '未签退'}}
+          {{shift.checkOutTime ? shift.checkOutTimeLabel : '未签退'}}
         </text>
       </view>
       <view class="info-row">
         <text class="info-label">考勤状态</text>
-        <text class="info-value {{shift.attendanceStatus === 0 ? 'text-success' : (shift.attendanceStatus === 1 ? 'text-warning' : 'text-danger')}}">
-          {{shift.attendanceStatus === 0 ? '正常' : (shift.attendanceStatus === 1 ? '迟到' : (shift.attendanceStatus === 3 ? '旷岗' : '未知'))}}
+        <text class="info-value {{shift.attendanceClass}}">
+          {{shift.attendanceText}}
         </text>
       </view>
     </view>
 
-    <!-- 类型信息 -->
-    <view class="section" wx:if="{{shift.shiftType > 0}}">
-      <view class="section-title">类型信息</view>
-      <view class="info-row">
-        <text class="info-label">班次类型</text>
-        <text class="info-value {{shift.shiftType === 1 ? 'text-leave' : (shift.shiftType === 2 ? 'text-swap' : 'text-borrow')}}">
-          {{shift.shiftType === 1 ? '请假' : (shift.shiftType === 2 ? '替班' : '蹭班')}}
-        </text>
-      </view>
-    </view>
-
-    <!-- 工时统计 -->
     <view class="section">
       <view class="section-title">工时统计</view>
       <view class="info-row">
         <text class="info-label">实际工时</text>
-        <text class="info-value text-primary">{{shift.actualHours || shift.hours || 0}}小时</text>
+        <text class="info-value text-primary">{{shift.actualHoursDisplay}} 小时</text>
       </view>
       <view class="info-row">
         <text class="info-label">加班工时</text>
-        <text class="info-value">{{shift.overtimeHours || 0}}小时</text>
+        <text class="info-value">{{shift.overtimeHoursDisplay}} 小时</text>
       </view>
       <view class="info-row">
         <text class="info-label">是否有效</text>
-        <text class="info-value {{shift.isValid ? 'text-success' : 'text-muted'}}">
-          {{shift.isValid ? '有效' : '无效'}}
+        <text class="info-value {{shift.validClass}}">
+          {{shift.validText}}
         </text>
       </view>
     </view>
 
-    <!-- 其他信息 -->
-    <view class="section" wx:if="{{shift._id}}">
-      <view class="section-title">其他信息</view>
+    <view class="section">
+      <view class="section-title">工资信息</view>
       <view class="info-row">
-        <text class="info-label">记录ID</text>
-        <text class="info-value text-muted small">{{shift._id}}</text>
+        <text class="info-label">工资状态</text>
+        <text class="info-value {{shift.salaryPaid ? 'text-primary' : 'text-muted'}}">{{shift.salaryStatusText}}</text>
       </view>
-      <view class="info-row" wx:if="{{shift.scheduleId}}">
-        <text class="info-label">排班ID</text>
-        <text class="info-value text-muted small">{{shift.scheduleId}}</text>
+      <view class="info-row">
+        <text class="info-label">发放金额</text>
+        <text class="info-value">¥{{shift.salaryAmountDisplay}}</text>
       </view>
-      <view class="info-row" wx:if="{{shift.templateId}}">
-        <text class="info-label">模板ID</text>
-        <text class="info-value text-muted small">{{shift.templateId}}</text>
+      <view class="info-row" wx:if="{{shift.salaryPaid}}">
+        <text class="info-label">发放时薪</text>
+        <text class="info-value">¥{{shift.salaryRateDisplay}} / 小时</text>
       </view>
-      <view class="info-row" wx:if="{{shift.templateName}}">
-        <text class="info-label">模板名称</text>
-        <text class="info-value">{{shift.templateName}}</text>
+      <view class="info-row" wx:if="{{shift.salaryPaid}}">
+        <text class="info-label">发放时间</text>
+        <text class="info-value">{{shift.salaryPaidAtDisplay}}</text>
       </view>
+      <view class="salary-hint">{{shift.salaryHint}}</view>
     </view>
   </view>
 
-  <view class="empty" wx:if="{{!shift && !loading}}">
-    <text>数据加载失败</text>
+  <view class="card action-card" wx:if="{{shift && (shift.canApplyLeave || shift.canClaimReplacement)}}">
+    <view class="section">
+      <view class="section-title">{{shift.actionTitle}}</view>
+      <text class="action-desc">{{shift.actionDesc}}</text>
+
+      <textarea
+        class="reason-textarea"
+        wx:if="{{shift.canApplyLeave}}"
+        maxlength="120"
+        placeholder="简单写一下请假原因，例如课程冲突、身体不适、临时有事"
+        value="{{leaveReasonInput}}"
+        bindinput="onReasonInput"
+      />
+
+      <button
+        class="action-btn leave"
+        wx:if="{{shift.canApplyLeave}}"
+        hover-class="tap-button-hover"
+        loading="{{loading}}"
+        bindtap="onApplyLeave">
+        发布请假班次
+      </button>
+
+      <button
+        class="action-btn swap"
+        wx:if="{{shift.canClaimReplacement}}"
+        hover-class="tap-button-hover"
+        loading="{{loading}}"
+        bindtap="onClaimShift">
+        我要替班
+      </button>
+    </view>
+  </view>
+
+  <view class="empty card" wx:if="{{!shift && !loading}}">
+    <text class="empty-title">数据加载失败</text>
+    <text class="empty-subtitle">请返回上一页后重新打开这条班次记录。</text>
   </view>
 </view>

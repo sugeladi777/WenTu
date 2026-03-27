@@ -1,5 +1,18 @@
-// pages/myShift/myShift.js
 const app = getApp();
+
+const { formatDate } = require('../../utils/date');
+const { buildWeeklyCalendarData, decorateSchedule } = require('../../utils/shift');
+const { callCloudFunction } = require('../../utils/cloud');
+
+function sortByDateTime(list = []) {
+  return [...list].sort((left, right) => {
+    if (left.date !== right.date) {
+      return String(left.date || '').localeCompare(String(right.date || ''));
+    }
+
+    return String(left.startTime || '').localeCompare(String(right.startTime || ''));
+  });
+}
 
 Page({
   data: {
@@ -7,29 +20,84 @@ Page({
     shiftList: [],
     weeklyShifts: [],
     currentWeekIndex: 0,
+    currentWeekLabel: '',
     weekDayNames: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
     loading: false,
   },
 
   onLoad() {
-    if (!app.checkLogin()) {
-      app.goToLogin();
+    if (!this.ensureSession()) {
       return;
     }
+
+    this._skipNextOnShowRefresh = true;
     this.loadMyShifts();
   },
 
   onShow() {
-    if (!app.checkLogin()) {
-      app.goToLogin();
+    if (!this.ensureSession()) {
       return;
     }
+
+    if (this._skipNextOnShowRefresh) {
+      this._skipNextOnShowRefresh = false;
+      return;
+    }
+
     this.loadMyShifts();
   },
 
+  ensureSession() {
+    const userInfo = app.globalData.userInfo;
+    if (userInfo && userInfo._id) {
+      return true;
+    }
+
+    if (this._redirectingLogin) {
+      return false;
+    }
+
+    this._redirectingLogin = true;
+
+    wx.showToast({
+      title: '登录状态已失效',
+      icon: 'none',
+    });
+
+    setTimeout(() => {
+      this._redirectingLogin = false;
+      app.goToLogin();
+    }, 120);
+
+    return false;
+  },
+
+  findCurrentWeekIndex(weeklyShifts) {
+    if (!weeklyShifts.length) {
+      return 0;
+    }
+
+    const today = formatDate(new Date());
+    const index = weeklyShifts.findIndex((week) => today >= week.weekStart && today <= week.weekEnd);
+
+    if (index !== -1) {
+      return index;
+    }
+
+    return today < weeklyShifts[0].weekStart ? 0 : weeklyShifts.length - 1;
+  },
+
+  applyWeekMeta(index = this.data.currentWeekIndex, weeklyShifts = this.data.weeklyShifts) {
+    const currentWeek = weeklyShifts[index] || null;
+
+    this.setData({
+      currentWeekLabel: currentWeek ? `${currentWeek.weekStart} 至 ${currentWeek.weekEnd}` : '',
+    });
+  },
+
   async loadMyShifts() {
-    const userInfo = wx.getStorageSync('userInfo');
-    if (!userInfo?._id) {
+    const userInfo = app.globalData.userInfo;
+    if (!userInfo || !userInfo._id) {
       wx.showToast({ title: '用户信息缺失', icon: 'none' });
       return;
     }
@@ -37,106 +105,68 @@ Page({
     this.setData({ loading: true });
 
     try {
-      const semesterRes = await wx.cloud.callFunction({
-        name: 'getCurrentSemester',
-      });
+      let semester = null;
 
-      if (semesterRes.result?.success) {
-        this.setData({ semester: semesterRes.result.semester });
+      try {
+        const semesterResult = await callCloudFunction('getCurrentSemester');
+        semester = semesterResult.semester || null;
+      } catch (error) {
+        console.warn('获取学期信息失败:', error);
       }
 
-      const shiftRes = await wx.cloud.callFunction({
-        name: 'getMyShifts',
-        data: { userId: userInfo._id },
+      const shiftResult = await callCloudFunction('getMyShifts', {
+        userId: userInfo._id,
+        semesterId: semester ? semester._id : '',
       });
 
-      // 兼容新的返回格式（schedules）
-      const shifts = shiftRes.result?.schedules || shiftRes.result?.shifts || [];
-      
-      if (shifts.length > 0) {
-        const weeklyData = this.buildWeeklyCalendarData(shifts);
-        // 找到当前周
-        const today = new Date().toISOString().split('T')[0];
-        let currentIndex = 0;
-        weeklyData.forEach((week, i) => {
-          if (today >= week.weekStart) {
-            currentIndex = i;
-          }
-        });
-        this.setData({ 
-          shiftList: shifts,
-          weeklyShifts: weeklyData,
-          currentWeekIndex: currentIndex,
-        });
-      } else {
-        this.setData({ shiftList: [], weeklyShifts: [], currentWeekIndex: 0 });
-      }
-    } catch (err) {
-      console.error('加载班次失败:', err);
-      wx.showToast({ title: '加载失败', icon: 'none' });
+      const shiftList = sortByDateTime((shiftResult.schedules || []).map((item) => decorateSchedule(item)));
+      const weeklyShifts = buildWeeklyCalendarData(shiftList);
+      const currentWeekIndex = this.findCurrentWeekIndex(weeklyShifts);
+      const currentWeek = weeklyShifts[currentWeekIndex] || null;
+
+      this.setData({
+        semester,
+        shiftList,
+        weeklyShifts,
+        currentWeekIndex,
+        currentWeekLabel: currentWeek ? `${currentWeek.weekStart} 至 ${currentWeek.weekEnd}` : '',
+      });
+    } catch (error) {
+      wx.showToast({
+        title: error.message || '加载失败',
+        icon: 'none',
+      });
     } finally {
       this.setData({ loading: false });
     }
   },
 
-  buildWeeklyCalendarData(shifts) {
-    const weekMap = {};
-    
-    shifts.forEach(shift => {
-      const dateStr = shift.date;
-      const date = new Date(dateStr);
-      const dayOfWeekRaw = date.getDay();
-      const dayIndex = dayOfWeekRaw === 0 ? 6 : dayOfWeekRaw - 1;
-      
-      const mondayOffset = dayOfWeekRaw === 0 ? -6 : 1 - dayOfWeekRaw;
-      const monday = new Date(date);
-      monday.setDate(date.getDate() + mondayOffset);
-      const weekKey = monday.toISOString().split('T')[0];
-      
-      if (!weekMap[weekKey]) {
-        const dates = [];
-        for (let i = 0; i < 7; i++) {
-          const d = new Date(monday);
-          d.setDate(monday.getDate() + i);
-          dates.push(`${d.getMonth() + 1}/${d.getDate()}`);
-        }
-        
-        weekMap[weekKey] = {
-          weekStart: weekKey,
-          dates: dates,
-          days: [[], [], [], [], [], [], []],
-        };
-      }
-      
-      weekMap[weekKey].days[dayIndex].push(shift);
-    });
-    
-    return Object.keys(weekMap).sort().map(key => weekMap[key]);
-  },
-
   onWeekChange(e) {
-    this.setData({ currentWeekIndex: e.detail.current });
+    const currentWeekIndex = e.detail.current;
+    this.setData({ currentWeekIndex });
+    this.applyWeekMeta(currentWeekIndex);
   },
 
-  onEditShiftTap() {
-    wx.navigateTo({ url: '/pages/selectSchedule/selectSchedule' });
+  onOpenLeaveMarket() {
+    wx.navigateTo({
+      url: '/pages/leavecenter/leavecenter',
+    });
+  },
+
+  openShiftDetail(shift, source = 'my') {
+    if (!shift) {
+      return;
+    }
+
+    const shiftData = encodeURIComponent(JSON.stringify(shift));
+    wx.navigateTo({
+      url: `/pages/shiftDetail/shiftDetail?shiftData=${shiftData}&source=${source}`,
+    });
   },
 
   onShiftTap(e) {
-    const { id } = e.currentTarget.dataset;
-    const shift = this.data.shiftList.find(s => s._id === id);
-    if (shift) {
-      const shiftData = encodeURIComponent(JSON.stringify(shift));
-      wx.navigateTo({
-        url: `/pages/shiftDetail/shiftDetail?shiftData=${shiftData}`,
-      });
-    }
-  },
-
-  formatTime(date) {
-    if (!date) return '--';
-    const d = new Date(date);
-    if (isNaN(d.getTime())) return '--';
-    return d.toTimeString().slice(0, 5);
+    const id = e.currentTarget.dataset.id;
+    const shift = this.data.shiftList.find((item) => item._id === id);
+    this.openShiftDetail(shift, 'my');
   },
 });

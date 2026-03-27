@@ -1,50 +1,102 @@
-<!--pages/workHours/workHours.wxml-->
 <view class="container">
-  <!-- 工时汇总 -->
-  <view class="card summary-card">
-    <view class="summary-title">{{currentMonth}}</view>
+  <view class="summary-card">
+    <view class="summary-head">
+      <view>
+        <text class="summary-kicker">{{summaryKicker}}</text>
+        <text class="summary-title">{{currentLabel}}</text>
+      </view>
+      <text class="summary-badge">{{summaryBadge}}</text>
+    </view>
+
     <view class="summary-hours">
-      <text class="hours-number">{{totalHours}}</text>
+      <text class="hours-number">{{summary.totalHours}}</text>
       <text class="hours-unit">小时</text>
     </view>
-  </view>
 
-  <!-- 视图切换 -->
-  <view class="view-tabs">
-    <view 
-      class="tab-item {{viewMode === 'day' ? 'active' : ''}}" 
-      data-mode="day"
-      bindtap="onViewModeChange">日</view>
-    <view 
-      class="tab-item {{viewMode === 'week' ? 'active' : ''}}" 
-      data-mode="week"
-      bindtap="onViewModeChange">周</view>
-    <view 
-      class="tab-item {{viewMode === 'month' ? 'active' : ''}}" 
-      data-mode="month"
-      bindtap="onViewModeChange">月</view>
-  </view>
+    <text class="summary-money">累计已发工资 ￥{{summary.totalPaidAmount}}</text>
 
-  <!-- 工时列表 -->
-  <view class="card list-card">
-    <view class="list-header">
-      <text class="col-date">日期</text>
-      <text class="col-shift">班次</text>
-      <text class="col-status">状态</text>
-      <text class="col-hours">工时</text>
-      <text class="col-paid">工资</text>
+    <view class="summary-stats">
+      <view class="summary-chip">
+        <text class="summary-chip-value">{{summary.validCount}}</text>
+        <text class="summary-chip-label">有效班次</text>
+      </view>
+      <view class="summary-chip">
+        <text class="summary-chip-value">{{summary.paidCount}}</text>
+        <text class="summary-chip-label">已发工资</text>
+      </view>
+      <view class="summary-chip">
+        <text class="summary-chip-value">{{summary.unpaidCount}}</text>
+        <text class="summary-chip-label">待发工资</text>
+      </view>
     </view>
-    
-    <view class="list-item" wx:for="{{workHoursList}}" wx:key="_id" data-date="{{item.date}}" bindtap="onItemTap">
-      <text class="col-date">{{item.date}}</text>
-      <text class="col-shift">{{item.shiftName}}</text>
-      <text class="col-status {{item.statusClass}}">{{item.statusText}}</text>
-      <text class="col-hours {{item.isValid ? 'text-primary' : 'text-muted'}}">{{item.hours}}h</text>
-      <text class="col-paid {{item.isPaid ? 'text-paid' : ''}}">{{item.isPaid ? '已发' : '未发'}}</text>
+  </view>
+
+  <view class="view-tabs">
+    <view
+      class="tab-item {{viewMode === 'day' ? 'active' : ''}}"
+      data-mode="day"
+      hover-class="tap-soft-hover"
+      bindtap="onViewModeChange">日</view>
+    <view
+      class="tab-item {{viewMode === 'week' ? 'active' : ''}}"
+      data-mode="week"
+      hover-class="tap-soft-hover"
+      bindtap="onViewModeChange">周</view>
+    <view
+      class="tab-item {{viewMode === 'month' ? 'active' : ''}}"
+      data-mode="month"
+      hover-class="tap-soft-hover"
+      bindtap="onViewModeChange">月</view>
+    <view
+      class="tab-item {{viewMode === 'semester' ? 'active' : ''}}"
+      data-mode="semester"
+      hover-class="tap-soft-hover"
+      bindtap="onViewModeChange">本学期</view>
+  </view>
+
+  <view class="records-card card">
+    <view class="records-head">
+      <view>
+        <text class="section-title">记录列表</text>
+        <text class="section-desc">点击任意记录可以查看完整班次详情。</text>
+      </view>
+      <text class="pill pill-ink">{{workHoursList.length}} 条</text>
+    </view>
+
+    <view class="record-list" wx:if="{{workHoursList.length > 0}}">
+      <view
+        class="record-card"
+        wx:for="{{workHoursList}}"
+        wx:key="_id"
+        data-id="{{item._id}}"
+        hover-class="tap-card-hover"
+        bindtap="onItemTap">
+        <view class="record-top">
+          <view class="record-date">
+            <text class="record-day">{{item.dayText}}</text>
+            <text class="record-week">{{item.weekText}}</text>
+          </view>
+          <text class="record-status {{item.statusTone}}">{{item.statusText}}</text>
+        </view>
+
+        <view class="record-main">
+          <text class="record-shift">{{item.shiftName}}</text>
+          <text class="record-range">{{item.timeRange}}</text>
+        </view>
+
+        <view class="record-bottom">
+          <view class="record-meta">
+            <text class="record-hours {{item.isValid ? 'is-valid' : ''}}">{{item.hours}} 小时</text>
+            <text class="record-paid {{item.isPaid ? 'is-paid' : ''}}">{{item.paidText}}</text>
+          </view>
+          <text class="record-arrow">></text>
+        </view>
+      </view>
     </view>
 
     <view class="empty-tip" wx:if="{{workHoursList.length === 0}}">
-      <text>暂无工时记录</text>
+      <text class="empty-title">当前范围暂无工时记录</text>
+      <text class="empty-subtitle">切换日、周、月或本学期视图，可以更快找到对应记录。</text>
     </view>
   </view>
 </view>

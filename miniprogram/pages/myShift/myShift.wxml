@@ -1,42 +1,65 @@
-<!--pages/myShift/myShift.wxml-->
 <view class="container">
-  <!-- 学期信息 -->
-  <view class="semester-banner" wx:if="{{semester}}">
-    <text class="semester-name">{{semester.name}}</text>
+  <view class="hero-card">
+    <text class="hero-kicker">我的班次</text>
+    <text class="hero-title">{{semester ? semester.name : '本学期排班'}}</text>
+    <text class="hero-subtitle">{{currentWeekLabel || '查看整周排班安排'}}</text>
   </view>
 
-  <!-- 周滑动视图 -->
-  <swiper 
-    class="week-swiper" 
+  <view class="market-entry card" hover-class="tap-card-hover" bindtap="onOpenLeaveMarket">
+    <view class="market-orb orb-a"></view>
+    <view class="market-orb orb-b"></view>
+
+    <view class="market-copy">
+      <text class="market-title">可替班班次</text>
+      <text class="market-desc">查看其他同学发布的请假班次，并进入认领替班。</text>
+    </view>
+
+    <view class="game-button game-button-portal">
+      <view class="game-beam beam-a"></view>
+      <view class="game-beam beam-b"></view>
+      <view class="game-spark spark-a"></view>
+      <view class="game-spark spark-b"></view>
+      <view class="game-spark spark-c"></view>
+      <text class="game-button-text">进入查看</text>
+    </view>
+  </view>
+
+  <view class="week-overview card" wx:if="{{weeklyShifts.length > 0}}">
+    <text class="week-overview-kicker">本周排班</text>
+    <text class="week-overview-text">{{currentWeekLabel}}</text>
+  </view>
+
+  <swiper
+    class="week-swiper"
     indicator-dots="{{weeklyShifts.length > 1}}"
     current="{{currentWeekIndex}}"
     bindchange="onWeekChange"
     wx:if="{{weeklyShifts.length > 0}}">
     <swiper-item wx:for="{{weeklyShifts}}" wx:for-item="week" wx:key="weekStart">
       <view class="week-card">
-        <!-- 星期头部 -->
         <view class="day-header">
           <view class="day-header-cell" wx:for="{{weekDayNames}}" wx:for-index="dayIdx" wx:key="index">
             <text class="day-name">{{item}}</text>
             <text class="day-date">{{week.dates[dayIdx]}}</text>
           </view>
         </view>
-        
-        <!-- 班次内容 -->
+
         <view class="day-content">
-          <block wx:for="{{week.days}}" wx:for-index="dayIdx" wx:key="index">
+          <block wx:for="{{week.days}}" wx:key="index">
             <view class="day-content-cell">
-              <block wx:for="{{item}}" wx:for-item="shift" wx:key="_id">
-                <view 
-                  class="shift-item {{shift.shiftType === 1 ? 'shift-leave' : (shift.shiftType === 2 ? 'shift-swap' : (shift.shiftType === 3 ? 'shift-borrow' : ''))}}"
-                  data-id="{{shift._id}}"
-                  bindtap="onShiftTap">
-                  <text class="shift-name">{{shift.shiftName}}</text>
-                  <text class="shift-time">{{shift.startTime}}</text>
-                  <text class="shift-type" wx:if="{{shift.shiftType > 0}}">
-                    {{shift.shiftType === 1 ? '请假' : (shift.shiftType === 2 ? '替班' : '蹭班')}}
-                  </text>
-                </view>
+              <block wx:if="{{item.length > 0}}">
+                <block wx:for="{{item}}" wx:for-item="shift" wx:key="_id">
+                  <view
+                    class="shift-item {{shift.shiftTypeClass}}"
+                    data-id="{{shift._id}}"
+                    hover-class="tap-card-hover"
+                    bindtap="onShiftTap">
+                    <text class="shift-name">{{shift.shiftName}}</text>
+                    <text class="shift-time">{{shift.startTime}}</text>
+                    <text class="shift-salary" wx:if="{{shift.salaryPaid}}">已发工资</text>
+                    <text class="shift-type" wx:if="{{shift.shiftType > 0}}">{{shift.shiftTypeText}}</text>
+                  </view>
+                </block>
               </block>
             </view>
           </block>
@@ -45,8 +68,8 @@
     </swiper-item>
   </swiper>
 
-  <!-- 空状态 -->
-  <view class="empty" wx:if="{{!loading && shiftList.length === 0}}">
-    <text>暂无班次安排</text>
+  <view class="empty card" wx:if="{{!loading && shiftList.length === 0}}">
+    <text class="empty-title">暂无班次安排</text>
+    <text class="empty-text">当前还没有可显示的排班，请联系负责人检查首次排班是否已经生成。</text>
   </view>
 </view>

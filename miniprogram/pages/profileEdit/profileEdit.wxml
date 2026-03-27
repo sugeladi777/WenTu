@@ -1,0 +1,53 @@
+<view class="container">
+  <view class="hero-card">
+    <text class="hero-kicker">账户资料</text>
+    <text class="hero-title">修改头像、姓名和昵称</text>
+    <text class="hero-desc">保存后会同步更新到个人中心和当前账号信息。</text>
+  </view>
+
+  <view class="editor-card card">
+    <view class="avatar-row">
+      <view class="avatar-panel" hover-class="tap-card-hover" bindtap="onPickAvatar">
+        <image class="avatar-image" wx:if="{{avatarUrl}}" src="{{avatarUrl}}" mode="aspectFill"></image>
+        <text class="avatar-text" wx:else>{{avatarText}}</text>
+      </view>
+
+      <view class="avatar-copy">
+        <text class="avatar-name">{{displayName}}</text>
+        <text class="avatar-desc">点击头像重新上传</text>
+        <button class="ghost-btn" hover-class="tap-button-hover" bindtap="onPickAvatar">更换头像</button>
+      </view>
+    </view>
+
+    <view class="form-item">
+      <text class="field-label">姓名</text>
+      <input
+        class="field-input"
+        placeholder="请输入姓名"
+        value="{{profileForm.name}}"
+        data-field="name"
+        bindinput="onProfileInput"
+      />
+    </view>
+
+    <view class="form-item">
+      <text class="field-label">昵称</text>
+      <input
+        class="field-input"
+        placeholder="请输入昵称"
+        value="{{profileForm.nickname}}"
+        data-field="nickname"
+        bindinput="onProfileInput"
+      />
+    </view>
+
+    <view class="readonly-row">
+      <text class="readonly-label">学号</text>
+      <text class="readonly-value">{{userInfo.studentId || '--'}}</text>
+    </view>
+
+    <button class="primary-btn" hover-class="tap-button-hover" bindtap="onSaveProfile" loading="{{saving}}" disabled="{{saving}}">
+      保存资料
+    </button>
+  </view>
+</view>

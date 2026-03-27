@@ -1,43 +1,64 @@
-<!--pages/profile/profile.wxml-->
 <view class="container">
-  <!-- 用户信息卡片 -->
-  <view class="profile-header">
-    <view class="avatar">
-      <text class="avatar-icon">👤</text>
-    </view>
-    <view class="user-name">{{userInfo.name || '未登录'}}</view>
-    <view class="user-role">学号：{{userInfo.studentId || '--'}}</view>
-  </view>
+  <view class="profile-hero {{roleTheme}}">
+    <view class="hero-top">
+      <view class="avatar-panel">
+        <image class="avatar-image" wx:if="{{avatarUrl}}" src="{{avatarUrl}}" mode="aspectFill"></image>
+        <text class="avatar-text" wx:else>{{avatarText}}</text>
+      </view>
 
-  <!-- 菜单列表 -->
-  <view class="menu-section">
-    <view class="menu-item">
-      <view class="menu-icon peach">👤</view>
-      <text class="menu-text">我的信息</text>
-      <text class="menu-arrow">›</text>
+      <view class="hero-copy">
+        <text class="display-name">{{displayName}}</text>
+        <text class="meta-line">姓名：{{userInfo.name || '--'}}</text>
+        <text class="meta-line">学号：{{userInfo.studentId || '--'}}</text>
+        <text class="meta-line">当前身份：{{roleText}}</text>
+      </view>
     </view>
-    <view class="menu-item">
-      <view class="menu-icon orange">📋</view>
-      <text class="menu-text">签到记录</text>
-      <text class="menu-arrow">›</text>
-    </view>
-    <view class="menu-item">
-      <view class="menu-icon green">📊</view>
-      <text class="menu-text">工时统计</text>
-      <text class="menu-arrow">›</text>
-    </view>
-    <view class="menu-item">
-      <view class="menu-icon blue">❓</view>
-      <text class="menu-text">帮助说明</text>
-      <text class="menu-arrow">›</text>
+
+    <view class="hero-tags">
+      <text class="hero-tag accent">{{roleText}}</text>
+      <text class="hero-tag">{{grantedRolesText}}</text>
     </view>
   </view>
 
-  <!-- 退出登录 -->
-  <button class="btn-logout" bindtap="onLogout">
+  <view class="role-switch card" wx:if="{{roleOptions.length > 1}}">
+    <view class="section-head">
+      <text class="section-title">切换进入身份</text>
+      <text class="section-desc">一个账号拥有多个身份时，可以在这里快速切换当前视角。</text>
+    </view>
+
+    <view class="role-chip-list">
+      <view
+        class="role-chip {{item.theme}} {{activeRole === item.role ? 'active' : ''}}"
+        wx:for="{{roleOptions}}"
+        wx:key="role"
+        data-role="{{item.role}}"
+        hover-class="tap-card-hover"
+        bindtap="onSwitchRole">
+        <text class="role-chip-name">{{item.text}}</text>
+        <text class="role-chip-desc">{{item.description}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="entry-section">
+    <view class="entry-card" hover-class="tap-card-hover" bindtap="onOpenProfileEdit">
+      <view class="entry-icon peach">资</view>
+      <view class="entry-copy">
+        <text class="entry-title">账户资料</text>
+      </view>
+      <text class="entry-arrow">›</text>
+    </view>
+
+    <view class="entry-card" hover-class="tap-card-hover" bindtap="onOpenPasswordEdit">
+      <view class="entry-icon butter">密</view>
+      <view class="entry-copy">
+        <text class="entry-title">修改密码</text>
+      </view>
+      <text class="entry-arrow">›</text>
+    </view>
+  </view>
+
+  <button class="logout-btn" hover-class="tap-button-hover" bindtap="onLogout">
     退出登录
   </button>
-
-  <!-- 版本信息 -->
-  <view class="version">文小图 v1.0.0</view>
 </view>

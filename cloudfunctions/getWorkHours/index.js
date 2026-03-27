@@ -1,66 +1,169 @@
-// 云函数入口文件 - 获取工时统计
 const cloud = require('wx-server-sdk');
+
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
+
 const db = cloud.database();
 
-exports.main = async (event, context) => {
-  const { userId, startDate, endDate, semesterId } = event;
+const ATTENDANCE_NORMAL = 0;
+const ATTENDANCE_LATE = 1;
+const ATTENDANCE_ABSENT = 3;
+const SHIFT_TYPE_LEAVE = 1;
+
+async function loadAllDocuments(collection, filter) {
+  const pageSize = 100;
+  const documents = [];
+  let offset = 0;
+
+  while (true) {
+    const result = await collection.where(filter).orderBy('date', 'desc').skip(offset).limit(pageSize).get();
+    const currentPage = result.data || [];
+    documents.push(...currentPage);
+
+    if (currentPage.length < pageSize) {
+      break;
+    }
+
+    offset += currentPage.length;
+  }
+
+  return documents;
+}
+
+function roundNumber(value) {
+  return Math.round(Number(value || 0) * 100) / 100;
+}
+
+function sortSchedules(schedules) {
+  return schedules.slice().sort((left, right) => {
+    if (left.date !== right.date) {
+      return String(right.date || '').localeCompare(String(left.date || ''));
+    }
+
+    return String(left.startTime || '').localeCompare(String(right.startTime || ''));
+  });
+}
+
+function buildWorkHourItem(schedule) {
+  const isCompleted = Boolean(schedule.checkOutTime);
+  const hasValidAttendance = (
+    schedule.attendanceStatus === ATTENDANCE_NORMAL
+    || schedule.attendanceStatus === ATTENDANCE_LATE
+  );
+  const isValid = (
+    isCompleted
+    && hasValidAttendance
+    && schedule.shiftType !== SHIFT_TYPE_LEAVE
+    && schedule.attendanceStatus !== ATTENDANCE_ABSENT
+  );
+  const shiftHours = isValid ? (Number(schedule.fixedHours) || 0) : 0;
+  const approvedOvertimeHours = isValid && schedule.overtimeApproved
+    ? (Number(schedule.overtimeHours) || 0)
+    : 0;
+  const actualHours = roundNumber(shiftHours + approvedOvertimeHours);
+  const salaryAmount = schedule.salaryPaid ? roundNumber(schedule.salaryAmount || 0) : 0;
+
+  return {
+    ...schedule,
+    shiftHours,
+    overtimeHours: Number(schedule.overtimeHours) || 0,
+    approvedOvertimeHours,
+    actualHours,
+    hours: actualHours,
+    isValid,
+    isPaid: Boolean(schedule.salaryPaid),
+    salaryAmount,
+  };
+}
+
+function summarizeItems(items) {
+  let totalHours = 0;
+  let totalPaidAmount = 0;
+  let paidHours = 0;
+  let unpaidHours = 0;
+  let validCount = 0;
+  let paidCount = 0;
+  let unpaidCount = 0;
+
+  items.forEach((item) => {
+    if (!item.isValid) {
+      return;
+    }
+
+    validCount += 1;
+    totalHours += item.actualHours;
+
+    if (item.isPaid) {
+      paidCount += 1;
+      paidHours += item.actualHours;
+      totalPaidAmount += item.salaryAmount;
+      return;
+    }
+
+    unpaidCount += 1;
+    unpaidHours += item.actualHours;
+  });
+
+  return {
+    totalHours: roundNumber(totalHours),
+    totalPaidAmount: roundNumber(totalPaidAmount),
+    paidHours: roundNumber(paidHours),
+    unpaidHours: roundNumber(unpaidHours),
+    validCount,
+    paidCount,
+    unpaidCount,
+  };
+}
+
+exports.main = async (event) => {
+  const userId = String(event.userId || '').trim();
+  const startDate = String(event.startDate || '').trim();
+  const endDate = String(event.endDate || '').trim();
+  const semesterId = String(event.semesterId || '').trim();
 
   if (!userId) {
-    return { success: false, error: '用户ID不能为空' };
+    return { success: false, error: '用户 ID 不能为空' };
   }
 
   try {
-    const schedulesCollection = db.collection('schedules');
+    const rangeQuery = { userId };
 
-    // 构建查询条件
-    let query = { userId };
-    
-    // 日期范围筛选
     if (startDate && endDate) {
-      query.date = db.command.gte(startDate).and(db.command.lte(endDate));
+      rangeQuery.date = db.command.gte(startDate).and(db.command.lte(endDate));
     }
-    
-    // 学期筛选
+
     if (semesterId) {
-      query.semesterId = semesterId;
+      rangeQuery.semesterId = semesterId;
     }
 
-    // 查询所有班次（不管是否签退）
-    const schedules = await schedulesCollection.where(query).orderBy('date', 'desc').get();
-    
-    // 计算总工时（只计入正常或迟到的已签退班次）
-    let totalHours = 0;
-    const list = schedules.data.map(schedule => {
-      // 只有签退且考勤状态为正常(0)或迟到(1)才计入工时
-      const isValid = schedule.checkOutTime && 
-                      (schedule.attendanceStatus === 0 || schedule.attendanceStatus === 1);
-      
-      const baseHours = isValid ? (schedule.fixedHours || 0) : 0;
-      const overtimeHours = (isValid && schedule.overtimeApproved) ? (schedule.overtimeHours || 0) : 0;
-      const hours = baseHours + overtimeHours;
-      
-      if (isValid) {
-        totalHours += hours;
-      }
-      
-      return { 
-        ...schedule, 
-        hours: Math.round(hours * 100) / 100,
-        shiftHours: baseHours,
-        overtimeHours: overtimeHours,
-        isValid: isValid,
-        isPaid: schedule.salaryPaid || false,
-      };
-    });
+    const rangeSchedules = sortSchedules(await loadAllDocuments(db.collection('schedules'), rangeQuery));
+    const rangeItems = rangeSchedules.map(buildWorkHourItem);
+    const rangeSummary = summarizeItems(rangeItems);
 
-    return { 
-      success: true, 
-      totalHours: Math.round(totalHours * 100) / 100, 
-      list,
-      count: list.length
+    let semesterSummary = null;
+
+    if (semesterId) {
+      const semesterSchedules = sortSchedules(await loadAllDocuments(db.collection('schedules'), {
+        userId,
+        semesterId,
+      }));
+      semesterSummary = summarizeItems(semesterSchedules.map(buildWorkHourItem));
+    }
+
+    return {
+      success: true,
+      totalHours: rangeSummary.totalHours,
+      totalPaidAmount: rangeSummary.totalPaidAmount,
+      paidHours: rangeSummary.paidHours,
+      unpaidHours: rangeSummary.unpaidHours,
+      validCount: rangeSummary.validCount,
+      paidCount: rangeSummary.paidCount,
+      unpaidCount: rangeSummary.unpaidCount,
+      list: rangeItems,
+      count: rangeItems.length,
+      rangeSummary,
+      semesterSummary,
     };
-  } catch (e) {
-    return { success: false, error: e.message };
+  } catch (error) {
+    return { success: false, error: error.message };
   }
 };

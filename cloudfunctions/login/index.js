@@ -1,93 +1,208 @@
-// 云函数入口文件
 const cloud = require('wx-server-sdk');
 const bcrypt = require('bcryptjs');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
+
 const db = cloud.database();
 
-// 加密密码
-const hashPassword = async (password) => {
+const ROLE_MEMBER = 0;
+const ROLE_LEADER = 1;
+const ROLE_ADMIN = 2;
+const VALID_ROLES = [ROLE_MEMBER, ROLE_LEADER, ROLE_ADMIN];
+
+function normalizeStudentId(value) {
+  return String(value || '').trim();
+}
+
+function normalizePassword(value) {
+  return String(value || '');
+}
+
+function normalizeName(value) {
+  return String(value || '').trim().slice(0, 30);
+}
+
+function normalizeNickname(value) {
+  return String(value || '').trim().slice(0, 30);
+}
+
+function normalizeRoles(user = {}) {
+  const roles = [];
+
+  if (Array.isArray(user.roles)) {
+    user.roles.forEach((item) => {
+      const role = Number(item);
+      if (VALID_ROLES.includes(role) && !roles.includes(role)) {
+        roles.push(role);
+      }
+    });
+  }
+
+  const legacyRole = Number(user.role);
+  if (!roles.length && VALID_ROLES.includes(legacyRole)) {
+    roles.push(legacyRole);
+  }
+
+  if (!roles.includes(ROLE_MEMBER)) {
+    roles.push(ROLE_MEMBER);
+  }
+
+  return roles.sort((left, right) => left - right);
+}
+
+function getPrimaryRole(roles) {
+  if (roles.includes(ROLE_ADMIN)) {
+    return ROLE_ADMIN;
+  }
+
+  if (roles.includes(ROLE_LEADER)) {
+    return ROLE_LEADER;
+  }
+
+  return ROLE_MEMBER;
+}
+
+function omitPassword(user) {
+  if (!user) {
+    return null;
+  }
+
+  const { password, ...userInfo } = user;
+  const roles = normalizeRoles(user);
+  const primaryRole = getPrimaryRole(roles);
+
+  return {
+    ...userInfo,
+    nickname: userInfo.nickname || userInfo.name || '',
+    roles,
+    role: primaryRole,
+    primaryRole,
+  };
+}
+
+async function syncUserRoleFields(user) {
+  if (!user || !user._id) {
+    return user;
+  }
+
+  const roles = normalizeRoles(user);
+  const primaryRole = getPrimaryRole(roles);
+  const currentRoles = Array.isArray(user.roles) ? user.roles : [];
+  const shouldUpdate = currentRoles.length !== roles.length
+    || currentRoles.some((item, index) => Number(item) !== roles[index])
+    || Number(user.role) !== primaryRole;
+
+  if (!shouldUpdate) {
+    return {
+      ...user,
+      roles,
+      role: primaryRole,
+    };
+  }
+
+  await db.collection('users').doc(user._id).update({
+    data: {
+      roles,
+      role: primaryRole,
+      updatedAt: db.serverDate(),
+    },
+  });
+
+  return {
+    ...user,
+    roles,
+    role: primaryRole,
+  };
+}
+
+async function hashPassword(password) {
   const salt = await bcrypt.genSalt(10);
-  return await bcrypt.hash(password, salt);
-};
+  return bcrypt.hash(password, salt);
+}
 
-// 验证密码
-const comparePassword = async (password, hash) => {
-  return await bcrypt.compare(password, hash);
-};
+async function comparePassword(password, hash) {
+  return bcrypt.compare(password, hash);
+}
 
-// 注册用户
-const registerUser = async (studentId, password, userInfo) => {
+async function findUserByStudentId(studentId) {
+  const result = await db.collection('users')
+    .where({ studentId })
+    .limit(1)
+    .get();
+
+  return result.data && result.data[0] ? result.data[0] : null;
+}
+
+async function registerUser(studentId, password, name, nickname) {
   const hashedPassword = await hashPassword(password);
+
   const result = await db.collection('users').add({
     data: {
       studentId,
       password: hashedPassword,
-      name: userInfo.name || '',
-      role: userInfo.role || 0,
+      name,
+      nickname: nickname || name,
+      role: ROLE_MEMBER,
+      roles: [ROLE_MEMBER],
       avatar: '',
       rewardScore: 0,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }
+      createdAt: db.serverDate(),
+      updatedAt: db.serverDate(),
+    },
   });
-  return result;
-};
 
-exports.main = async (event, context) => {
-  const { studentId, password, action } = event;
+  return result._id;
+}
 
-  // 注册新用户
-  if (action === 'register') {
-    if (!studentId || !password) {
-      return { success: false, error: '请输入学号和密码' };
-    }
+exports.main = async (event) => {
+  const action = String(event.action || 'login').trim();
+  const studentId = normalizeStudentId(event.studentId);
+  const password = normalizePassword(event.password);
+  const name = normalizeName(event.name);
+  const nickname = normalizeNickname(event.nickname);
 
-    try {
-      // 检查用户是否已存在
-      const existing = await db.collection('users').where({ studentId }).get();
-      if (existing.data.length > 0) {
-        return { success: false, error: '用户已存在' };
-      }
-
-      // 注册用户
-      await registerUser(studentId, password, event);
-
-      // 获取新注册的用户信息
-      const newUser = await db.collection('users').where({ studentId }).get();
-      const user = newUser.data[0];
-      const { password: _, ...userInfo } = user;
-
-      return { success: true, message: '注册成功', userInfo };
-    } catch (e) {
-      return { success: false, error: e.message };
-    }
-  }
-
-  // 登录
   if (!studentId || !password) {
     return { success: false, error: '请输入学号和密码' };
   }
 
   try {
-    const usersCollection = db.collection('users');
-    const result = await usersCollection.where({ studentId }).get();
+    if (action === 'register') {
+      if (!name) {
+        return { success: false, error: '请输入姓名' };
+      }
 
-    if (result.data.length === 0) {
+      const existingUser = await findUserByStudentId(studentId);
+      if (existingUser) {
+        return { success: false, error: '该账号已存在' };
+      }
+
+      const userId = await registerUser(studentId, password, name, nickname);
+      const newUser = await db.collection('users').doc(userId).get();
+
+      return {
+        success: true,
+        message: '注册成功',
+        userInfo: omitPassword(newUser.data),
+      };
+    }
+
+    const user = await findUserByStudentId(studentId);
+    if (!user) {
       return { success: false, error: '用户不存在' };
     }
 
-    const user = result.data[0];
     const isMatch = await comparePassword(password, user.password);
-
     if (!isMatch) {
       return { success: false, error: '密码错误' };
     }
 
-    // 返回用户信息（不包含密码）
-    const { password: _, ...userInfo } = user;
-    return { success: true, userInfo };
-  } catch (e) {
-    return { success: false, error: e.message };
+    const normalizedUser = await syncUserRoleFields(user);
+
+    return {
+      success: true,
+      userInfo: omitPassword(normalizedUser),
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
   }
 };

@@ -1,39 +1,94 @@
-// app.js
+﻿const { clearStoredUser, getStoredUser, setStoredUser } = require('./utils/auth');
+const { getActiveRole } = require('./utils/role');
+
 App({
   onLaunch() {
-    // 初始化云开发
     if (!wx.cloud) {
-      console.error('请使用 2.2.3 或以上的基础库以使用云能力');
+      console.error('请使用 2.2.3 及以上基础库以启用云能力');
     } else {
       wx.cloud.init({
-        env: 'cloud1-9g80lw7hb3abc7e1', // 替换为你的云开发环境ID
+        env: 'cloud1-9g80lw7hb3abc7e1',
         traceUser: true,
       });
     }
   },
 
-  // 全局数据
   globalData: {
     userInfo: null,
     isLoggedIn: false,
+    sessionBootstrapped: false,
   },
 
-  // 检查登录状态
-  checkLogin() {
-    const userInfo = wx.getStorageSync('userInfo');
-    if (userInfo) {
-      this.globalData.userInfo = userInfo;
-      this.globalData.isLoggedIn = true;
-      return true;
+  bootstrapSession(force = false) {
+    if (this.globalData.sessionBootstrapped && !force) {
+      return this.globalData.isLoggedIn;
     }
+
+    const userInfo = getStoredUser();
+    this.globalData.userInfo = userInfo;
+    this.globalData.isLoggedIn = Boolean(userInfo && userInfo._id);
+    this.globalData.sessionBootstrapped = true;
+    return this.globalData.isLoggedIn;
+  },
+
+  checkLogin() {
+    return Boolean(this.globalData.userInfo && this.globalData.userInfo._id);
+  },
+
+  setUserInfo(userInfo, options = {}) {
+    const normalized = setStoredUser(userInfo, options.activeRole);
+    this.globalData.userInfo = normalized;
+    this.globalData.isLoggedIn = Boolean(normalized && normalized._id);
+    this.globalData.sessionBootstrapped = true;
+    return normalized;
+  },
+
+  setActiveRole(role) {
+    const currentUser = this.globalData.userInfo || (this.bootstrapSession(true) ? this.globalData.userInfo : null);
+    if (!currentUser) {
+      return null;
+    }
+
+    return this.setUserInfo(currentUser, { activeRole: role });
+  },
+
+  async refreshUserInfo() {
+    const currentUser = this.globalData.userInfo || (this.bootstrapSession(true) ? this.globalData.userInfo : null);
+    if (!currentUser || !currentUser._id) {
+      return null;
+    }
+
+    try {
+      const response = await wx.cloud.callFunction({
+        name: 'getUserProfile',
+        data: {
+          userId: currentUser._id,
+        },
+      });
+
+      const result = response && response.result;
+      if (!result || result.success === false || !result.userInfo) {
+        return currentUser;
+      }
+
+      return this.setUserInfo(result.userInfo, {
+        activeRole: getActiveRole(currentUser),
+      });
+    } catch (error) {
+      console.warn('刷新用户资料失败:', error);
+      return currentUser;
+    }
+  },
+
+  clearUserSession() {
+    clearStoredUser();
     this.globalData.userInfo = null;
     this.globalData.isLoggedIn = false;
-    return false;
+    this.globalData.sessionBootstrapped = true;
   },
 
-  // 跳转登录页
   goToLogin() {
-    wx.redirectTo({
+    wx.reLaunch({
       url: '/pages/login/login',
     });
   },

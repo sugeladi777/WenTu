@@ -1,145 +1,202 @@
-// 云函数入口文件 - 签到
 const cloud = require('wx-server-sdk');
+
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
+
 const db = cloud.database();
 
-// 班次类型常量
-const SHIFT_TYPE_NORMAL = 0;   // 正常
-const SHIFT_TYPE_LEAVE = 1;    // 请假
-const SHIFT_TYPE_SWAP = 2;    // 替班
-const SHIFT_TYPE_BORROW = 3;  // 蹭班
+const SHIFT_TYPE_LEAVE = 1;
+const ATTENDANCE_NORMAL = 0;
+const ATTENDANCE_LATE = 1;
+const ATTENDANCE_ABSENT = 3;
 
-// 考勤状态常量
-const ATTENDANCE_NORMAL = 0;   // 正常
-const ATTENDANCE_LATE = 1;     // 迟到
-const ATTENDANCE_ABSENT = 3;  // 旷岗
-
-// 获取北京时间（考虑时区偏移）
-function getBeijingTime() {
-  const now = new Date();
-  // 获取本地时区偏移（分钟），微信云函数环境可能是 UTC
-  // 中国时区是 +8 小时 = 480 分钟
-  const beijingOffset = 480; // 分钟
-  const localOffset = now.getTimezoneOffset(); // 本地时区偏移（可能是0或负值）
-  const offsetDiff = beijingOffset - (-localOffset); // 计算差值
-  
-  return new Date(now.getTime() + offsetDiff * 60 * 1000);
+function padNumber(value) {
+  return String(value).padStart(2, '0');
 }
 
-// 获取北京时间字符串（格式：2026-03-24 21:45:04）
-function getBeijingTimeStr() {
-  const now = getBeijingTime();
-  const year = now.getUTCFullYear();
-  const month = String(now.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(now.getUTCDate()).padStart(2, '0');
-  const hours = String(now.getUTCHours()).padStart(2, '0');
-  const minutes = String(now.getUTCMinutes()).padStart(2, '0');
-  const seconds = String(now.getUTCSeconds()).padStart(2, '0');
-  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+function toChinaDate(input = new Date()) {
+  const date = input instanceof Date ? input : new Date(input);
+  const offsetMinutes = 8 * 60 + date.getTimezoneOffset();
+  return new Date(date.getTime() + offsetMinutes * 60 * 1000);
 }
 
-exports.main = async (event, context) => {
-  const { userId, date, scheduleId, latitude, longitude } = event;
+function getChinaDateParts(input = new Date()) {
+  const chinaDate = toChinaDate(input);
+  return {
+    year: chinaDate.getUTCFullYear(),
+    month: chinaDate.getUTCMonth() + 1,
+    day: chinaDate.getUTCDate(),
+    hour: chinaDate.getUTCHours(),
+    minute: chinaDate.getUTCMinutes(),
+  };
+}
+
+function formatChinaDate(input = new Date()) {
+  const parts = getChinaDateParts(input);
+  return `${parts.year}-${padNumber(parts.month)}-${padNumber(parts.day)}`;
+}
+
+function timeToMinutes(timeString) {
+  const match = /^(\d{2}):(\d{2})$/.exec(String(timeString || ''));
+  if (!match) {
+    return null;
+  }
+
+  return Number(match[1]) * 60 + Number(match[2]);
+}
+
+function formatMinutes(minutes) {
+  const safeMinutes = Math.max(0, minutes);
+  const hour = Math.floor(safeMinutes / 60);
+  const minute = safeMinutes % 60;
+  return `${padNumber(hour)}:${padNumber(minute)}`;
+}
+
+function evaluateSchedule(schedule, currentMinutes) {
+  if (!schedule) {
+    return { ok: false, code: 'not_found', message: '班次不存在' };
+  }
+
+  if (schedule.checkInTime) {
+    return { ok: false, code: 'checked_in', message: '该班次已经签到' };
+  }
+
+  if (schedule.attendanceStatus === ATTENDANCE_ABSENT) {
+    return { ok: false, code: 'absent', message: '该班次已被标记为旷工' };
+  }
+
+  if (schedule.shiftType === SHIFT_TYPE_LEAVE) {
+    return { ok: false, code: 'leave', message: '该班次已请假，不能签到' };
+  }
+
+  const startMinutes = timeToMinutes(schedule.startTime);
+  const endMinutes = timeToMinutes(schedule.endTime);
+
+  if (startMinutes === null || endMinutes === null) {
+    return { ok: false, code: 'invalid_time', message: '班次时间配置异常' };
+  }
+
+  const earliestCheckIn = startMinutes - 15;
+  if (currentMinutes < earliestCheckIn) {
+    return {
+      ok: false,
+      code: 'too_early',
+      message: `请在 ${formatMinutes(earliestCheckIn)} 后签到`,
+      availableAt: earliestCheckIn,
+    };
+  }
+
+  if (currentMinutes > endMinutes) {
+    return { ok: false, code: 'expired', message: '已超过班次时间，不能签到' };
+  }
+
+  return {
+    ok: true,
+    attendanceStatus: currentMinutes > startMinutes + 5 ? ATTENDANCE_LATE : ATTENDANCE_NORMAL,
+  };
+}
+
+async function findTodaySchedules(userId, date) {
+  const result = await db.collection('schedules')
+    .where({ userId, date })
+    .orderBy('startTime', 'asc')
+    .limit(100)
+    .get();
+
+  return result.data || [];
+}
+
+exports.main = async (event) => {
+  const userId = String(event.userId || '').trim();
+  const date = String(event.date || '').trim() || formatChinaDate();
+  const scheduleId = String(event.scheduleId || '').trim();
+  const latitude = typeof event.latitude === 'number' ? event.latitude : null;
+  const longitude = typeof event.longitude === 'number' ? event.longitude : null;
 
   if (!userId) {
     return { success: false, error: '用户ID不能为空' };
   }
 
   try {
-    const schedulesCollection = db.collection('schedules');
-    // 使用北京时间
-    const beijingTime = getBeijingTime();
-    const today = date || `${beijingTime.getUTCFullYear()}-${String(beijingTime.getUTCMonth() + 1).padStart(2, '0')}-${String(beijingTime.getUTCDate()).padStart(2, '0')}`;
+    const nowParts = getChinaDateParts();
+    const currentMinutes = nowParts.hour * 60 + nowParts.minute;
+    let targetSchedule = null;
+    let evaluation = null;
 
-    // 获取指定班次
-    let schedule = null;
     if (scheduleId) {
-      const scheduleRes = await schedulesCollection.doc(scheduleId).get();
-      schedule = scheduleRes.data;
+      const scheduleResult = await db.collection('schedules').doc(scheduleId).get();
+      targetSchedule = scheduleResult.data;
+
+      if (!targetSchedule || targetSchedule.userId !== userId) {
+        return { success: false, error: '找不到可签到的班次' };
+      }
+
+      if (targetSchedule.date !== date) {
+        return { success: false, error: '只能签到当天班次' };
+      }
+
+      evaluation = evaluateSchedule(targetSchedule, currentMinutes);
     } else {
-      // 如果没有指定班次ID，获取今日所有班次
-      const schedules = await schedulesCollection
-        .where({ userId, date: today })
-        .orderBy('startTime', 'asc')
-        .get();
-      
-      if (schedules.data.length > 0) {
-        // 自动选择第一个未签到的班次
-        for (const s of schedules.data) {
-          if (!s.checkInTime) {
-            schedule = s;
-            break;
-          }
+      const scheduleList = await findTodaySchedules(userId, date);
+
+      if (scheduleList.length === 0) {
+        return { success: false, error: '今日没有班次' };
+      }
+
+      let nearestAvailableAt = null;
+      let expiredCount = 0;
+
+      for (const schedule of scheduleList) {
+        const currentEvaluation = evaluateSchedule(schedule, currentMinutes);
+        if (currentEvaluation.ok) {
+          targetSchedule = schedule;
+          evaluation = currentEvaluation;
+          break;
         }
-        
-        if (!schedule) {
-          return { success: false, error: '今日所有班次已签到' };
+
+        if (currentEvaluation.code === 'too_early') {
+          nearestAvailableAt = nearestAvailableAt === null
+            ? currentEvaluation.availableAt
+            : Math.min(nearestAvailableAt, currentEvaluation.availableAt);
         }
+
+        if (currentEvaluation.code === 'expired') {
+          expiredCount += 1;
+        }
+      }
+
+      if (!targetSchedule) {
+        if (nearestAvailableAt !== null) {
+          return { success: false, error: `请在 ${formatMinutes(nearestAvailableAt)} 后签到` };
+        }
+
+        if (expiredCount > 0) {
+          return { success: false, error: '已超过班次时间，不能签到' };
+        }
+
+        return { success: false, error: '今日班次已处理完成' };
       }
     }
 
-    // 必须有班次才能签到
-    if (!schedule) {
-      return { success: false, error: '今日没有班次' };
+    if (!evaluation || !evaluation.ok) {
+      return { success: false, error: evaluation ? evaluation.message : '签到失败' };
     }
 
-    // 检查是否已签到
-    if (schedule.checkInTime) {
-      return { success: false, error: '该班次已签到' };
-    }
-
-    // 检查是否是请假状态（请假不能签到）
-    if (schedule.shiftType === SHIFT_TYPE_LEAVE && schedule.leaveStatus === 1) {
-      return { success: false, error: '该班次已请假，不能签到' };
-    }
-
-    // 使用北京时间解析班次时间
-    const shiftStartTime = new Date(today + 'T' + schedule.startTime + ':00');
-    const shiftEndTime = new Date(today + 'T' + schedule.endTime + ':00');
-
-    // 签到时间验证：
-    // 班次开始前15分钟到班次结束前都可以签到
-    const earliestTime = new Date(shiftStartTime.getTime() - 15 * 60 * 1000);
-
-    if (beijingTime < earliestTime) {
-      return { success: false, error: `请在 ${formatTime(earliestTime)} 后签到` };
-    }
-
-    if (beijingTime > shiftEndTime) {
-      return { success: false, error: '已超过班次时间，不能签到' };
-    }
-
-    // 确定考勤状态
-    // 班次开始5分钟后签到视为迟到
-    const lateThreshold = new Date(shiftStartTime.getTime() + 5 * 60 * 1000);
-    let attendanceStatus = ATTENDANCE_NORMAL;
-    if (beijingTime > lateThreshold) {
-      attendanceStatus = ATTENDANCE_LATE; // 迟到
-    }
-
-    // 获取北京时间字符串用于存储
-    const checkInTimeStr = getBeijingTimeStr();
-
-    // 更新 schedules 表
-    await schedulesCollection.doc(schedule._id).update({
+    await db.collection('schedules').doc(targetSchedule._id).update({
       data: {
-        checkInTime: db.serverDate(), // 使用服务端时间
-        attendanceStatus,
-        checkInLocation: latitude && longitude ? { latitude, longitude } : null,
+        checkInTime: db.serverDate(),
+        attendanceStatus: evaluation.attendanceStatus,
+        checkInLocation: latitude !== null && longitude !== null ? { latitude, longitude } : null,
         updatedAt: db.serverDate(),
-      }
+      },
     });
 
-    const statusMsg = attendanceStatus === ATTENDANCE_NORMAL ? '签到成功' : '签到成功（迟到）';
-    return { success: true, scheduleId: schedule._id, status: statusMsg };
-  } catch (e) {
-    return { success: false, error: e.message };
+    return {
+      success: true,
+      scheduleId: targetSchedule._id,
+      attendanceStatus: evaluation.attendanceStatus,
+      status: evaluation.attendanceStatus === ATTENDANCE_LATE ? '签到成功（迟到）' : '签到成功',
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
   }
 };
-
-// 格式化时间
-function formatTime(date) {
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  return `${hours}:${minutes}`;
-}

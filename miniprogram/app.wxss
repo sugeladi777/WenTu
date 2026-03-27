@@ -1,78 +1,126 @@
-/* 全局样式 - 马卡龙清新风格 */
 page {
-  background: #faf9f7;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  color: #5a5a5a;
+  min-height: 100%;
+  background:
+    radial-gradient(circle at 6% 8%, rgba(255, 215, 226, 0.86), transparent 23%),
+    radial-gradient(circle at 92% 10%, rgba(217, 233, 255, 0.84), transparent 24%),
+    radial-gradient(circle at 84% 78%, rgba(216, 247, 228, 0.72), transparent 28%),
+    linear-gradient(180deg, #fffdf9 0%, #fff5fb 46%, #f5fff8 100%);
+  color: #6b617b;
+  font-family: 'Avenir Next', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
 }
 
-/* 通用卡片样式 */
+button::after {
+  border: none;
+}
+
+button {
+  transition: transform 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
+  transform-origin: center;
+}
+
+button[disabled] {
+  opacity: 0.74;
+}
+
+.container {
+  min-height: 100vh;
+  box-sizing: border-box;
+  position: relative;
+}
+
 .card {
-  background: #ffffff;
-  border-radius: 20rpx;
-  padding: 30rpx;
-  margin: 20rpx;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.05);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(255, 252, 255, 0.92) 100%);
+  border: 1rpx solid rgba(255, 247, 252, 0.96);
+  border-radius: 36rpx;
+  box-shadow:
+    0 24rpx 56rpx rgba(205, 178, 199, 0.14),
+    0 8rpx 18rpx rgba(255, 255, 255, 0.54) inset;
+  backdrop-filter: blur(18rpx);
 }
 
-/* 主色调按钮 */
-.btn-primary {
-  background: linear-gradient(135deg, #ffaaa5 0%, #ffd3b6 100%);
-  color: #fff;
-  border: none;
-  border-radius: 50rpx;
-  height: 88rpx;
-  line-height: 88rpx;
+.section-title {
   font-size: 30rpx;
-  font-weight: 500;
+  font-weight: 700;
+  color: #6d607c;
+  letter-spacing: 1rpx;
 }
 
-.btn-primary::after {
-  border: none;
+.section-desc {
+  font-size: 22rpx;
+  line-height: 1.66;
+  color: #a093b1;
 }
 
-/* 次要按钮 */
-.btn-secondary {
-  background: #dcedc1;
-  color: #6b8e23;
-  border: none;
-  border-radius: 50rpx;
-  height: 80rpx;
-  line-height: 80rpx;
-  font-size: 28rpx;
+.pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10rpx 24rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  line-height: 1;
 }
 
-/* 标签样式 */
-.tag {
-  display: inline-block;
-  padding: 8rpx 20rpx;
-  border-radius: 30rpx;
-  font-size: 24rpx;
+.pill-warm {
+  background: rgba(255, 224, 210, 0.8);
+  color: #c07d6e;
 }
 
-.tag-primary {
-  background: linear-gradient(135deg, #ffd3b6 0%, #dcedc1 100%);
-  color: #c75b39;
+.pill-mint {
+  background: rgba(220, 245, 232, 0.84);
+  color: #6a9f86;
 }
 
-.tag-success {
-  background: #a8e6cf;
-  color: #2e8b57;
+.pill-ink {
+  background: rgba(236, 229, 250, 0.92);
+  color: #8576a5;
 }
 
-.tag-warning {
-  background: #ffd3b6;
-  color: #c75b39;
+.text-success {
+  color: #69a389;
 }
 
-/* 输入框样式 */
-.input {
-  background: #faf9f7;
-  border: 2rpx solid #ffd3b6;
-  border-radius: 16rpx;
-  padding: 20rpx 30rpx;
-  font-size: 28rpx;
+.text-warning {
+  color: #d19967;
 }
 
-.input:focus {
-  border-color: #ffaaa5;
+.text-danger {
+  color: #d78997;
+}
+
+.text-muted {
+  color: #ada4bd;
+}
+
+.text-primary {
+  color: #7f93ca;
+}
+
+.tap-card-hover {
+  transform: translateY(-4rpx) scale(0.997);
+  opacity: 0.98;
+}
+
+.tap-soft-hover {
+  transform: scale(0.972);
+  opacity: 0.92;
+}
+
+.tap-button-hover {
+  transform: translateY(-4rpx) scale(0.994);
+  opacity: 0.97;
+}
+
+.wx-swiper-dot {
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 999rpx;
+  margin: 0 8rpx !important;
+  background: rgba(214, 202, 229, 0.7) !important;
+}
+
+.wx-swiper-dot-active {
+  width: 34rpx;
+  background: linear-gradient(135deg, #ffcfc9 0%, #d9d2ff 100%) !important;
 }

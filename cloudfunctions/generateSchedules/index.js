@@ -1,19 +1,161 @@
-/**
- * 生成班次
- * 根据 weeklySelections 生成具体的 schedules 记录
- */
 const cloud = require('wx-server-sdk');
+
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
+
 const db = cloud.database();
 
-// 班次类型常量
-const SHIFT_TYPE_NORMAL = 0;   // 正常
-const SHIFT_TYPE_LEAVE = 1;    // 请假
-const SHIFT_TYPE_SWAP = 2;    // 替班
-const SHIFT_TYPE_BORROW = 3;  // 蹭班
+const SHIFT_TYPE_NORMAL = 0;
+const SHIFT_TYPE_LEAVE = 1;
+const SHIFT_TYPE_SWAP = 2;
+const SHIFT_TYPE_BORROW = 3;
+const ATTENDANCE_ABSENT = 3;
 
-exports.main = async (event, context) => {
-  const { semesterId, userId, userName } = event;
+function padNumber(value) {
+  return String(value).padStart(2, '0');
+}
+
+function formatDate(date) {
+  return `${date.getFullYear()}-${padNumber(date.getMonth() + 1)}-${padNumber(date.getDate())}`;
+}
+
+function parseDateString(dateString) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dateString || ''));
+  if (!match) {
+    return null;
+  }
+
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+}
+
+function toChinaDate(input = new Date()) {
+  const date = input instanceof Date ? input : new Date(input);
+  const offsetMinutes = 8 * 60 + date.getTimezoneOffset();
+  return new Date(date.getTime() + offsetMinutes * 60 * 1000);
+}
+
+function formatChinaDate(input = new Date()) {
+  const chinaDate = toChinaDate(input);
+  return `${chinaDate.getUTCFullYear()}-${padNumber(chinaDate.getUTCMonth() + 1)}-${padNumber(chinaDate.getUTCDate())}`;
+}
+
+function sanitizePreferences(preferences) {
+  const preferenceMap = {};
+
+  if (!Array.isArray(preferences)) {
+    return [];
+  }
+
+  preferences.forEach((item) => {
+    const shiftId = String((item && item.shiftId) || '').trim();
+    const dayOfWeek = Number(item && item.dayOfWeek);
+
+    if (!shiftId || Number.isNaN(dayOfWeek) || dayOfWeek < 0 || dayOfWeek > 6) {
+      return;
+    }
+
+    preferenceMap[`${shiftId}::${dayOfWeek}`] = { shiftId, dayOfWeek };
+  });
+
+  return Object.values(preferenceMap);
+}
+
+async function loadAllDocuments(collection, filter) {
+  const documents = [];
+  let offset = 0;
+  const pageSize = 100;
+
+  while (true) {
+    const result = await collection.where(filter).skip(offset).limit(pageSize).get();
+    const currentPage = result.data || [];
+    documents.push(...currentPage);
+
+    if (currentPage.length < pageSize) {
+      break;
+    }
+
+    offset += currentPage.length;
+  }
+
+  return documents;
+}
+
+function buildScheduleSlotKey(schedule) {
+  return `${schedule.date}::${schedule.startTime}::${schedule.endTime}`;
+}
+
+function buildTemplateKey(date, shiftId) {
+  return `${date}::${shiftId}`;
+}
+
+function shouldPreserveSchedule(schedule, regenerateFromDate) {
+  if (!schedule || !schedule.date) {
+    return true;
+  }
+
+  if (schedule.date < regenerateFromDate) {
+    return true;
+  }
+
+  if (schedule.checkInTime || schedule.checkOutTime) {
+    return true;
+  }
+
+  if (schedule.attendanceStatus === ATTENDANCE_ABSENT) {
+    return true;
+  }
+
+  if (
+    schedule.shiftType === SHIFT_TYPE_LEAVE ||
+    schedule.shiftType === SHIFT_TYPE_SWAP ||
+    schedule.shiftType === SHIFT_TYPE_BORROW
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+function createScheduleRecord({ semesterId, userId, userName, date, dayOfWeek, template }) {
+  return {
+    semesterId,
+    userId,
+    userName,
+    date,
+    dayOfWeek,
+    shiftId: template._id,
+    shiftName: template.name,
+    startTime: template.startTime,
+    endTime: template.endTime,
+    fixedHours: Number(template.fixedHours) || 0,
+    shiftType: SHIFT_TYPE_NORMAL,
+    checkInTime: null,
+    checkOutTime: null,
+    attendanceStatus: null,
+    overtimeHours: 0,
+    overtimeApproved: false,
+    leaveReason: '',
+    leaveStatus: null,
+    leaveApprovedBy: null,
+    leaveApprovedAt: null,
+    originalUserId: null,
+    leaderConfirmStatus: null,
+    leaderConfirmedAt: null,
+    leaderConfirmedBy: null,
+    leaderConfirmedByName: '',
+    salaryPaid: false,
+    salaryWeek: null,
+    salaryAmount: null,
+    salaryPaidAt: null,
+    salaryPaidBy: null,
+    createdAt: db.serverDate(),
+    updatedAt: db.serverDate(),
+  };
+}
+
+exports.main = async (event) => {
+  const semesterId = String(event.semesterId || '').trim();
+  const userId = String(event.userId || '').trim();
+  const userName = String(event.userName || '').trim();
 
   if (!semesterId || !userId) {
     return { success: false, error: '参数错误' };
@@ -21,116 +163,125 @@ exports.main = async (event, context) => {
 
   try {
     const schedulesCollection = db.collection('schedules');
-    const shiftTemplatesCollection = db.collection('shiftTemplates');
-    const weeklySelectionsCollection = db.collection('weeklySelections');
+    const semesterResult = await db.collection('semesters').doc(semesterId).get();
+    const semester = semesterResult.data;
 
-    // 获取学期信息
-    const semester = await db.collection('semesters').doc(semesterId).get();
-    if (!semester.data) {
+    if (!semester) {
       return { success: false, error: '学期不存在' };
     }
 
-    if (semester.data.status !== 'active') {
+    if (semester.status !== 'active') {
       return { success: false, error: '当前学期未开放' };
     }
 
-    // 获取用户的周选择
-    const selection = await weeklySelectionsCollection
-      .where({ semesterId, userId })
-      .get();
+    const semesterStart = parseDateString(semester.startDate);
+    const semesterEnd = parseDateString(semester.endDate);
 
-    if (!selection.data || selection.data.length === 0 || !selection.data[0].preferences) {
-      return { success: false, error: '未找到班次选择' };
+    if (!semesterStart || !semesterEnd || semesterStart > semesterEnd) {
+      return { success: false, error: '学期日期配置异常' };
     }
 
-    const preferences = selection.data[0].preferences;
+    const selectionResult = await db.collection('weeklySelections')
+      .where({ semesterId, userId })
+      .limit(1)
+      .get();
+    const selection = selectionResult.data && selectionResult.data[0] ? selectionResult.data[0] : null;
+    const preferences = sanitizePreferences(selection ? selection.preferences : []);
 
-    // 获取所有班次模板
-    const templates = await shiftTemplatesCollection.where({ semesterId }).get();
+    const templateList = await loadAllDocuments(db.collection('shiftTemplates'), { semesterId });
     const templateMap = {};
-    templates.data.forEach(t => {
-      templateMap[t._id] = t;
+    templateList.forEach((template) => {
+      templateMap[template._id] = template;
     });
 
-    // 确定班次生成开始日期
-    const semesterStartDate = new Date(semester.data.startDate);
-    const semesterEndDate = new Date(semester.data.endDate);
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-    
-    // 当前时间晚于学期开始，则从今天开始
-    let startDate = now > semesterStartDate ? now : semesterStartDate;
+    const allSchedules = await loadAllDocuments(schedulesCollection, { semesterId, userId });
+    const regenerateFromDate = semester.startDate > formatChinaDate() ? semester.startDate : formatChinaDate();
 
-    // 删除用户原有的班次（保留调班的班次类型为替班的）
-    await schedulesCollection.where({
-      semesterId,
-      userId,
-      shiftType: db.command.neq(SHIFT_TYPE_SWAP)
-    }).remove();
+    const preservedSchedules = [];
+    const removableSchedules = [];
 
-    // 生成班次
-    const schedules = [];
-    let currentDate = new Date(startDate);
-    
-    while (currentDate <= semesterEndDate) {
-      const dayOfWeek = currentDate.getDay();
-      const ourDayOfWeek = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    allSchedules.forEach((schedule) => {
+      if (shouldPreserveSchedule(schedule, regenerateFromDate)) {
+        preservedSchedules.push(schedule);
+      } else {
+        removableSchedules.push(schedule);
+      }
+    });
 
-      // 获取该天的所有班次选择
-      const dayPrefs = preferences.filter(p => p.dayOfWeek === ourDayOfWeek);
-      
-      dayPrefs.forEach(pref => {
-        const template = templateMap[pref.shiftId];
-        if (template) {
-          const dateStr = currentDate.toISOString().split('T')[0];
-          schedules.push({
+    for (const schedule of removableSchedules) {
+      await schedulesCollection.doc(schedule._id).remove();
+    }
+
+    if (preferences.length === 0) {
+      return {
+        success: true,
+        message: '未配置班次偏好，已清理未来普通班次',
+        removedCount: removableSchedules.length,
+        createdCount: 0,
+        preservedCount: preservedSchedules.length,
+      };
+    }
+
+    const preservedSlotKeys = new Set();
+    const preservedTemplateKeys = new Set();
+
+    preservedSchedules.forEach((schedule) => {
+      preservedSlotKeys.add(buildScheduleSlotKey(schedule));
+      if (schedule.shiftId) {
+        preservedTemplateKeys.add(buildTemplateKey(schedule.date, schedule.shiftId));
+      }
+    });
+
+    const schedulesToCreate = [];
+    const currentDate = parseDateString(regenerateFromDate);
+
+    while (currentDate && currentDate <= semesterEnd) {
+      const date = formatDate(currentDate);
+      const day = currentDate.getDay();
+      const dayOfWeek = day === 0 ? 6 : day - 1;
+
+      preferences
+        .filter((item) => item.dayOfWeek === dayOfWeek)
+        .forEach((item) => {
+          const template = templateMap[item.shiftId];
+          if (!template) {
+            return;
+          }
+
+          const slotKey = `${date}::${template.startTime}::${template.endTime}`;
+          const templateKey = buildTemplateKey(date, template._id);
+
+          if (preservedSlotKeys.has(slotKey) || preservedTemplateKeys.has(templateKey)) {
+            return;
+          }
+
+          schedulesToCreate.push(createScheduleRecord({
             semesterId,
             userId,
-            userName: userName || '',
-            date: dateStr,
-            dayOfWeek: ourDayOfWeek,
-            shiftId: pref.shiftId,
-            shiftName: template.name,
-            startTime: template.startTime,
-            endTime: template.endTime,
-            fixedHours: template.fixedHours || 2,
-            // 新增字段
-            shiftType: SHIFT_TYPE_NORMAL,  // 默认为正常
-            checkInTime: null,
-            checkOutTime: null,
-            attendanceStatus: null,
-            overtimeHours: 0,
-            overtimeApproved: false,
-            leaveReason: '',
-            leaveStatus: null,
-            leaveApprovedBy: null,
-            leaveApprovedAt: null,
-            originalUserId: null,
-            salaryPaid: false,
-            salaryWeek: null,
-            salaryAmount: null,
-            salaryPaidAt: null,
-            salaryPaidBy: null,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          });
-        }
-      });
+            userName,
+            date,
+            dayOfWeek,
+            template,
+          }));
+        });
 
       currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    // 批量插入
-    if (schedules.length > 0) {
-      const BATCH_SIZE = 10;
-      for (let i = 0; i < schedules.length; i += BATCH_SIZE) {
-        const batch = schedules.slice(i, i + BATCH_SIZE);
-        await Promise.all(batch.map(s => schedulesCollection.add({ data: s })));
-      }
+    const batchSize = 20;
+    for (let index = 0; index < schedulesToCreate.length; index += batchSize) {
+      const batch = schedulesToCreate.slice(index, index + batchSize);
+      await Promise.all(batch.map((schedule) => schedulesCollection.add({ data: schedule })));
     }
 
-    return { success: true, message: `已生成${schedules.length}条班次` };
-  } catch (e) {
-    return { success: false, error: e.message };
+    return {
+      success: true,
+      message: `已生成 ${schedulesToCreate.length} 条班次`,
+      removedCount: removableSchedules.length,
+      createdCount: schedulesToCreate.length,
+      preservedCount: preservedSchedules.length,
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
   }
 };

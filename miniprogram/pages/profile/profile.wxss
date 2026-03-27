@@ -1,123 +1,250 @@
-/* 个人中心页面样式 - 马卡龙清新风格 */
 .container {
-  padding: 20rpx;
-  background: linear-gradient(180deg, #faf9f7 0%, #fff5f5 100%);
-  min-height: 100vh;
+  padding: 24rpx;
 }
 
-.profile-header {
-  background: linear-gradient(135deg, #ffaaa5 0%, #ffd3b6 100%);
-  padding: 50rpx 40rpx;
-  border-radius: 24rpx;
-  text-align: center;
-  margin-bottom: 30rpx;
-  box-shadow: 0 8rpx 30rpx rgba(255, 170, 165, 0.3);
+.profile-hero {
+  padding: 36rpx 30rpx;
+  border-radius: 42rpx;
+  color: #6c6078;
+  box-shadow:
+    0 24rpx 60rpx rgba(217, 190, 212, 0.22),
+    inset 0 2rpx 0 rgba(255, 255, 255, 0.64);
 }
 
-.avatar {
-  width: 140rpx;
-  height: 140rpx;
-  border-radius: 50%;
-  background: #fff;
-  margin: 0 auto 20rpx;
+.profile-hero.member {
+  background:
+    radial-gradient(circle at 88% 16%, rgba(255, 255, 255, 0.82), transparent 30%),
+    linear-gradient(135deg, #ffd9e7 0%, #fff0cb 46%, #def5ed 100%);
+}
+
+.profile-hero.leader {
+  background:
+    radial-gradient(circle at 88% 16%, rgba(255, 255, 255, 0.82), transparent 30%),
+    linear-gradient(135deg, #ffe2d3 0%, #fff3cc 42%, #e2f0ff 100%);
+}
+
+.profile-hero.admin {
+  background:
+    radial-gradient(circle at 88% 16%, rgba(255, 255, 255, 0.84), transparent 30%),
+    linear-gradient(135deg, #e3efff 0%, #f7e8ff 46%, #e6f8f1 100%);
+}
+
+.hero-top {
   display: flex;
   align-items: center;
-  justify-content: center;
-  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
+  gap: 22rpx;
 }
 
-.avatar-icon {
-  font-size: 70rpx;
-}
-
-.user-name {
-  font-size: 36rpx;
-  font-weight: bold;
-  color: #fff;
-  margin-bottom: 8rpx;
-}
-
-.user-role {
-  font-size: 24rpx;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.menu-section {
-  background: #fff;
-  border-radius: 20rpx;
-  overflow: hidden;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.05);
-  margin-bottom: 20rpx;
-}
-
-.menu-item {
-  display: flex;
-  align-items: center;
-  padding: 30rpx;
-  border-bottom: 1rpx solid #f0f0f0;
-}
-
-.menu-item:last-child {
-  border-bottom: none;
-}
-
-.menu-icon {
-  width: 50rpx;
-  height: 50rpx;
-  border-radius: 12rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 20rpx;
-  font-size: 30rpx;
-}
-
-.menu-icon.peach {
-  background: linear-gradient(135deg, #ffaaa5 0%, #ffd3b6 100%);
-}
-
-.menu-icon.orange {
-  background: linear-gradient(135deg, #ffd3b6 0%, #dcedc1 100%);
-}
-
-.menu-icon.green {
-  background: linear-gradient(135deg, #a8e6cf 0%, #dcedc1 100%);
-}
-
-.menu-icon.blue {
-  background: linear-gradient(135deg, #dcedc1 0%, #a8e6cf 100%);
-}
-
-.menu-text {
-  flex: 1;
-  font-size: 28rpx;
-  color: #5a5a5a;
-}
-
-.menu-arrow {
-  font-size: 24rpx;
-  color: #ccc;
-}
-
-.btn-logout {
-  width: 100%;
-  height: 88rpx;
-  background: #fff;
-  color: #ff6b6b;
-  border: none;
+.avatar-panel {
+  width: 154rpx;
+  height: 154rpx;
   border-radius: 44rpx;
-  font-size: 30rpx;
-  margin-top: 20rpx;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.05);
+  background: rgba(255, 255, 255, 0.56);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    inset 0 0 0 1rpx rgba(255, 255, 255, 0.56),
+    0 16rpx 34rpx rgba(210, 192, 219, 0.16);
 }
 
-.btn-logout::after {
-  border: none;
+.avatar-image {
+  width: 100%;
+  height: 100%;
 }
 
-.version {
-  text-align: center;
+.avatar-text {
+  font-size: 58rpx;
+  font-weight: 800;
+}
+
+.hero-copy {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.display-name {
+  font-size: 40rpx;
+  font-weight: 800;
+}
+
+.meta-line {
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  opacity: 0.84;
+}
+
+.hero-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 26rpx;
+}
+
+.hero-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12rpx 22rpx;
+  border-radius: 999rpx;
   font-size: 22rpx;
-  color: #ccc;
-  margin-top: 30rpx;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.hero-tag.accent {
+  background: rgba(255, 255, 255, 0.7);
+  font-weight: 700;
+}
+
+.role-switch {
+  margin-top: 22rpx;
+  padding: 30rpx;
+  background:
+    radial-gradient(circle at 92% 8%, rgba(255, 255, 255, 0.74), transparent 28%),
+    linear-gradient(180deg, rgba(255, 249, 252, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%);
+}
+
+.section-head {
+  display: flex;
+  flex-direction: column;
+}
+
+.role-chip-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  margin-top: 22rpx;
+}
+
+.role-chip {
+  padding: 24rpx;
+  border-radius: 28rpx;
+  border: 2rpx solid transparent;
+  box-shadow: inset 0 2rpx 0 rgba(255, 255, 255, 0.56);
+  transition: transform 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
+}
+
+.role-chip.member {
+  background: linear-gradient(135deg, rgba(255, 240, 243, 0.96) 0%, rgba(255, 251, 252, 0.99) 100%);
+}
+
+.role-chip.leader {
+  background: linear-gradient(135deg, rgba(255, 243, 222, 0.96) 0%, rgba(255, 252, 245, 0.99) 100%);
+}
+
+.role-chip.admin {
+  background: linear-gradient(135deg, rgba(228, 240, 255, 0.96) 0%, rgba(248, 251, 255, 0.99) 100%);
+}
+
+.role-chip.active {
+  border-color: rgba(221, 178, 188, 0.82);
+  box-shadow: 0 16rpx 34rpx rgba(212, 191, 201, 0.22);
+}
+
+.role-chip-name {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #6c6078;
+}
+
+.role-chip-desc {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 22rpx;
+  line-height: 1.68;
+  color: #9f93ad;
+}
+
+.entry-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  margin-top: 22rpx;
+}
+
+.entry-card {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  padding: 28rpx 24rpx;
+  border-radius: 30rpx;
+  background:
+    radial-gradient(circle at 90% 8%, rgba(255, 255, 255, 0.68), transparent 26%),
+    linear-gradient(180deg, rgba(255, 252, 254, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%);
+  box-shadow:
+    0 18rpx 38rpx rgba(204, 183, 205, 0.16),
+    inset 0 2rpx 0 rgba(255, 255, 255, 0.58);
+  transition: transform 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
+}
+
+.entry-icon {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 26rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 34rpx;
+  font-weight: 800;
+  color: #6d607b;
+}
+
+.entry-icon.peach {
+  background: linear-gradient(135deg, rgba(255, 217, 222, 0.98) 0%, rgba(255, 244, 247, 0.98) 100%);
+}
+
+.entry-icon.butter {
+  background: linear-gradient(135deg, rgba(255, 237, 200, 0.98) 0%, rgba(255, 248, 232, 0.98) 100%);
+}
+
+.entry-copy {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.entry-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #6c6078;
+}
+
+.entry-desc {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  line-height: 1.6;
+  color: #a69bb4;
+}
+
+.entry-arrow {
+  width: 52rpx;
+  height: 52rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  color: #ad9fc0;
+  background: rgba(246, 241, 252, 0.9);
+}
+
+.logout-btn {
+  width: 100%;
+  height: 98rpx;
+  margin-top: 24rpx;
+  line-height: 98rpx;
+  border-radius: 30rpx;
+  color: #7d677e;
+  font-size: 30rpx;
+  font-weight: 700;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 32%),
+    linear-gradient(145deg, #ffe5ea 0%, #f7ecff 54%, #fff3ca 100%);
+  box-shadow:
+    0 12rpx 0 rgba(174, 145, 165, 0.14),
+    0 24rpx 46rpx rgba(204, 183, 205, 0.18),
+    inset 0 4rpx 0 rgba(255, 255, 255, 0.52);
 }

@@ -1,63 +1,108 @@
-<!--pages/login/login.wxml-->
 <view class="container">
-  <!-- Logo区域 -->
-  <view class="logo-section">
-    <view class="logo">📚</view>
-    <view class="title">文小图</view>
+  <view class="hero-panel">
+    <view class="logo-stage">
+      <view class="book-logo">
+        <view class="book-cover left"></view>
+        <view class="book-cover right"></view>
+        <view class="book-spine"></view>
+        <view class="book-page one"></view>
+        <view class="book-page two"></view>
+      </view>
+      <text class="hero-title">文小图</text>
+    </view>
   </view>
 
-  <!-- 表单区域 -->
   <view class="form-section">
-    <!-- 账号 -->
+    <view class="form-head">
+      <text class="form-title">{{mode === 'login' ? '登录账号' : '创建账号'}}</text>
+    </view>
+
     <view class="form-item">
       <text class="label">学号</text>
-      <input 
-        class="input" 
-        type="number" 
+      <input
+        class="input"
+        type="number"
         placeholder="请输入学号"
         value="{{studentId}}"
         bindinput="onStudentIdInput"
       />
     </view>
 
-    <!-- 密码 -->
     <view class="form-item">
       <text class="label">密码</text>
-      <input 
-        class="input" 
-        password 
+      <input
+        class="input"
+        password
         placeholder="请输入密码"
         value="{{password}}"
         bindinput="onPasswordInput"
       />
     </view>
 
-    <!-- 注册专属：姓名 -->
     <view class="form-item" wx:if="{{mode === 'register'}}">
       <text class="label">姓名</text>
-      <input 
-        class="input" 
+      <input
+        class="input"
         placeholder="请输入姓名"
         value="{{name}}"
         bindinput="onNameInput"
       />
     </view>
 
-    <!-- 提交按钮 -->
-    <button 
-      class="submit-btn {{loading ? 'disabled' : ''}}" 
+    <view class="form-item" wx:if="{{mode === 'register'}}">
+      <text class="label">昵称</text>
+      <input
+        class="input"
+        placeholder="请输入昵称"
+        value="{{nickname}}"
+        bindinput="onNicknameInput"
+      />
+    </view>
+
+    <button
+      class="submit-btn {{loading ? 'disabled' : ''}}"
+      hover-class="tap-button-hover"
       bindtap="onSubmit"
       disabled="{{loading}}">
-      {{mode === 'login' ? '登录' : '注册'}}
+      {{mode === 'login' ? '登录账号' : '创建账号'}}
     </button>
 
-    <!-- 切换模式 -->
     <view class="toggle-mode">
-      <text wx:if="{{mode === 'login'}}">还没有账号？</text>
-      <text wx:if="{{mode === 'register'}}">已有账号？</text>
+      <text>{{mode === 'login' ? '第一次使用？' : '已经有账号了？'}}</text>
       <text class="link" bindtap="onToggleMode">
-        {{mode === 'login' ? '立即注册' : '立即登录'}}
+        {{mode === 'login' ? '去注册' : '去登录'}}
       </text>
     </view>
+  </view>
+
+  <view class="identity-panel" wx:if="{{showRoleSelector}}">
+    <view class="identity-head">
+      <text class="identity-title">选择本次登录身份</text>
+      <text class="identity-desc">不同身份会进入不同的页面视角。班负身份会保留自己的签到签退入口，同时负责当前班次成员签到确认。</text>
+    </view>
+
+    <view class="identity-list">
+      <view
+        class="identity-item {{item.theme}} {{selectedRole === item.role ? 'active' : ''}}"
+        wx:for="{{roleOptions}}"
+        wx:key="role"
+        data-role="{{item.role}}"
+        hover-class="tap-card-hover"
+        bindtap="onSelectRole">
+        <view class="identity-top">
+          <text class="identity-name">{{item.text}}</text>
+          <text class="identity-check" wx:if="{{selectedRole === item.role}}">当前选择</text>
+        </view>
+        <text class="identity-description">{{item.description}}</text>
+      </view>
+    </view>
+
+    <button
+      class="submit-btn role-submit {{loading ? 'disabled' : ''}}"
+      hover-class="tap-button-hover"
+      bindtap="onConfirmRoleLogin"
+      disabled="{{loading}}">
+      以 {{selectedRoleText}} 身份进入
+    </button>
   </view>
 </view>

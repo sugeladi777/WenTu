@@ -2,11 +2,16 @@
   "pages": [
     "pages/login/login",
     "pages/selectSchedule/selectSchedule",
+    "pages/adminDashboard/adminDashboard",
+    "pages/leaderConfirm/leaderConfirm",
     "pages/index/index",
     "pages/workHours/workHours",
     "pages/myShift/myShift",
+    "pages/leavecenter/leavecenter",
     "pages/shiftDetail/shiftDetail",
-    "pages/profile/profile"
+    "pages/profile/profile",
+    "pages/profileEdit/profileEdit",
+    "pages/passwordEdit/passwordEdit"
   ],
   "window": {
     "backgroundColor": "#faf9f7",
@@ -31,7 +36,7 @@
       },
       {
         "pagePath": "pages/myShift/myShift",
-        "text": "我的班次"
+        "text": "班次"
       },
       {
         "pagePath": "pages/profile/profile",

@@ -1,43 +1,43 @@
-<!--pages/selectSchedule/selectSchedule.wxml-->
 <view class="container">
-  <!-- 学期信息卡片 -->
-  <view class="card semester-card" wx:if="{{semester}}">
-    <text class="semester-name">{{semester.name}}</text>
-    <text class="semester-date">{{semester.startDate}} 至 {{semester.endDate}}</text>
+  <view class="hero-card" wx:if="{{semester}}">
+    <view class="hero-copy">
+      <text class="hero-title">{{semester.name}}</text>
+      <text class="hero-subtitle">{{semester.startDate}} 至 {{semester.endDate}}</text>
+    </view>
+    <view class="hero-counter">
+      <text class="hero-counter-value">{{selectedCount}}</text>
+      <text class="hero-counter-label">已选时段</text>
+    </view>
   </view>
 
-  <!-- 无班次模板 -->
-  <view class="empty" wx:if="{{!loading && shiftTemplates.length === 0}}">
-    <text>当前学期暂无班次模板</text>
-    <text class="empty-hint">请联系管理员设置班次</text>
+  <view class="empty card" wx:if="{{!loading && shiftTemplates.length === 0}}">
+    <text class="empty-title">当前学期暂无班次模板</text>
+    <text class="empty-hint">请联系管理员先配置固定班次模板。</text>
   </view>
 
-  <!-- 横向滚动容器 -->
-  <scroll-view class="table-scroll" scroll-x wx:if="{{shiftTemplates.length > 0}}">
-    <!-- 班次表格 -->
+  <scroll-view class="table-scroll" scroll-x enhanced show-scrollbar="{{false}}" wx:if="{{shiftTemplates.length > 0}}">
     <view class="schedule-table">
-      <!-- 表头：星期 -->
       <view class="table-header">
         <view class="th shift-col">班次</view>
-        <view 
+        <view
           class="th weekday-col"
-          wx:for="{{weekDays}}" 
+          wx:for="{{weekDays}}"
           wx:key="index">
           <text class="day-name">{{item}}</text>
         </view>
       </view>
 
-      <!-- 表格内容：每个班次一行 -->
-      <view 
+      <view
         class="table-row"
         wx:for="{{shiftTemplates}}"
         wx:for-index="shiftIdx"
         wx:key="_id">
         <view class="td shift-col">
           <text class="shift-name">{{item.name}}</text>
-          <text class="shift-time">{{item.startTime}}-{{item.endTime}}</text>
+          <text class="shift-time">{{item.startTime}} - {{item.endTime}}</text>
+          <text class="shift-capacity">满额 {{item.maxCapacity}} 人</text>
         </view>
-        <view 
+        <view
           class="td weekday-col"
           wx:for="{{weekDays}}"
           wx:for-index="dayIdx"
@@ -45,18 +45,24 @@
           data-shiftidx="{{shiftIdx}}"
           data-dayidx="{{dayIdx}}"
           bindtap="onSelectShift">
-          <view class="shift-btn {{selectedMatrix[shiftIdx][dayIdx] ? 'selected' : ''}}">
-            <text class="btn-check" wx:if="{{selectedMatrix[shiftIdx][dayIdx]}}">✓</text>
-            <text class="btn-count" wx:else>{{capacityMatrix[shiftIdx][dayIdx].remaining}}</text>
+          <view class="shift-btn {{selectedMatrix[shiftIdx][dayIdx] ? 'selected' : ''}} {{capacityMatrix[shiftIdx][dayIdx].remaining <= 0 ? 'full' : ''}}">
+            <text class="btn-check" wx:if="{{selectedMatrix[shiftIdx][dayIdx]}}">已选</text>
+            <block wx:else>
+              <text class="btn-count">{{capacityMatrix[shiftIdx][dayIdx].remaining}}</text>
+              <text class="btn-label">余位</text>
+            </block>
           </view>
         </view>
       </view>
     </view>
   </scroll-view>
 
-  <!-- 提交按钮 -->
   <view class="submit-section" wx:if="{{shiftTemplates.length > 0}}">
-    <button class="submit-btn" bindtap="onSubmit" loading="{{loading}}">
+    <view class="submit-meta">
+      <text class="submit-title">已选择 {{selectedCount}} 个固定班次</text>
+      <text class="submit-desc">保存后会生成未来排班，不影响已有历史考勤</text>
+    </view>
+    <button class="submit-btn" hover-class="tap-button-hover" bindtap="onSubmit" loading="{{loading}}">
       确认班次
     </button>
   </view>

@@ -1,0 +1,430 @@
+.container {
+  padding: 24rpx;
+}
+
+.hero-card {
+  padding: 36rpx 30rpx;
+  border-radius: 40rpx;
+  background:
+    radial-gradient(circle at 88% 14%, rgba(255, 255, 255, 0.82), transparent 28%),
+    linear-gradient(135deg, #ffe0d5 0%, #e8ddff 52%, #dff4ea 100%);
+  color: #6c6078;
+  box-shadow:
+    0 24rpx 56rpx rgba(217, 190, 212, 0.24),
+    inset 0 2rpx 0 rgba(255, 255, 255, 0.64);
+}
+
+.hero-copy {
+  display: flex;
+  flex-direction: column;
+}
+
+.hero-kicker {
+  font-size: 22rpx;
+  letter-spacing: 3rpx;
+  opacity: 0.82;
+}
+
+.hero-title {
+  margin-top: 18rpx;
+  font-size: 40rpx;
+  font-weight: 800;
+}
+
+.hero-subtitle {
+  margin-top: 14rpx;
+  font-size: 24rpx;
+  line-height: 1.72;
+  opacity: 0.86;
+}
+
+.action-grid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 18rpx;
+  margin: 20rpx 0;
+}
+
+.action-card {
+  padding: 28rpx;
+  background:
+    radial-gradient(circle at 92% 8%, rgba(255, 255, 255, 0.72), transparent 28%),
+    linear-gradient(180deg, rgba(255, 249, 252, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%);
+}
+
+.action-head {
+  display: flex;
+  flex-direction: column;
+}
+
+.action-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #6d607a;
+}
+
+.action-desc {
+  margin-top: 10rpx;
+  font-size: 22rpx;
+  line-height: 1.7;
+  color: #a79cb3;
+}
+
+.soft-input {
+  width: 100%;
+  height: 94rpx;
+  margin-top: 20rpx;
+  padding: 0 24rpx;
+  border-radius: 28rpx;
+  background: linear-gradient(180deg, rgba(255, 250, 252, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%);
+  border: 1rpx solid rgba(235, 221, 241, 0.9);
+  box-shadow: inset 0 2rpx 0 rgba(255, 255, 255, 0.64);
+  box-sizing: border-box;
+  font-size: 26rpx;
+  color: #6d607a;
+}
+
+.picker-row {
+  display: flex;
+  gap: 14rpx;
+  margin-top: 18rpx;
+}
+
+.picker-field {
+  flex: 1;
+}
+
+.picker-inner {
+  padding: 22rpx 22rpx;
+  border-radius: 26rpx;
+  background: linear-gradient(180deg, rgba(251, 246, 253, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%);
+}
+
+.picker-label {
+  display: block;
+  font-size: 20rpx;
+  color: #aa9fb8;
+}
+
+.picker-value {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: #6d607a;
+  font-weight: 700;
+}
+
+.action-btn {
+  width: 100%;
+  height: 92rpx;
+  margin-top: 20rpx;
+  line-height: 92rpx;
+  border-radius: 30rpx;
+  font-size: 28rpx;
+  font-weight: 800;
+  letter-spacing: 2rpx;
+}
+
+.action-btn.peach {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 32%),
+    linear-gradient(145deg, #ffbfb0 0%, #ffc2e1 54%, #ffe6a7 100%);
+  color: #7a657d;
+  box-shadow:
+    0 14rpx 0 rgba(161, 115, 133, 0.14),
+    0 26rpx 46rpx rgba(226, 188, 199, 0.24),
+    inset 0 4rpx 0 rgba(255, 255, 255, 0.52);
+}
+
+.payroll-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12rpx;
+  margin-top: 18rpx;
+}
+
+.payroll-chip {
+  padding: 22rpx 18rpx;
+  border-radius: 26rpx;
+  box-shadow: inset 0 2rpx 0 rgba(255, 255, 255, 0.54);
+}
+
+.payroll-chip.peach {
+  background: linear-gradient(180deg, rgba(255, 240, 235, 0.98) 0%, rgba(255, 255, 255, 0.99) 100%);
+}
+
+.payroll-chip.mint {
+  background: linear-gradient(180deg, rgba(226, 246, 238, 0.98) 0%, rgba(255, 255, 255, 0.99) 100%);
+}
+
+.payroll-chip.blue {
+  background: linear-gradient(180deg, rgba(226, 237, 255, 0.98) 0%, rgba(255, 255, 255, 0.99) 100%);
+}
+
+.payroll-chip.lavender {
+  background: linear-gradient(180deg, rgba(240, 231, 255, 0.98) 0%, rgba(255, 255, 255, 0.99) 100%);
+}
+
+.payroll-value {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 800;
+  color: #6d607a;
+}
+
+.payroll-label {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 20rpx;
+  color: #a79cb3;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16rpx;
+  margin-bottom: 18rpx;
+}
+
+.summary-card {
+  padding: 28rpx 24rpx;
+  background: linear-gradient(180deg, rgba(255, 248, 251, 0.98) 0%, rgba(255, 255, 255, 0.99) 100%);
+}
+
+.summary-card.leader {
+  background: linear-gradient(180deg, rgba(237, 230, 255, 0.96) 0%, rgba(255, 255, 255, 0.99) 100%);
+}
+
+.summary-card.admin {
+  background: linear-gradient(180deg, rgba(223, 235, 255, 0.96) 0%, rgba(255, 255, 255, 0.99) 100%);
+}
+
+.summary-card.accent {
+  background: linear-gradient(180deg, rgba(223, 246, 237, 0.96) 0%, rgba(255, 255, 255, 0.99) 100%);
+}
+
+.summary-value {
+  display: block;
+  font-size: 46rpx;
+  font-weight: 800;
+  color: #6d607a;
+}
+
+.summary-label {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 22rpx;
+  color: #9d92ab;
+}
+
+.payroll-overview {
+  display: flex;
+  gap: 14rpx;
+  padding: 28rpx 24rpx;
+  margin-bottom: 20rpx;
+  background:
+    radial-gradient(circle at 92% 8%, rgba(255, 255, 255, 0.7), transparent 28%),
+    linear-gradient(180deg, rgba(255, 249, 252, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%);
+}
+
+.overview-chip {
+  flex: 1;
+  padding: 18rpx 16rpx;
+  border-radius: 24rpx;
+  background: #faf5fc;
+}
+
+.overview-value {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 800;
+  color: #6d607a;
+}
+
+.overview-label {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 20rpx;
+  color: #a79cb3;
+}
+
+.user-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+}
+
+.user-card {
+  padding: 28rpx;
+  background:
+    radial-gradient(circle at 92% 8%, rgba(255, 255, 255, 0.7), transparent 28%),
+    linear-gradient(180deg, rgba(255, 249, 252, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%);
+}
+
+.user-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16rpx;
+}
+
+.user-copy {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.user-name {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #6c6078;
+}
+
+.user-meta {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: #a398b0;
+}
+
+.role-chip {
+  padding: 10rpx 18rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  font-weight: 700;
+}
+
+.role-chip.member {
+  background: rgba(255, 236, 228, 0.92);
+  color: #cb8a78;
+}
+
+.role-chip.leader {
+  background: rgba(236, 228, 248, 0.94);
+  color: #8c7aac;
+}
+
+.role-chip.admin {
+  background: rgba(223, 235, 255, 0.94);
+  color: #768cc1;
+}
+
+.stats-row {
+  display: flex;
+  gap: 12rpx;
+  margin-top: 22rpx;
+}
+
+.stats-chip {
+  flex: 1;
+  padding: 18rpx 16rpx;
+  border-radius: 24rpx;
+  background: #faf5fc;
+}
+
+.chip-value {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 800;
+  color: #6d607a;
+}
+
+.chip-label {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 20rpx;
+  color: #a79cb3;
+}
+
+.detail-row {
+  display: flex;
+  gap: 12rpx;
+  flex-wrap: wrap;
+  margin-top: 18rpx;
+}
+
+.detail-pill {
+  padding: 10rpx 16rpx;
+  border-radius: 999rpx;
+  background: #faf5fc;
+  font-size: 20rpx;
+  color: #958aa5;
+}
+
+.detail-pill.danger {
+  background: rgba(255, 229, 233, 0.94);
+  color: #cc8794;
+}
+
+.salary-panel {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12rpx;
+  margin-top: 20rpx;
+}
+
+.salary-item {
+  padding: 18rpx 16rpx;
+  border-radius: 24rpx;
+  background: linear-gradient(180deg, rgba(255, 248, 251, 0.98) 0%, rgba(255, 255, 255, 0.99) 100%);
+}
+
+.salary-label {
+  display: block;
+  font-size: 20rpx;
+  color: #a89db7;
+}
+
+.salary-value {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 28rpx;
+  font-weight: 800;
+  color: #6d607a;
+}
+
+.salary-value.accent {
+  color: #7c90c6;
+}
+
+.salary-btn,
+.role-btn {
+  width: 100%;
+  height: 92rpx;
+  margin-top: 20rpx;
+  line-height: 92rpx;
+  border-radius: 30rpx;
+  font-size: 28rpx;
+  font-weight: 800;
+  letter-spacing: 2rpx;
+}
+
+.salary-btn {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 32%),
+    linear-gradient(145deg, #cdeedc 0%, #d7e4ff 54%, #fff0b8 100%);
+  color: #6788a1;
+  box-shadow:
+    0 14rpx 0 rgba(132, 160, 156, 0.14),
+    0 26rpx 44rpx rgba(188, 214, 213, 0.24),
+    inset 0 4rpx 0 rgba(255, 255, 255, 0.52);
+}
+
+.salary-btn.disabled {
+  opacity: 0.62;
+}
+
+.role-btn {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 32%),
+    linear-gradient(145deg, #ffbfb0 0%, #ffd4c1 34%, #e9dfff 100%);
+  color: #78688e;
+  box-shadow:
+    0 14rpx 0 rgba(173, 143, 170, 0.14),
+    0 26rpx 44rpx rgba(221, 190, 210, 0.22),
+    inset 0 4rpx 0 rgba(255, 255, 255, 0.52);
+}
+
+.role-btn.outline {
+  background: linear-gradient(135deg, rgba(255, 239, 234, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%);
+  color: #bc866e;
+}

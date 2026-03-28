@@ -74,35 +74,4 @@
       </text>
     </view>
   </view>
-
-  <view class="identity-panel" wx:if="{{showRoleSelector}}">
-    <view class="identity-head">
-      <text class="identity-title">选择本次登录身份</text>
-      <text class="identity-desc">不同身份会进入不同的页面视角。班负身份会保留自己的签到签退入口，同时负责当前班次成员签到确认。</text>
-    </view>
-
-    <view class="identity-list">
-      <view
-        class="identity-item {{item.theme}} {{selectedRole === item.role ? 'active' : ''}}"
-        wx:for="{{roleOptions}}"
-        wx:key="role"
-        data-role="{{item.role}}"
-        hover-class="tap-card-hover"
-        bindtap="onSelectRole">
-        <view class="identity-top">
-          <text class="identity-name">{{item.text}}</text>
-          <text class="identity-check" wx:if="{{selectedRole === item.role}}">当前选择</text>
-        </view>
-        <text class="identity-description">{{item.description}}</text>
-      </view>
-    </view>
-
-    <button
-      class="submit-btn role-submit {{loading ? 'disabled' : ''}}"
-      hover-class="tap-button-hover"
-      bindtap="onConfirmRoleLogin"
-      disabled="{{loading}}">
-      以 {{selectedRoleText}} 身份进入
-    </button>
-  </view>
 </view>

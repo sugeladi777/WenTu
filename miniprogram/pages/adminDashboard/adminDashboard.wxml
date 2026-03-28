@@ -1,180 +1,73 @@
-<view class="container">
+﻿<view class="container">
   <view class="hero-card">
-    <view class="hero-copy">
-      <text class="hero-kicker">管理员后台</text>
-      <text class="hero-title">{{semester ? semester.name : '成员工作概况'}}</text>
-      <text class="hero-subtitle">这里可以创建学期、输入每工时工资、核算应发工资，并查看每位成员的排班、工时与考勤情况。</text>
-    </view>
+    <text class="hero-kicker">管理员后台</text>
+    <text class="hero-title">{{semester ? semester.name : '暂无学期'}}</text>
+    <text class="hero-subtitle">这里只保留创建学期和志愿者名单。点击姓名可查看该志愿者的班次、签到签退、工资发放和更多信息。</text>
   </view>
 
-  <view class="action-grid">
-    <view class="action-card card">
-      <view class="action-head">
-        <text class="action-title">创建学期</text>
-        <text class="action-desc">新增学期后，后续排班和统计都会围绕该学期进行。</text>
-      </view>
-
-      <input
-        class="soft-input"
-        placeholder="输入学期名称，例如 2026 春季学期"
-        value="{{createSemesterName}}"
-        bindinput="onSemesterNameInput"
-      />
-
-      <view class="picker-row">
-        <picker class="picker-field" mode="date" value="{{createSemesterStart}}" bindchange="onSemesterStartChange">
-          <view class="picker-inner">
-            <text class="picker-label">开始日期</text>
-            <text class="picker-value">{{createSemesterStart || '选择日期'}}</text>
-          </view>
-        </picker>
-        <picker class="picker-field" mode="date" value="{{createSemesterEnd}}" bindchange="onSemesterEndChange">
-          <view class="picker-inner">
-            <text class="picker-label">结束日期</text>
-            <text class="picker-value">{{createSemesterEnd || '选择日期'}}</text>
-          </view>
-        </picker>
-      </view>
-
-      <button class="action-btn peach" hover-class="tap-button-hover" bindtap="onCreateSemester">
-        创建学期
-      </button>
+  <view class="card section-card">
+    <view class="section-head">
+      <text class="section-title">创建学期</text>
+      <text class="section-desc">新建学期后，班次与工资统计都会围绕当前学期展开。</text>
     </view>
 
-    <view class="action-card card">
-      <view class="action-head">
-        <text class="action-title">工资发放设置</text>
-        <text class="action-desc">输入每工时工资后，系统会按当前学期待发工时自动计算每位成员应发金额。</text>
-      </view>
+    <input
+      class="soft-input"
+      placeholder="输入学期名称，例如 2026 春季学期"
+      value="{{createSemesterName}}"
+      bindinput="onSemesterNameInput"
+    />
 
-      <input
-        class="soft-input"
-        type="digit"
-        placeholder="请输入每工时工资，例如 20"
-        value="{{hourlyRateInput}}"
-        bindinput="onHourlyRateInput"
-      />
-
-      <view class="payroll-grid">
-        <view class="payroll-chip peach">
-          <text class="payroll-value">{{hourlyRateInput || '--'}}</text>
-          <text class="payroll-label">每工时工资</text>
+    <view class="picker-row">
+      <picker class="picker-field" mode="date" value="{{createSemesterStart}}" bindchange="onSemesterStartChange">
+        <view class="picker-inner">
+          <text class="picker-label">开始日期</text>
+          <text class="picker-value">{{createSemesterStart || '选择日期'}}</text>
         </view>
-        <view class="payroll-chip mint">
-          <text class="payroll-value">{{totalUnpaidHoursText}}</text>
-          <text class="payroll-label">待发工时</text>
+      </picker>
+      <picker class="picker-field" mode="date" value="{{createSemesterEnd}}" bindchange="onSemesterEndChange">
+        <view class="picker-inner">
+          <text class="picker-label">结束日期</text>
+          <text class="picker-value">{{createSemesterEnd || '选择日期'}}</text>
         </view>
-        <view class="payroll-chip blue">
-          <text class="payroll-value">{{totalPendingAmountText}}</text>
-          <text class="payroll-label">待发工资</text>
-        </view>
-        <view class="payroll-chip lavender">
-          <text class="payroll-value">{{totalPaidAmountText}}</text>
-          <text class="payroll-label">已发工资</text>
-        </view>
-      </view>
+      </picker>
     </view>
+
+    <button class="action-btn" hover-class="tap-button-hover" bindtap="onCreateSemester" loading="{{loading}}">
+      创建学期
+    </button>
   </view>
 
-  <view class="summary-grid" wx:if="{{summary}}">
-    <view class="summary-card card">
-      <text class="summary-value">{{summary.totalUserCount}}</text>
-      <text class="summary-label">账号总数</text>
+  <view class="list-head">
+    <view>
+      <text class="section-title">志愿者列表</text>
+      <text class="section-desc">当前共 {{userCount}} 人</text>
     </view>
-    <view class="summary-card card accent">
-      <text class="summary-value">{{summary.memberCount}}</text>
-      <text class="summary-label">普通志愿者</text>
-    </view>
-    <view class="summary-card card leader">
-      <text class="summary-value">{{summary.leaderCount}}</text>
-      <text class="summary-label">班负身份</text>
-    </view>
-    <view class="summary-card card admin">
-      <text class="summary-value">{{summary.adminCount}}</text>
-      <text class="summary-label">管理员身份</text>
-    </view>
+    <text class="semester-pill" wx:if="{{semester}}">当前学期：{{semester.name}}</text>
   </view>
 
-  <view class="payroll-overview card" wx:if="{{summary}}">
-    <view class="overview-chip">
-      <text class="overview-value">{{summary.totalValidHours}}</text>
-      <text class="overview-label">有效工时</text>
-    </view>
-    <view class="overview-chip">
-      <text class="overview-value">{{totalPaidHoursText}}</text>
-      <text class="overview-label">已发工时</text>
-    </view>
-    <view class="overview-chip">
-      <text class="overview-value">{{totalUnpaidHoursText}}</text>
-      <text class="overview-label">待发工时</text>
-    </view>
-  </view>
-
-  <view class="user-list">
-    <view class="user-card card" wx:for="{{userList}}" wx:key="_id">
-      <view class="user-top">
+  <view class="user-list" wx:if="{{userList.length}}">
+    <view
+      class="user-card card"
+      wx:for="{{userList}}"
+      wx:key="_id"
+      data-userid="{{item._id}}"
+      hover-class="tap-card-hover"
+      bindtap="onOpenUserDetail">
+      <view class="user-main">
         <view class="user-copy">
-          <text class="user-name">{{item.name}}</text>
-          <text class="user-meta">学号 {{item.studentId}} · {{item.roleText}}</text>
+          <text class="user-name">{{item.displayName}}</text>
+          <text class="user-meta">学号 {{item.studentId || '未填写'}}</text>
         </view>
-        <text class="role-chip {{item.roleClass}}">{{item.roleText}}</text>
-      </view>
-
-      <view class="stats-row">
-        <view class="stats-chip">
-          <text class="chip-value">{{item.stats.totalShifts}}</text>
-          <text class="chip-label">总班次</text>
-        </view>
-        <view class="stats-chip">
-          <text class="chip-value">{{item.stats.completedShifts}}</text>
-          <text class="chip-label">已完成</text>
-        </view>
-        <view class="stats-chip">
-          <text class="chip-value">{{item.stats.validHours}}</text>
-          <text class="chip-label">有效工时</text>
+        <view class="user-side">
+          <text class="detail-link">查看详情</text>
         </view>
       </view>
-
-      <view class="detail-row">
-        <text class="detail-pill">请假 {{item.stats.leaveShifts}}</text>
-        <text class="detail-pill">迟到 {{item.stats.lateShifts}}</text>
-        <text class="detail-pill danger">旷岗 {{item.stats.absentShifts}}</text>
-        <text class="detail-pill">替班 {{item.stats.swapShifts}}</text>
-      </view>
-
-      <view class="salary-panel">
-        <view class="salary-item">
-          <text class="salary-label">待发工时</text>
-          <text class="salary-value">{{item.unpaidHoursText}} 小时</text>
-        </view>
-        <view class="salary-item">
-          <text class="salary-label">待发工资</text>
-          <text class="salary-value accent">¥{{item.pendingAmountText}}</text>
-        </view>
-        <view class="salary-item">
-          <text class="salary-label">已发工资</text>
-          <text class="salary-value">¥{{item.paidAmountText}}</text>
-        </view>
-      </view>
-
-      <button
-        class="salary-btn {{item.canIssueSalary ? '' : 'disabled'}}"
-        hover-class="tap-button-hover"
-        data-userid="{{item._id}}"
-        bindtap="onIssueSalary"
-        disabled="{{!item.canIssueSalary || loading}}">
-        {{item.issueSalaryText}}
-      </button>
-
-      <button
-        wx:if="{{item.canToggleLeader}}"
-        class="role-btn {{item.hasLeaderRole ? 'outline' : ''}}"
-        hover-class="tap-button-hover"
-        data-userid="{{item._id}}"
-        data-role="{{item.nextRole}}"
-        bindtap="onToggleRole">
-        {{item.toggleRoleText}}
-      </button>
     </view>
+  </view>
+
+  <view class="empty-card card" wx:else>
+    <text class="empty-title">暂无用户</text>
+    <text class="empty-desc">当前还没有可查看的志愿者账号。</text>
   </view>
 </view>

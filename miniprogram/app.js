@@ -17,6 +17,7 @@ App({
     userInfo: null,
     isLoggedIn: false,
     sessionBootstrapped: false,
+    pendingLoginUserInfo: null,
   },
 
   bootstrapSession(force = false) {
@@ -40,7 +41,21 @@ App({
     this.globalData.userInfo = normalized;
     this.globalData.isLoggedIn = Boolean(normalized && normalized._id);
     this.globalData.sessionBootstrapped = true;
+    this.globalData.pendingLoginUserInfo = null;
     return normalized;
+  },
+
+  setPendingLoginUser(userInfo) {
+    this.globalData.pendingLoginUserInfo = userInfo && userInfo._id ? userInfo : null;
+    return this.globalData.pendingLoginUserInfo;
+  },
+
+  getPendingLoginUser() {
+    return this.globalData.pendingLoginUserInfo;
+  },
+
+  clearPendingLoginUser() {
+    this.globalData.pendingLoginUserInfo = null;
   },
 
   setActiveRole(role) {
@@ -85,9 +100,11 @@ App({
     this.globalData.userInfo = null;
     this.globalData.isLoggedIn = false;
     this.globalData.sessionBootstrapped = true;
+    this.globalData.pendingLoginUserInfo = null;
   },
 
   goToLogin() {
+    this.clearPendingLoginUser();
     wx.reLaunch({
       url: '/pages/login/login',
     });

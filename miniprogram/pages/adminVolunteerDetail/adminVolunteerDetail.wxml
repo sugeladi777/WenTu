@@ -1,0 +1,159 @@
+﻿<view class="container">
+  <view class="hero-card" wx:if="{{userInfo}}">
+    <view class="hero-top">
+      <view class="hero-copy">
+        <text class="hero-kicker">志愿者详情</text>
+        <text class="hero-title">{{userInfo.displayName}}</text>
+        <text class="hero-subtitle">学号 {{userInfo.studentId || '未填写'}} · {{userInfo.grantedRolesText || '志愿者'}}</text>
+      </view>
+      <text class="role-chip {{userInfo.roleClass}}">{{userInfo.roleBadgeText}}</text>
+    </view>
+
+    <view class="hero-meta">
+      <view class="meta-item">
+        <text class="meta-label">当前学期</text>
+        <text class="meta-value">{{userInfo.semesterName}}</text>
+      </view>
+      <view class="meta-item">
+        <text class="meta-label">学期范围</text>
+        <text class="meta-value">{{userInfo.semesterRange}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card action-card" wx:if="{{userInfo}}">
+    <view class="action-copy">
+      <text class="section-title">班负任命方式</text>
+      <text class="section-desc">班负现在按班次任命。请在下方每个班次卡片里直接任命、改派或撤销。</text>
+    </view>
+  </view>
+
+  <view class="card info-card" wx:if="{{userInfo}}">
+    <text class="section-title">其他信息</text>
+    <view class="info-list">
+      <view class="info-row">
+        <text class="info-label">姓名</text>
+        <text class="info-value">{{userInfo.name || '未填写'}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">昵称</text>
+        <text class="info-value">{{userInfo.nicknameText}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">积分</text>
+        <text class="info-value">{{userInfo.rewardScoreText}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">创建时间</text>
+        <text class="info-value">{{userInfo.createdAtText}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">更新时间</text>
+        <text class="info-value">{{userInfo.updatedAtText}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card metric-section" wx:if="{{overviewCards.length}}">
+    <text class="section-title">学期概览</text>
+    <view class="metric-grid">
+      <view class="metric-card" wx:for="{{overviewCards}}" wx:key="label">
+        <text class="metric-value">{{item.value}}</text>
+        <text class="metric-label">{{item.label}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card metric-section" wx:if="{{attendanceCards.length}}">
+    <text class="section-title">签到签退情况</text>
+    <view class="metric-grid compact">
+      <view class="metric-card" wx:for="{{attendanceCards}}" wx:key="label">
+        <text class="metric-value">{{item.value}}</text>
+        <text class="metric-label">{{item.label}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card metric-section" wx:if="{{salaryCards.length}}">
+    <text class="section-title">工资发放情况</text>
+    <view class="metric-grid compact">
+      <view class="metric-card salary" wx:for="{{salaryCards}}" wx:key="label">
+        <text class="metric-value">{{item.value}}</text>
+        <text class="metric-label">{{item.label}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="shift-section">
+    <view class="section-head standalone">
+      <text class="section-title">班次列表</text>
+      <text class="section-desc">点击任意班次可查看更详细的签到签退和工资信息，也可直接处理该班次的班负任命。</text>
+    </view>
+
+    <view class="shift-list" wx:if="{{shiftList.length}}">
+      <view
+        class="shift-card card"
+        wx:for="{{shiftList}}"
+        wx:key="_id"
+        data-id="{{item._id}}"
+        hover-class="tap-card-hover"
+        bindtap="onOpenShift">
+        <view class="shift-top">
+          <view class="shift-copy">
+            <text class="shift-title">{{item.shiftName || '未命名班次'}}</text>
+            <text class="shift-meta">{{item.date}} · {{item.timeRange}}</text>
+          </view>
+          <view class="shift-tags">
+            <text class="status-chip {{item.attendanceClass}}">{{item.attendanceText}}</text>
+            <text class="salary-chip {{item.salaryClass}}">{{item.salaryText}}</text>
+          </view>
+        </view>
+
+        <view class="shift-detail-grid">
+          <view class="detail-item">
+            <text class="detail-label">签到</text>
+            <text class="detail-value">{{item.checkInText}}</text>
+          </view>
+          <view class="detail-item">
+            <text class="detail-label">签退</text>
+            <text class="detail-value">{{item.checkOutText}}</text>
+          </view>
+          <view class="detail-item">
+            <text class="detail-label">班次工时</text>
+            <text class="detail-value">{{item.fixedHoursText}} 小时</text>
+          </view>
+          <view class="detail-item">
+            <text class="detail-label">有效工时</text>
+            <text class="detail-value">{{item.actualHoursText}} 小时</text>
+          </view>
+        </view>
+
+        <view class="leader-panel">
+          <view class="leader-copy">
+            <text class="leader-label">班次班负</text>
+            <text class="leader-value {{item.leaderDisplayClass}}">{{item.leaderDisplayText}}</text>
+            <text class="leader-hint">{{item.leaderActionHint}}</text>
+          </view>
+          <button
+            wx:if="{{item.canManageLeader}}"
+            class="shift-leader-btn {{item.leaderActionClass}}"
+            hover-class="tap-button-hover"
+            catchtap="onToggleShiftLeader"
+            data-id="{{item._id}}"
+            data-action="{{item.leaderAction}}"
+            loading="{{leaderActionScheduleId === item._id}}">
+            {{item.leaderActionText}}
+          </button>
+          <view wx:else class="shift-leader-disabled">{{item.leaderActionText}}</view>
+        </view>
+
+        <text class="salary-subtext">{{item.salarySubtext}}</text>
+      </view>
+    </view>
+
+    <view class="empty-card card" wx:else>
+      <text class="empty-title">暂无班次记录</text>
+      <text class="empty-desc">当前学期下还没有这个志愿者的班次数据。</text>
+    </view>
+  </view>
+</view>

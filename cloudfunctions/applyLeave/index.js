@@ -1,12 +1,112 @@
-const cloud = require('wx-server-sdk');
+﻿const cloud = require('wx-server-sdk');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 
 const db = cloud.database();
 
+const ROLE_MEMBER = 0;
+const ROLE_LEADER = 1;
+const ROLE_ADMIN = 2;
 const SHIFT_TYPE_NORMAL = 0;
 const SHIFT_TYPE_LEAVE = 1;
 const LEAVE_STATUS_PENDING = 0;
+const VALID_ROLES = [ROLE_MEMBER, ROLE_LEADER, ROLE_ADMIN];
+
+function normalizeRoles(user = {}) {
+  const roles = [];
+
+  if (Array.isArray(user.roles)) {
+    user.roles.forEach((item) => {
+      const role = Number(item);
+      if (VALID_ROLES.includes(role) && !roles.includes(role)) {
+        roles.push(role);
+      }
+    });
+  }
+
+  const legacyRole = Number(user.role);
+  if (!roles.length && VALID_ROLES.includes(legacyRole)) {
+    roles.push(legacyRole);
+  }
+
+  if (!roles.includes(ROLE_MEMBER)) {
+    roles.push(ROLE_MEMBER);
+  }
+
+  return roles.sort((left, right) => left - right);
+}
+
+function getPrimaryRole(roles) {
+  if (roles.includes(ROLE_ADMIN)) {
+    return ROLE_ADMIN;
+  }
+
+  if (roles.includes(ROLE_LEADER)) {
+    return ROLE_LEADER;
+  }
+
+  return ROLE_MEMBER;
+}
+
+function buildSlotMatcher(schedule) {
+  if (schedule.shiftId) {
+    return {
+      date: schedule.date,
+      shiftId: schedule.shiftId,
+    };
+  }
+
+  return {
+    date: schedule.date,
+    startTime: schedule.startTime,
+    endTime: schedule.endTime,
+  };
+}
+
+async function syncLeaderRole(userId) {
+  const normalizedUserId = String(userId || '').trim();
+  if (!normalizedUserId) {
+    return;
+  }
+
+  const userResult = await db.collection('users').doc(normalizedUserId).get();
+  const user = userResult.data || null;
+  if (!user) {
+    return;
+  }
+
+  const currentRoles = normalizeRoles(user);
+  const leaderScheduleResult = await db.collection('schedules')
+    .where({
+      userId: normalizedUserId,
+      leaderUserId: normalizedUserId,
+      shiftType: db.command.neq(SHIFT_TYPE_LEAVE),
+    })
+    .limit(1)
+    .get();
+
+  const hasLeaderAssignment = Boolean(leaderScheduleResult.data && leaderScheduleResult.data.length > 0);
+  const nextRoles = hasLeaderAssignment
+    ? [...new Set([...currentRoles, ROLE_LEADER])].sort((left, right) => left - right)
+    : currentRoles.filter((item) => item !== ROLE_LEADER);
+  const primaryRole = getPrimaryRole(nextRoles);
+  const rawRoles = Array.isArray(user.roles) ? user.roles : [];
+  const shouldUpdate = rawRoles.length !== nextRoles.length
+    || rawRoles.some((item, index) => Number(item) !== nextRoles[index])
+    || Number(user.role) !== primaryRole;
+
+  if (!shouldUpdate) {
+    return;
+  }
+
+  await db.collection('users').doc(normalizedUserId).update({
+    data: {
+      roles: nextRoles,
+      role: primaryRole,
+      updatedAt: db.serverDate(),
+    },
+  });
+}
 
 function padNumber(value) {
   return String(value).padStart(2, '0');
@@ -79,7 +179,7 @@ exports.main = async (event) => {
 
   try {
     const scheduleResult = await db.collection('schedules').doc(scheduleId).get();
-    const schedule = scheduleResult.data;
+    const schedule = scheduleResult.data || null;
 
     if (!schedule) {
       return { success: false, error: '班次不存在' };
@@ -105,6 +205,23 @@ exports.main = async (event) => {
       return { success: false, error: '只能对未开始的班次申请请假' };
     }
 
+    if (String(schedule.leaderUserId || '').trim() === userId) {
+      const slotResult = await db.collection('schedules')
+        .where(buildSlotMatcher(schedule))
+        .limit(100)
+        .get();
+
+      await Promise.all((slotResult.data || []).map((item) => {
+        return db.collection('schedules').doc(item._id).update({
+          data: {
+            leaderUserId: null,
+            leaderUserName: '',
+            updatedAt: db.serverDate(),
+          },
+        });
+      }));
+    }
+
     await db.collection('schedules').doc(scheduleId).update({
       data: {
         shiftType: SHIFT_TYPE_LEAVE,
@@ -120,6 +237,10 @@ exports.main = async (event) => {
         updatedAt: db.serverDate(),
       },
     });
+
+    if (String(schedule.leaderUserId || '').trim() === userId) {
+      await syncLeaderRole(userId);
+    }
 
     return {
       success: true,

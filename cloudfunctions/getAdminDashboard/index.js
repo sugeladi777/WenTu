@@ -8,11 +8,6 @@ const ROLE_MEMBER = 0;
 const ROLE_LEADER = 1;
 const ROLE_ADMIN = 2;
 const VALID_ROLES = [ROLE_MEMBER, ROLE_LEADER, ROLE_ADMIN];
-const ATTENDANCE_NORMAL = 0;
-const ATTENDANCE_LATE = 1;
-const ATTENDANCE_ABSENT = 3;
-const SHIFT_TYPE_LEAVE = 1;
-const SHIFT_TYPE_SWAP = 2;
 
 function padNumber(value) {
   return String(value).padStart(2, '0');
@@ -80,6 +75,7 @@ function omitPassword(user) {
 
   return {
     ...userInfo,
+    nickname: userInfo.nickname || userInfo.name || '',
     roles,
     role: primaryRole,
     primaryRole,
@@ -93,10 +89,6 @@ async function loadAllDocuments(collection, filter = {}, options = {}) {
 
   while (true) {
     let query = collection.where(filter);
-
-    if (options.field) {
-      query = query.field(options.field);
-    }
 
     if (options.orderByField) {
       query = query.orderBy(options.orderByField, options.orderByOrder || 'asc');
@@ -159,41 +151,13 @@ async function ensureAdmin(requesterId) {
   return user;
 }
 
-function createEmptyStats() {
+function buildSummary(users = []) {
   return {
-    totalShifts: 0,
-    completedShifts: 0,
-    leaveShifts: 0,
-    absentShifts: 0,
-    lateShifts: 0,
-    swapShifts: 0,
-    validHours: 0,
-    confirmPending: 0,
-    paidHours: 0,
-    unpaidHours: 0,
-    paidAmount: 0,
-    paidShiftCount: 0,
-    unpaidShiftCount: 0,
+    totalUserCount: users.length,
+    memberCount: users.filter((user) => !hasRole(user, ROLE_LEADER) && !hasRole(user, ROLE_ADMIN)).length,
+    leaderCount: users.filter((user) => hasRole(user, ROLE_LEADER)).length,
+    adminCount: users.filter((user) => hasRole(user, ROLE_ADMIN)).length,
   };
-}
-
-function roundHours(value) {
-  return Math.round(Number(value || 0) * 100) / 100;
-}
-
-function getValidScheduleHours(schedule) {
-  const isValid = schedule.checkOutTime
-    && (schedule.attendanceStatus === ATTENDANCE_NORMAL || schedule.attendanceStatus === ATTENDANCE_LATE)
-    && schedule.shiftType !== SHIFT_TYPE_LEAVE
-    && schedule.attendanceStatus !== ATTENDANCE_ABSENT;
-
-  if (!isValid) {
-    return 0;
-  }
-
-  const hours = Number(schedule.fixedHours) || 0;
-  const overtime = schedule.overtimeApproved ? (Number(schedule.overtimeHours) || 0) : 0;
-  return roundHours(hours + overtime);
 }
 
 exports.main = async (event) => {
@@ -212,95 +176,11 @@ exports.main = async (event) => {
       loadAllDocuments(db.collection('users'), {}, { orderByField: 'studentId' }),
     ]);
 
-    const schedules = semester
-      ? await loadAllDocuments(db.collection('schedules'), { semesterId: semester._id })
-      : [];
-
-    const statsMap = {};
-    users.forEach((user) => {
-      statsMap[user._id] = createEmptyStats();
-    });
-
-    let totalValidHours = 0;
-    let totalPaidHours = 0;
-    let totalUnpaidHours = 0;
-    let totalPaidAmount = 0;
-
-    schedules.forEach((schedule) => {
-      if (!schedule || !schedule.userId || !statsMap[schedule.userId]) {
-        return;
-      }
-
-      const stats = statsMap[schedule.userId];
-      stats.totalShifts += 1;
-
-      if (schedule.shiftType === SHIFT_TYPE_LEAVE) {
-        stats.leaveShifts += 1;
-      }
-
-      if (schedule.shiftType === SHIFT_TYPE_SWAP) {
-        stats.swapShifts += 1;
-      }
-
-      if (schedule.attendanceStatus === ATTENDANCE_ABSENT) {
-        stats.absentShifts += 1;
-      }
-
-      if (schedule.attendanceStatus === ATTENDANCE_LATE) {
-        stats.lateShifts += 1;
-      }
-
-      if (schedule.checkOutTime) {
-        stats.completedShifts += 1;
-      }
-
-      if (schedule.leaderConfirmStatus == null && schedule.shiftType !== SHIFT_TYPE_LEAVE && !schedule.checkOutTime) {
-        stats.confirmPending += 1;
-      }
-
-      const actualHours = getValidScheduleHours(schedule);
-      if (!actualHours) {
-        return;
-      }
-
-      stats.validHours = roundHours(stats.validHours + actualHours);
-      totalValidHours = roundHours(totalValidHours + actualHours);
-
-      if (schedule.salaryPaid) {
-        const salaryAmount = roundHours(schedule.salaryAmount || 0);
-        stats.paidHours = roundHours(stats.paidHours + actualHours);
-        stats.paidAmount = roundHours(stats.paidAmount + salaryAmount);
-        stats.paidShiftCount += 1;
-
-        totalPaidHours = roundHours(totalPaidHours + actualHours);
-        totalPaidAmount = roundHours(totalPaidAmount + salaryAmount);
-      } else {
-        stats.unpaidHours = roundHours(stats.unpaidHours + actualHours);
-        stats.unpaidShiftCount += 1;
-        totalUnpaidHours = roundHours(totalUnpaidHours + actualHours);
-      }
-    });
-
-    const summary = {
-      totalUserCount: users.length,
-      memberCount: users.filter((user) => !hasRole(user, ROLE_LEADER) && !hasRole(user, ROLE_ADMIN)).length,
-      leaderCount: users.filter((user) => hasRole(user, ROLE_LEADER)).length,
-      adminCount: users.filter((user) => hasRole(user, ROLE_ADMIN)).length,
-      totalSchedules: schedules.length,
-      totalValidHours,
-      totalPaidHours,
-      totalUnpaidHours,
-      totalPaidAmount,
-    };
-
     return {
       success: true,
       semester,
-      summary,
-      users: users.map((user) => ({
-        ...omitPassword(user),
-        stats: statsMap[user._id] || createEmptyStats(),
-      })),
+      summary: buildSummary(users),
+      users: users.map((user) => omitPassword(user)),
     };
   } catch (error) {
     return { success: false, error: error.message };

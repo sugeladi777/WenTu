@@ -1,0 +1,9 @@
+{
+  "name": "setShiftLeader",
+  "version": "1.0.0",
+  "description": "管理员按班次任命或撤销班负",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

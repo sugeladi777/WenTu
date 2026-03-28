@@ -7,6 +7,7 @@ const db = cloud.database();
 const ROLE_MEMBER = 0;
 const ROLE_LEADER = 1;
 const ROLE_ADMIN = 2;
+const SHIFT_TYPE_LEAVE = 1;
 const VALID_ROLES = [ROLE_MEMBER, ROLE_LEADER, ROLE_ADMIN];
 
 function normalizeRoles(user = {}) {
@@ -68,9 +69,22 @@ async function syncUserRoleFields(user) {
     return user;
   }
 
-  const roles = normalizeRoles(user);
-  const primaryRole = getPrimaryRole(roles);
+  const normalizedRoles = normalizeRoles(user);
+  const leaderScheduleResult = await db.collection('schedules')
+    .where({
+      userId: user._id,
+      leaderUserId: user._id,
+      shiftType: db.command.neq(SHIFT_TYPE_LEAVE),
+    })
+    .limit(1)
+    .get();
+
+  const hasLeaderAssignment = Boolean(leaderScheduleResult.data && leaderScheduleResult.data.length > 0);
+  const roles = hasLeaderAssignment
+    ? [...new Set([...normalizedRoles, ROLE_LEADER])].sort((left, right) => left - right)
+    : normalizedRoles.filter((item) => item !== ROLE_LEADER);
   const currentRoles = Array.isArray(user.roles) ? user.roles : [];
+  const primaryRole = getPrimaryRole(roles);
   const shouldUpdate = currentRoles.length !== roles.length
     || currentRoles.some((item, index) => Number(item) !== roles[index])
     || Number(user.role) !== primaryRole;

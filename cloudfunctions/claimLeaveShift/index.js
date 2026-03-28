@@ -107,6 +107,8 @@ function buildReplacementSchedule(leaveSchedule, userId, userName) {
     originalUserId: leaveSchedule.userId,
     originalUserName: leaveSchedule.userName || '',
     relatedLeaveScheduleId: leaveSchedule._id,
+    leaderUserId: leaveSchedule.leaderUserId || null,
+    leaderUserName: leaveSchedule.leaderUserName || '',
     leaderConfirmStatus: null,
     leaderConfirmedAt: null,
     leaderConfirmedBy: null,

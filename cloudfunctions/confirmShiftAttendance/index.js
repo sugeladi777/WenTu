@@ -1,4 +1,4 @@
-const cloud = require('wx-server-sdk');
+﻿const cloud = require('wx-server-sdk');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 
@@ -77,12 +77,12 @@ function buildSlotMatcher(schedule) {
   };
 }
 
-async function ensureLeaderOrAdmin(requesterId) {
+async function ensureRequester(requesterId) {
   const result = await db.collection('users').doc(requesterId).get();
   const user = result.data || null;
 
-  if (!user || (!hasRole(user, ROLE_LEADER) && !hasRole(user, ROLE_ADMIN))) {
-    throw new Error('只有班负或管理员可以执行该操作');
+  if (!user) {
+    throw new Error('请求用户不存在');
   }
 
   return user;
@@ -112,7 +112,7 @@ exports.main = async (event) => {
   }
 
   try {
-    const requester = await ensureLeaderOrAdmin(requesterId);
+    const requester = await ensureRequester(requesterId);
     const targetResult = await db.collection('schedules').doc(scheduleId).get();
     const schedule = targetResult.data || null;
 
@@ -125,7 +125,7 @@ exports.main = async (event) => {
     }
 
     if (schedule.shiftType === SHIFT_TYPE_LEAVE) {
-      return { success: false, error: '请假班次不需要签到确认' };
+      return { success: false, error: '请假班次无需签到确认' };
     }
 
     const now = toChinaDate();
@@ -145,6 +145,7 @@ exports.main = async (event) => {
       const leaderSlotResult = await db.collection('schedules')
         .where({
           userId: requesterId,
+          leaderUserId: requesterId,
           shiftType: db.command.neq(SHIFT_TYPE_LEAVE),
           ...buildSlotMatcher(schedule),
         })
@@ -184,7 +185,7 @@ exports.main = async (event) => {
 
     return {
       success: true,
-      message: action === 'present' ? '已确认为到岗' : '已标记为旷岗',
+      message: action === 'present' ? '已确认到岗' : '已标记为旷岗',
     };
   } catch (error) {
     return { success: false, error: error.message };

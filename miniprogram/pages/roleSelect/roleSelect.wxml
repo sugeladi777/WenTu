@@ -1,0 +1,44 @@
+<view class="container role-page">
+  <view class="hero card">
+    <text class="hero-kicker">登录成功</text>
+    <text class="hero-title">选择本次进入身份</text>
+    <text class="hero-desc">不同身份会进入不同的工作视角。进入后你仍然可以在个人中心切换身份。</text>
+
+    <view class="profile-chip" wx:if="{{userInfo}}">
+      <text class="profile-name">{{userInfo.nickname || userInfo.name || '同学'}}</text>
+      <text class="profile-id">学号 {{userInfo.studentId || '未填写'}}</text>
+    </view>
+  </view>
+
+  <view class="role-list">
+    <view
+      class="role-card {{item.theme}} {{selectedRole === item.role ? 'active' : ''}}"
+      wx:for="{{roleOptions}}"
+      wx:key="role"
+      data-role="{{item.role}}"
+      hover-class="tap-card-hover"
+      bindtap="onSelectRole">
+      <view class="role-card-head">
+        <text class="role-name">{{item.text}}</text>
+        <text class="role-tag" wx:if="{{selectedRole === item.role}}">当前选择</text>
+      </view>
+      <text class="role-desc">{{item.description}}</text>
+    </view>
+  </view>
+
+  <button
+    class="enter-btn"
+    hover-class="tap-button-hover"
+    bindtap="onConfirmRoleLogin"
+    disabled="{{loading}}">
+    以{{selectedRoleText}}身份进入
+  </button>
+
+  <button
+    class="back-btn"
+    hover-class="tap-soft-hover"
+    bindtap="onBackToLogin"
+    disabled="{{loading}}">
+    返回登录页
+  </button>
+</view>

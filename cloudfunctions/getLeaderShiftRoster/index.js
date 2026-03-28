@@ -1,4 +1,4 @@
-const cloud = require('wx-server-sdk');
+﻿const cloud = require('wx-server-sdk');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 
@@ -93,11 +93,11 @@ function timeToMinutes(timeString) {
 
 function getLeaderConfirmText(schedule) {
   if (schedule.leaderConfirmStatus === 'present') {
-    return '已确认为到岗';
+    return '已确认到岗';
   }
 
   if (schedule.leaderConfirmStatus === 'absent') {
-    return '已确认为旷岗';
+    return '已确认旷岗';
   }
 
   if (schedule.checkInTime) {
@@ -165,12 +165,12 @@ function selectActiveShift(leaderSchedules, selectedScheduleId, currentMinutes) 
   return upcoming || leaderSchedules[0];
 }
 
-async function ensureLeaderOrAdmin(requesterId) {
+async function ensureRequester(requesterId) {
   const result = await db.collection('users').doc(requesterId).get();
   const user = result.data || null;
 
-  if (!user || (!hasRole(user, ROLE_LEADER) && !hasRole(user, ROLE_ADMIN))) {
-    throw new Error('只有班负或管理员可以查看签到确认');
+  if (!user) {
+    throw new Error('请求用户不存在');
   }
 
   return user;
@@ -186,20 +186,35 @@ exports.main = async (event) => {
   }
 
   try {
-    const requester = await ensureLeaderOrAdmin(requesterId);
+    const requester = await ensureRequester(requesterId);
     const now = toChinaDate();
     const currentMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
+    let leaderSchedules = [];
 
-    const leaderScheduleResult = await db.collection('schedules')
-      .where({
-        userId: requesterId,
-        date,
-      })
-      .orderBy('startTime', 'asc')
-      .limit(50)
-      .get();
+    if (hasRole(requester, ROLE_ADMIN) && selectedScheduleId) {
+      const selectedResult = await db.collection('schedules').doc(selectedScheduleId).get();
+      const selectedSchedule = selectedResult.data || null;
 
-    const leaderSchedules = (leaderScheduleResult.data || []).filter((item) => item.shiftType !== SHIFT_TYPE_LEAVE);
+      if (selectedSchedule && selectedSchedule.date === date && selectedSchedule.shiftType !== SHIFT_TYPE_LEAVE) {
+        leaderSchedules = [selectedSchedule];
+      }
+    }
+
+    if (!leaderSchedules.length) {
+      const leaderScheduleResult = await db.collection('schedules')
+        .where({
+          userId: requesterId,
+          leaderUserId: requesterId,
+          date,
+          shiftType: db.command.neq(SHIFT_TYPE_LEAVE),
+        })
+        .orderBy('startTime', 'asc')
+        .limit(50)
+        .get();
+
+      leaderSchedules = leaderScheduleResult.data || [];
+    }
+
     const activeSchedule = selectActiveShift(leaderSchedules, selectedScheduleId, currentMinutes);
 
     if (!activeSchedule) {

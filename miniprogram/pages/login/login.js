@@ -1,8 +1,7 @@
 ﻿const app = getApp();
 
-const { USER_ROLE } = require('../../utils/constants');
 const { callCloudFunction } = require('../../utils/cloud');
-const { getActiveRole, getRoleOptions, getRoleText } = require('../../utils/role');
+const { getActiveRole, getRoleOptions } = require('../../utils/role');
 
 Page({
   data: {
@@ -12,11 +11,6 @@ Page({
     nickname: '',
     mode: 'login',
     loading: false,
-    showRoleSelector: false,
-    pendingUserInfo: null,
-    roleOptions: [],
-    selectedRole: USER_ROLE.MEMBER,
-    selectedRoleText: getRoleText(USER_ROLE.MEMBER),
   },
 
   onLoad() {
@@ -66,22 +60,11 @@ Page({
     this.setData({ nickname: String(e.detail.value || '').trim() });
   },
 
-  resetRoleSelector() {
-    this.setData({
-      showRoleSelector: false,
-      pendingUserInfo: null,
-      roleOptions: [],
-      selectedRole: USER_ROLE.MEMBER,
-      selectedRoleText: getRoleText(USER_ROLE.MEMBER),
-    });
-  },
-
   setMode(mode) {
     if (!mode || mode === this.data.mode) {
       return;
     }
 
-    this.resetRoleSelector();
     this.setData({ mode });
   },
 
@@ -94,13 +77,13 @@ Page({
   },
 
   openRoleSelector(userInfo) {
-    const selectedRole = getActiveRole(userInfo);
-    this.setData({
-      showRoleSelector: true,
-      pendingUserInfo: userInfo,
-      roleOptions: getRoleOptions(userInfo),
-      selectedRole,
-      selectedRoleText: getRoleText(selectedRole),
+    const pendingUser = app.setPendingLoginUser(userInfo);
+    if (!pendingUser) {
+      throw new Error('用户信息暂存失败');
+    }
+
+    wx.navigateTo({
+      url: '/pages/roleSelect/roleSelect',
     });
   },
 
@@ -109,8 +92,6 @@ Page({
     if (!currentUser) {
       throw new Error('用户信息写入失败');
     }
-
-    this.resetRoleSelector();
 
     wx.showToast({
       title: isRegister ? '注册成功' : '登录成功',
@@ -177,42 +158,6 @@ Page({
     } catch (error) {
       wx.showToast({
         title: error.message || '操作失败',
-        icon: 'none',
-      });
-    } finally {
-      wx.hideLoading();
-      this.setData({ loading: false });
-    }
-  },
-
-  onSelectRole(e) {
-    const role = Number(e.currentTarget.dataset.role);
-    if (Number.isNaN(role)) {
-      return;
-    }
-
-    this.setData({
-      selectedRole: role,
-      selectedRoleText: getRoleText(role),
-    });
-  },
-
-  async onConfirmRoleLogin() {
-    if (this.data.loading || !this.data.pendingUserInfo) {
-      return;
-    }
-
-    this.setData({ loading: true });
-    wx.showLoading({ title: '正在进入' });
-
-    try {
-      await this.finishAuth(this.data.pendingUserInfo, {
-        isRegister: false,
-        activeRole: this.data.selectedRole,
-      });
-    } catch (error) {
-      wx.showToast({
-        title: error.message || '登录失败',
         icon: 'none',
       });
     } finally {

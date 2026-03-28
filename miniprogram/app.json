@@ -1,8 +1,10 @@
 {
   "pages": [
     "pages/login/login",
+    "pages/roleSelect/roleSelect",
     "pages/selectSchedule/selectSchedule",
     "pages/adminDashboard/adminDashboard",
+    "pages/adminVolunteerDetail/adminVolunteerDetail",
     "pages/leaderConfirm/leaderConfirm",
     "pages/index/index",
     "pages/workHours/workHours",
@@ -17,7 +19,7 @@
     "backgroundColor": "#faf9f7",
     "backgroundTextStyle": "dark",
     "navigationBarBackgroundColor": "#ffffff",
-    "navigationBarTitleText": "文小图",
+    "navigationBarTitleText": "鏂囧皬鍥?,
     "navigationBarTextStyle": "black"
   },
   "tabBar": {
@@ -28,19 +30,19 @@
     "list": [
       {
         "pagePath": "pages/index/index",
-        "text": "首页"
+        "text": "棣栭〉"
       },
       {
         "pagePath": "pages/workHours/workHours",
-        "text": "工时"
+        "text": "宸ユ椂"
       },
       {
         "pagePath": "pages/myShift/myShift",
-        "text": "班次"
+        "text": "鐝"
       },
       {
         "pagePath": "pages/profile/profile",
-        "text": "个人中心"
+        "text": "涓汉涓績"
       }
     ]
   },

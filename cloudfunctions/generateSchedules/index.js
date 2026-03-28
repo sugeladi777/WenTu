@@ -138,6 +138,8 @@ function createScheduleRecord({ semesterId, userId, userName, date, dayOfWeek, t
     leaveApprovedBy: null,
     leaveApprovedAt: null,
     originalUserId: null,
+    leaderUserId: null,
+    leaderUserName: '',
     leaderConfirmStatus: null,
     leaderConfirmedAt: null,
     leaderConfirmedBy: null,

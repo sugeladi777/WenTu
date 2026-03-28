@@ -1,0 +1,9 @@
+{
+  "name": "getAdminUserDetail",
+  "version": "1.0.0",
+  "description": "管理员查看志愿者详情",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

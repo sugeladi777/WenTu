@@ -13,10 +13,6 @@ function normalizeName(value) {
   return String(value || '').trim().slice(0, 30);
 }
 
-function normalizeNickname(value) {
-  return String(value || '').trim().slice(0, 30);
-}
-
 function normalizeAvatar(value) {
   return String(value || '').trim();
 }
@@ -68,7 +64,7 @@ function omitPassword(user) {
 
   return {
     ...userInfo,
-    nickname: userInfo.nickname || userInfo.name || '',
+    nickname: '',
     roles,
     role: primaryRole,
     primaryRole,
@@ -78,7 +74,6 @@ function omitPassword(user) {
 exports.main = async (event) => {
   const userId = String(event.userId || '').trim();
   const name = normalizeName(event.name);
-  const nickname = normalizeNickname(event.nickname);
   const avatar = normalizeAvatar(event.avatar);
 
   if (!userId) {
@@ -98,7 +93,7 @@ exports.main = async (event) => {
     await db.collection('users').doc(userId).update({
       data: {
         name,
-        nickname: nickname || name,
+        nickname: '',
         avatar: avatar || currentResult.data.avatar || '',
         updatedAt: db.serverDate(),
       },

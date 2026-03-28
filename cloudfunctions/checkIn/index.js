@@ -185,6 +185,10 @@ exports.main = async (event) => {
       data: {
         checkInTime: db.serverDate(),
         attendanceStatus: evaluation.attendanceStatus,
+        leaderConfirmStatus: targetSchedule.leaderUserId ? 'pending' : '',
+        leaderConfirmedAt: null,
+        leaderConfirmedBy: null,
+        leaderConfirmedByName: '',
         checkInLocation: latitude !== null && longitude !== null ? { latitude, longitude } : null,
         updatedAt: db.serverDate(),
       },

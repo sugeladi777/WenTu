@@ -68,7 +68,7 @@ function getCheckState(shift) {
       checkButtonClass: 'checked-out',
       checkButtonText: '暂无班次',
       checkButtonIcon: '休',
-      checkHint: '今天没有需要签到签退的班次。',
+      checkHint: '今天没有需要处理的班次。',
     };
   }
 
@@ -85,8 +85,8 @@ function getCheckState(shift) {
       checkButtonText: '已请假',
       checkButtonIcon: '假',
       checkHint: shift.leaveStatus === LEAVE_STATUS.APPROVED
-        ? '该班次已完成请假并已有同学接替。'
-        : '该班次已请假，正在等待其他同学认领替班。',
+        ? '该班次已完成请假并已有人接替。'
+        : '该班次已提交请假，等待其他同学认领。',
     };
   }
 
@@ -98,7 +98,7 @@ function getCheckState(shift) {
       checkButtonClass: 'checked-out',
       checkButtonText: '已旷岗',
       checkButtonIcon: '缺',
-      checkHint: '该班次未签到，已被记录为旷岗。',
+      checkHint: '该班次未签到，已记为旷岗。',
     };
   }
 
@@ -110,7 +110,7 @@ function getCheckState(shift) {
       checkButtonClass: 'checked-out',
       checkButtonText: '未签退',
       checkButtonIcon: '退',
-      checkHint: '该班次已超过签退时限，系统已记录为未签退。',
+      checkHint: '该班次超过签退时限，已记为未签退。',
     };
   }
 
@@ -122,7 +122,7 @@ function getCheckState(shift) {
       checkButtonClass: 'checked-out',
       checkButtonText: '已完成',
       checkButtonIcon: '完',
-      checkHint: '当前班次已经完成签到和签退。',
+      checkHint: '当前班次已完成签到和签退。',
     };
   }
 
@@ -133,14 +133,14 @@ function getCheckState(shift) {
 
     if (endMinutes !== null && currentMinutes < endMinutes) {
       return {
-      hasCheckedIn: true,
-      hasCheckedOut: false,
-      checkDisabled: true,
-      checkButtonClass: 'checked-out',
-      checkButtonText: '不可签退',
-      checkButtonIcon: '等',
-      checkHint: '当前班次尚未结束，请在结束后 30 分钟内完成签退。',
-    };
+        hasCheckedIn: true,
+        hasCheckedOut: false,
+        checkDisabled: true,
+        checkButtonClass: 'checked-out',
+        checkButtonText: '暂不可签退',
+        checkButtonIcon: '签',
+        checkHint: '班次结束后才能签退，请在结束后 30 分钟内完成。',
+      };
     }
 
     return {
@@ -150,7 +150,7 @@ function getCheckState(shift) {
       checkButtonClass: 'check-out',
       checkButtonText: '签退',
       checkButtonIcon: '退',
-      checkHint: '班次已结束，请在结束后 30 分钟内完成签退。',
+      checkHint: '班次已结束，请尽快完成签退。',
     };
   }
 
@@ -171,28 +171,28 @@ function getHeroMeta(activeRole, userName, semester, summary) {
   switch (activeRole) {
     case USER_ROLE.LEADER:
       return {
-        title: `${userName}，今天由你带班`,
+        title: `${userName}，今天由你负责班次`,
         subtitle: semesterName
-          ? `${semesterName}中，你需要先完成自己的签到签退，再确认当前班次成员的到岗情况。`
-          : '班负身份会同时保留你自己的班次操作，并追加班次签到确认任务。',
+          ? `${semesterName}，先完成自己的签到签退，再确认当前班次成员到岗情况。`
+          : '先完成自己的签到签退，再确认当前班次成员到岗情况。',
         badgeValue: '--',
         badgeLabel: '班负视角',
       };
     case USER_ROLE.ADMIN:
       return {
-        title: `${userName}，今天从管理视角进入`,
+        title: `${userName}，当前为管理员视角`,
         subtitle: semesterName
-          ? `${semesterName}中，你可以查看成员工作情况、任命班负并掌握整体运行状态。`
-          : '管理员身份会优先展示成员概况与管理入口。',
+          ? `${semesterName}，查看成员情况、班负安排和工资发放。`
+          : '查看成员情况、班负安排和工资发放。',
         badgeValue: summary && summary.totalUserCount != null ? summary.totalUserCount : '--',
         badgeLabel: '账号总数',
       };
     default:
       return {
-        title: `${userName}，今天也稳稳值班`,
+        title: `${userName}，今天也要顺利值班`,
         subtitle: semesterName
-          ? `${semesterName}中，查看今日班次、完成签到签退和请假替班。`
-          : '查看今天的班次安排、签到签退和请假替班信息。',
+          ? `${semesterName}，查看今日班次并完成签到签退。`
+          : '查看今日班次并完成签到签退。',
         badgeValue: '--',
         badgeLabel: '今日班次',
       };
@@ -203,9 +203,9 @@ function getRoleMission(activeRole) {
   if (activeRole === USER_ROLE.LEADER) {
     return {
       theme: 'leader',
-      title: '班负任务',
-      desc: '进入签到确认页，确认当前班次成员是否到岗。你自己的签到签退仍在本页完成。',
-      buttonText: '去确认签到',
+      title: '班负工作',
+      desc: '进入确认页，处理当前班次成员签到和加班审批。',
+      buttonText: '进入确认页',
       action: 'leaderConfirm',
     };
   }
@@ -213,8 +213,8 @@ function getRoleMission(activeRole) {
   if (activeRole === USER_ROLE.ADMIN) {
     return {
       theme: 'admin',
-      title: '管理员任务',
-      desc: '查看全员工作情况、调整班负身份；如果你今天也有班次，请先切换到志愿者或班负身份处理。',
+      title: '管理工作',
+      desc: '进入后台查看志愿者详情、班负安排和工资发放。',
       buttonText: '进入管理后台',
       action: 'adminDashboard',
     };
@@ -227,25 +227,25 @@ function buildShortcutItems(activeRole) {
   if (activeRole === USER_ROLE.LEADER) {
     return [
       { key: 'leaderConfirm', title: '班负确认', desc: '确认当前班次成员签到', icon: '签', theme: 'yellow' },
-      { key: 'myShift', title: '我的班次', desc: '查看整周安排与请假记录', icon: '班', theme: 'peach' },
-      { key: 'leaveCenter', title: '请假与替班', desc: '发布待替班班次或认领替班', icon: '假', theme: 'mint' },
-      { key: 'workHours', title: '工时统计', desc: '追踪有效工时', icon: '时', theme: 'blue' },
+      { key: 'myShift', title: '我的班次', desc: '查看整周安排', icon: '班', theme: 'peach' },
+      { key: 'leaveCenter', title: '请假与替班', desc: '查看可替班班次', icon: '假', theme: 'mint' },
+      { key: 'workHours', title: '工时统计', desc: '查看有效工时', icon: '时', theme: 'blue' },
     ];
   }
 
   if (activeRole === USER_ROLE.ADMIN) {
     return [
-      { key: 'adminDashboard', title: '管理后台', desc: '查看成员工作情况与班负安排', icon: '管', theme: 'blue', wide: true },
-      { key: 'profile', title: '身份切换', desc: '切换成志愿者或班负身份处理个人班次', icon: '换', theme: 'peach' },
-      { key: 'myShift', title: '我的班次', desc: '查看个人排班信息', icon: '班', theme: 'yellow' },
-      { key: 'workHours', title: '工时统计', desc: '查看个人累计工时', icon: '时', theme: 'mint' },
+      { key: 'adminDashboard', title: '管理后台', desc: '查看成员情况与班负安排', icon: '管', theme: 'blue', wide: true },
+      { key: 'profile', title: '身份切换', desc: '切换当前使用身份', icon: '换', theme: 'peach' },
+      { key: 'myShift', title: '我的班次', desc: '查看个人排班', icon: '班', theme: 'yellow' },
+      { key: 'workHours', title: '工时统计', desc: '查看累计工时', icon: '时', theme: 'mint' },
     ];
   }
 
   return [
     { key: 'myShift', title: '我的班次', desc: '查看整周安排', icon: '班', theme: 'peach' },
-    { key: 'workHours', title: '工时统计', desc: '追踪有效工时', icon: '时', theme: 'blue' },
-    { key: 'leaveCenter', title: '请假与替班', desc: '发布待替班班次或认领替班', icon: '假', theme: 'mint', wide: true },
+    { key: 'workHours', title: '工时统计', desc: '查看有效工时', icon: '时', theme: 'blue' },
+    { key: 'leaveCenter', title: '请假与替班', desc: '查看可替班班次', icon: '假', theme: 'mint', wide: true },
   ];
 }
 
@@ -270,8 +270,8 @@ function buildMemberStats(todayShifts) {
     completedShiftCount,
     remainingShiftCount,
     statsCards: [
-      { key: 'completed', value: completedShiftCount, label: '已处理', theme: 'warm' },
-      { key: 'remaining', value: remainingShiftCount, label: '待完成', theme: 'mint' },
+      { key: 'completed', value: completedShiftCount, label: '已完成', theme: 'warm' },
+      { key: 'remaining', value: remainingShiftCount, label: '待处理', theme: 'mint' },
     ],
   };
 }
@@ -279,9 +279,9 @@ function buildMemberStats(todayShifts) {
 function buildAdminStats(summary) {
   return [
     { key: 'total', value: summary && summary.totalUserCount != null ? summary.totalUserCount : 0, label: '账号总数', theme: 'blue' },
-    { key: 'member', value: summary && summary.memberCount != null ? summary.memberCount : 0, label: '普通志愿者', theme: 'warm' },
-    { key: 'leader', value: summary && summary.leaderCount != null ? summary.leaderCount : 0, label: '班负身份', theme: 'yellow' },
-    { key: 'admin', value: summary && summary.adminCount != null ? summary.adminCount : 0, label: '管理员身份', theme: 'lavender' },
+    { key: 'member', value: summary && summary.memberCount != null ? summary.memberCount : 0, label: '志愿者', theme: 'warm' },
+    { key: 'leader', value: summary && summary.leaderCount != null ? summary.leaderCount : 0, label: '班负', theme: 'yellow' },
+    { key: 'admin', value: summary && summary.adminCount != null ? summary.adminCount : 0, label: '管理员', theme: 'lavender' },
   ];
 }
 
@@ -309,7 +309,7 @@ Page({
     currentShiftWindow: '暂无班次',
     currentShiftStatus: '今日暂无安排',
     currentShiftRecordStatusClass: '',
-    currentShiftTag: '值班概览',
+    currentShiftTag: '班次概览',
     activeRole: USER_ROLE.MEMBER,
     roleText: '志愿者',
     roleTheme: 'member',
@@ -372,10 +372,6 @@ Page({
     const nextCurrentTime = formatTime(now);
     const nextGreetingLabel = getGreetingLabel(now.getHours());
     const nextUserName = (app.globalData.userInfo && app.globalData.userInfo.name) || '同学';
-    const displayUserName = (
-      app.globalData.userInfo
-      && (app.globalData.userInfo.nickname || app.globalData.userInfo.name)
-    ) || nextUserName;
     const nextState = {};
 
     if (this.data.currentTime !== nextCurrentTime) {
@@ -388,10 +384,6 @@ Page({
 
     if (this.data.userName !== nextUserName) {
       nextState.userName = nextUserName;
-    }
-
-    if (this.data.userName !== displayUserName) {
-      nextState.userName = displayUserName;
     }
 
     if (Object.keys(nextState).length > 0) {
@@ -449,7 +441,7 @@ Page({
       currentShiftWindow: currentShift ? `${currentShift.startTime} - ${currentShift.endTime}` : '暂无班次',
       currentShiftStatus: currentShift ? currentShift.attendanceText : '今日暂无安排',
       currentShiftRecordStatusClass: currentShift ? currentShift.recordStatusClass : '',
-      currentShiftTag: currentShift ? currentShift.shiftName : '值班概览',
+      currentShiftTag: currentShift ? currentShift.shiftName : '班次概览',
       heroBadgeValue: todayShifts.length,
       ...checkState,
     };
@@ -493,17 +485,17 @@ Page({
       }
 
       const activeRole = getActiveRole(userInfo);
-      const displayUserName = userInfo.nickname || userInfo.name || '鍚屽';
+      const displayUserName = userInfo.name || '同学';
       const shouldToggleLoadingState = showLoading || !this._hasPageData;
 
       if (shouldToggleLoadingState) {
         this.setData({
           loading: true,
-          userName: userInfo.name || '同学',
+          userName: displayUserName,
         });
-      } else if (this.data.userName !== (userInfo.name || '同学')) {
+      } else if (this.data.userName !== displayUserName) {
         this.setData({
-          userName: userInfo.name || '同学',
+          userName: displayUserName,
         });
       }
 
@@ -590,7 +582,7 @@ Page({
       currentShiftWindow: currentShift ? `${currentShift.startTime} - ${currentShift.endTime}` : '暂无班次',
       currentShiftStatus: currentShift ? currentShift.attendanceText : '今日暂无安排',
       currentShiftRecordStatusClass: currentShift ? currentShift.recordStatusClass : '',
-      currentShiftTag: currentShift ? currentShift.shiftName : '值班概览',
+      currentShiftTag: currentShift ? currentShift.shiftName : '班次概览',
       ...checkState,
     });
   },

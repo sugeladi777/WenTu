@@ -75,7 +75,7 @@ function omitPassword(user) {
 
   return {
     ...userInfo,
-    nickname: userInfo.nickname || userInfo.name || '',
+    nickname: '',
     roles,
     role: primaryRole,
     primaryRole,

@@ -1,4 +1,4 @@
-﻿const { STORAGE_KEYS } = require('./constants');
+const { STORAGE_KEYS } = require('./constants');
 const { normalizeUserRoles } = require('./role');
 
 function normalizeUserInfo(userInfo, preferredActiveRole) {

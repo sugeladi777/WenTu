@@ -105,6 +105,52 @@ function getLeaveProgressMeta(schedule = {}) {
   return { text: '待人替班', className: 'text-warning' };
 }
 
+function getLeaderConfirmMeta(schedule = {}) {
+  if (!schedule || schedule.shiftType === SHIFT_TYPE.LEAVE) {
+    return { text: '无需班负确认', className: 'text-muted' };
+  }
+
+  if (!schedule.leaderUserId) {
+    return { text: '当前班次未安排班负', className: 'text-muted' };
+  }
+
+  if (schedule.leaderConfirmStatus === 'present') {
+    return { text: '班负已确认签到', className: 'text-success' };
+  }
+
+  if (schedule.leaderConfirmStatus === 'absent') {
+    return { text: '班负已确认旷岗', className: 'text-danger' };
+  }
+
+  if (schedule.checkInTime) {
+    return { text: '班负未确认签到', className: 'text-warning' };
+  }
+
+  return { text: '待签到', className: 'text-muted' };
+}
+
+function getOvertimeMeta(schedule = {}) {
+  const overtimeHours = roundMoney(schedule.overtimeHours || 0);
+
+  if (!overtimeHours) {
+    return { text: '未申请加班', className: 'text-muted' };
+  }
+
+  if (schedule.overtimeStatus === 'approved' || schedule.overtimeApproved) {
+    return { text: `加班已通过 ${overtimeHours} 小时`, className: 'text-success' };
+  }
+
+  if (schedule.overtimeStatus === 'rejected') {
+    return { text: `加班已驳回 ${overtimeHours} 小时`, className: 'text-danger' };
+  }
+
+  if (schedule.overtimeStatus === 'pending') {
+    return { text: `加班待审批 ${overtimeHours} 小时`, className: 'text-warning' };
+  }
+
+  return { text: `已填写加班 ${overtimeHours} 小时`, className: 'text-primary' };
+}
+
 function getAttendanceMeta(schedule = {}) {
   const effectiveStatus = getEffectiveAttendanceStatus(schedule);
 
@@ -148,6 +194,8 @@ function getShiftKey(schedule = {}) {
 function decorateSchedule(schedule = {}) {
   const attendance = getAttendanceMeta(schedule);
   const leaveProgress = getLeaveProgressMeta(schedule);
+  const leaderConfirm = getLeaderConfirmMeta(schedule);
+  const overtime = getOvertimeMeta(schedule);
   const salaryAmount = roundMoney(schedule.salaryAmount || 0);
   const effectiveAttendanceStatus = getEffectiveAttendanceStatus(schedule);
 
@@ -160,6 +208,10 @@ function decorateSchedule(schedule = {}) {
     attendanceClass: attendance.className,
     leaveProgressText: leaveProgress.text,
     leaveProgressClass: leaveProgress.className,
+    leaderConfirmText: leaderConfirm.text,
+    leaderConfirmClass: leaderConfirm.className,
+    overtimeText: overtime.text,
+    overtimeClass: overtime.className,
     checkInTimeLabel: formatDateTime(schedule.checkInTime),
     checkOutTimeLabel: formatDateTime(schedule.checkOutTime),
     checkInTimeShort: formatTime(schedule.checkInTime),
@@ -242,7 +294,9 @@ module.exports = {
   decorateSchedule,
   getAttendanceMeta,
   getEffectiveAttendanceStatus,
+  getLeaderConfirmMeta,
   getLeaveProgressMeta,
+  getOvertimeMeta,
   getShiftKey,
   getShiftTypeClass,
   getShiftTypeText,

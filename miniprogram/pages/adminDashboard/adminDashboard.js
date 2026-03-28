@@ -69,7 +69,7 @@ function sortUsers(users = []) {
       return leftStudentId.localeCompare(rightStudentId);
     }
 
-    return String(left.name || left.nickname || '').localeCompare(String(right.name || right.nickname || ''));
+    return String(left.name || '').localeCompare(String(right.name || ''));
   });
 }
 
@@ -135,7 +135,7 @@ Page({
   buildUserList(users = []) {
     return sortUsers(users).map((item) => ({
       ...item,
-      displayName: item.name || item.nickname || '未命名用户',
+      displayName: item.name || '未命名用户',
       roleClass: getRoleClass(item),
       roleBadgeText: getRoleBadgeText(item),
     }));

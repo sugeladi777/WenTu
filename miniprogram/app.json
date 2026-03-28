@@ -19,7 +19,7 @@
     "backgroundColor": "#faf9f7",
     "backgroundTextStyle": "dark",
     "navigationBarBackgroundColor": "#ffffff",
-    "navigationBarTitleText": "鏂囧皬鍥?,
+    "navigationBarTitleText": "文小图",
     "navigationBarTextStyle": "black"
   },
   "tabBar": {
@@ -30,19 +30,19 @@
     "list": [
       {
         "pagePath": "pages/index/index",
-        "text": "棣栭〉"
+        "text": "首页"
       },
       {
         "pagePath": "pages/workHours/workHours",
-        "text": "宸ユ椂"
+        "text": "工时"
       },
       {
         "pagePath": "pages/myShift/myShift",
-        "text": "鐝"
+        "text": "班次"
       },
       {
         "pagePath": "pages/profile/profile",
-        "text": "涓汉涓績"
+        "text": "我的"
       }
     ]
   },

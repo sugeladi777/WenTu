@@ -50,19 +50,52 @@ function getPrimaryRole(roles) {
   return ROLE_MEMBER;
 }
 
-function buildSlotMatcher(schedule) {
+function buildRecurringMatcher(schedule) {
+  const matcher = {
+    semesterId: schedule.semesterId,
+    dayOfWeek: schedule.dayOfWeek,
+  };
+
   if (schedule.shiftId) {
-    return {
-      date: schedule.date,
-      shiftId: schedule.shiftId,
-    };
+    matcher.shiftId = schedule.shiftId;
+    return matcher;
   }
 
-  return {
-    date: schedule.date,
-    startTime: schedule.startTime,
-    endTime: schedule.endTime,
-  };
+  matcher.startTime = schedule.startTime;
+  matcher.endTime = schedule.endTime;
+  return matcher;
+}
+
+function buildDateSlotKey(schedule) {
+  if (schedule.shiftId) {
+    return `${schedule.date}::${schedule.shiftId}`;
+  }
+
+  return `${schedule.date}::${schedule.startTime}::${schedule.endTime}`;
+}
+
+async function loadAllDocuments(collection, filter = {}) {
+  const pageSize = 100;
+  const documents = [];
+  let offset = 0;
+
+  while (true) {
+    const result = await collection
+      .where(filter)
+      .skip(offset)
+      .limit(pageSize)
+      .get();
+    const currentPage = result.data || [];
+    documents.push(...currentPage);
+
+    if (currentPage.length < pageSize) {
+      break;
+    }
+
+    offset += currentPage.length;
+  }
+
+  return documents;
 }
 
 async function ensureAdmin(requesterId) {
@@ -122,28 +155,99 @@ async function syncLeaderRole(userId) {
   });
 }
 
-async function updateSlotLeader(schedule, leaderUserId, leaderUserName) {
-  const slotResult = await db.collection('schedules')
-    .where(buildSlotMatcher(schedule))
-    .limit(100)
-    .get();
+async function updateRecurringLeader(schedule, targetUserId, targetUserName, action) {
+  const recurringSchedules = await loadAllDocuments(
+    db.collection('schedules'),
+    buildRecurringMatcher(schedule),
+  );
 
-  const slotSchedules = slotResult.data || [];
-  if (!slotSchedules.length) {
-    throw new Error('班次数据不存在');
+  if (!recurringSchedules.length) {
+    throw new Error('固定班次数据不存在');
   }
 
-  await Promise.all(slotSchedules.map((item) => {
-    return db.collection('schedules').doc(item._id).update({
-      data: {
-        leaderUserId,
-        leaderUserName,
-        updatedAt: db.serverDate(),
-      },
-    });
-  }));
+  const groupedByDateSlot = {};
+  const currentLeaderIds = new Set();
 
-  return slotSchedules;
+  recurringSchedules.forEach((item) => {
+    const groupKey = buildDateSlotKey(item);
+    if (!groupedByDateSlot[groupKey]) {
+      groupedByDateSlot[groupKey] = [];
+    }
+
+    groupedByDateSlot[groupKey].push(item);
+
+    const currentLeaderId = String(item.leaderUserId || '').trim();
+    if (currentLeaderId) {
+      currentLeaderIds.add(currentLeaderId);
+    }
+  });
+
+  if (
+    action === 'clear'
+    && !recurringSchedules.some((item) => String(item.leaderUserId || '').trim() === targetUserId)
+  ) {
+    throw new Error('当前志愿者不是该固定班次班负');
+  }
+
+  let affectedScheduleCount = 0;
+  let affectedDateSlotCount = 0;
+
+  for (const slotSchedules of Object.values(groupedByDateSlot)) {
+    let nextLeaderUserId = null;
+    let nextLeaderUserName = '';
+
+    if (action === 'assign') {
+      const targetOwnSchedule = slotSchedules.find((item) => {
+        return String(item.userId || '').trim() === targetUserId
+          && item.shiftType !== SHIFT_TYPE_LEAVE;
+      });
+
+      if (targetOwnSchedule) {
+        nextLeaderUserId = targetUserId;
+        nextLeaderUserName = targetUserName || String(targetOwnSchedule.userName || '').trim();
+      }
+    } else {
+      const targetWasLeader = slotSchedules.some((item) => {
+        return String(item.leaderUserId || '').trim() === targetUserId;
+      });
+
+      if (!targetWasLeader) {
+        continue;
+      }
+    }
+
+    const shouldUpdate = slotSchedules.some((item) => {
+      const currentLeaderUserId = String(item.leaderUserId || '').trim();
+      const currentLeaderUserName = String(item.leaderUserName || '').trim();
+      return currentLeaderUserId !== String(nextLeaderUserId || '')
+        || currentLeaderUserName !== String(nextLeaderUserName || '');
+    });
+
+    if (!shouldUpdate) {
+      continue;
+    }
+
+    affectedDateSlotCount += 1;
+    affectedScheduleCount += slotSchedules.length;
+
+    await Promise.all(slotSchedules.map((item) => {
+      return db.collection('schedules').doc(item._id).update({
+        data: {
+          leaderUserId: nextLeaderUserId || null,
+          leaderUserName: nextLeaderUserName || '',
+          updatedAt: db.serverDate(),
+        },
+      });
+    }));
+  }
+
+  return {
+    currentLeaderIds: [...currentLeaderIds],
+    affectedScheduleCount,
+    affectedDateSlotCount,
+    leaderUserId: action === 'assign' ? targetUserId : null,
+    leaderUserName: action === 'assign' ? (targetUserName || '') : '',
+  };
 }
 
 exports.main = async (event) => {
@@ -168,39 +272,37 @@ exports.main = async (event) => {
       return { success: false, error: '班次不存在' };
     }
 
+    if (!schedule.semesterId || Number.isNaN(Number(schedule.dayOfWeek))) {
+      return { success: false, error: '当前班次缺少固定班次信息，暂时不能按学期任命班负' };
+    }
+
     if (schedule.shiftType === SHIFT_TYPE_LEAVE) {
       return { success: false, error: '请假班次不能任命班负' };
     }
 
-    const slotSchedules = await db.collection('schedules')
-      .where(buildSlotMatcher(schedule))
-      .limit(100)
-      .get();
-    const slotList = slotSchedules.data || [];
-    const currentLeaderIds = [...new Set(slotList.map((item) => String(item.leaderUserId || '').trim()).filter(Boolean))];
+    const targetUserId = String(schedule.userId || '').trim();
+    const targetUserName = String(schedule.userName || '').trim();
+    const recurringResult = await updateRecurringLeader(
+      schedule,
+      targetUserId,
+      targetUserName,
+      action,
+    );
+    const affectedUserIds = new Set(recurringResult.currentLeaderIds);
 
-    if (action === 'clear' && currentLeaderIds.length > 0 && !currentLeaderIds.includes(String(schedule.userId || '').trim())) {
-      return { success: false, error: '当前志愿者不是该班次班负' };
-    }
-
-    const nextLeaderUserId = action === 'assign' ? String(schedule.userId || '').trim() : null;
-    const nextLeaderUserName = action === 'assign' ? String(schedule.userName || '').trim() : '';
-
-    const updatedSlotSchedules = await updateSlotLeader(schedule, nextLeaderUserId, nextLeaderUserName);
-    const affectedUserIds = new Set(currentLeaderIds);
-
-    if (nextLeaderUserId) {
-      affectedUserIds.add(nextLeaderUserId);
+    if (recurringResult.leaderUserId) {
+      affectedUserIds.add(recurringResult.leaderUserId);
     }
 
     await Promise.all([...affectedUserIds].map((userId) => syncLeaderRole(userId)));
 
     return {
       success: true,
-      message: action === 'assign' ? '班次班负已更新' : '已撤销该班次班负',
-      slotScheduleCount: updatedSlotSchedules.length,
-      leaderUserId: nextLeaderUserId,
-      leaderUserName: nextLeaderUserName,
+      message: action === 'assign' ? '本学期固定班次班负已更新' : '已撤销本学期固定班次班负',
+      slotScheduleCount: recurringResult.affectedScheduleCount,
+      affectedDateSlotCount: recurringResult.affectedDateSlotCount,
+      leaderUserId: recurringResult.leaderUserId,
+      leaderUserName: recurringResult.leaderUserName,
     };
   } catch (error) {
     return { success: false, error: error.message };

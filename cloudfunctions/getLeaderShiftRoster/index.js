@@ -93,7 +93,7 @@ function timeToMinutes(timeString) {
 
 function getLeaderConfirmText(schedule) {
   if (schedule.leaderConfirmStatus === 'present') {
-    return '已确认到岗';
+    return '已确认签到';
   }
 
   if (schedule.leaderConfirmStatus === 'absent') {
@@ -101,10 +101,10 @@ function getLeaderConfirmText(schedule) {
   }
 
   if (schedule.checkInTime) {
-    return '成员已自助签到';
+    return '班负未确认签到';
   }
 
-  return '待确认';
+  return '待签到';
 }
 
 function getLeaderConfirmClass(schedule) {
@@ -117,10 +117,52 @@ function getLeaderConfirmClass(schedule) {
   }
 
   if (schedule.checkInTime) {
-    return 'primary';
+    return 'warning';
   }
 
-  return 'warning';
+  return 'muted';
+}
+
+function getOvertimeText(schedule) {
+  const overtimeHours = Math.round(Number(schedule.overtimeHours || 0) * 100) / 100;
+
+  if (!overtimeHours) {
+    return '未申请加班';
+  }
+
+  if (schedule.overtimeStatus === 'approved' || schedule.overtimeApproved) {
+    return `加班已通过 ${overtimeHours} 小时`;
+  }
+
+  if (schedule.overtimeStatus === 'rejected') {
+    return `加班已驳回 ${overtimeHours} 小时`;
+  }
+
+  if (schedule.overtimeStatus === 'pending') {
+    return `加班待审批 ${overtimeHours} 小时`;
+  }
+
+  return `已填写加班 ${overtimeHours} 小时`;
+}
+
+function getOvertimeClass(schedule) {
+  if (!Number(schedule.overtimeHours || 0)) {
+    return 'muted';
+  }
+
+  if (schedule.overtimeStatus === 'approved' || schedule.overtimeApproved) {
+    return 'success';
+  }
+
+  if (schedule.overtimeStatus === 'rejected') {
+    return 'danger';
+  }
+
+  if (schedule.overtimeStatus === 'pending') {
+    return 'warning';
+  }
+
+  return 'primary';
 }
 
 function buildSlotMatcher(schedule) {
@@ -259,6 +301,11 @@ exports.main = async (event) => {
       studentId: userMap[item.userId] ? userMap[item.userId].studentId : '',
       leaderConfirmText: getLeaderConfirmText(item),
       leaderConfirmClass: getLeaderConfirmClass(item),
+      overtimeText: getOvertimeText(item),
+      overtimeClass: getOvertimeClass(item),
+      canConfirmPresent: Boolean(item.checkInTime) && item.leaderConfirmStatus !== 'present',
+      canConfirmAbsent: !item.checkInTime && item.leaderConfirmStatus !== 'absent',
+      canReviewOvertime: Boolean(item.checkOutTime) && item.overtimeStatus === 'pending' && Number(item.overtimeHours || 0) > 0,
     }));
 
     return {

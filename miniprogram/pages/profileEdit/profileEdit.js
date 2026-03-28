@@ -9,8 +9,7 @@ function normalizeText(value, maxLength = 30) {
 }
 
 function getDisplayName(userInfo) {
-  return normalizeText(userInfo && userInfo.nickname)
-    || normalizeText(userInfo && userInfo.name)
+  return normalizeText(userInfo && userInfo.name)
     || '未登录';
 }
 
@@ -70,7 +69,6 @@ Page({
     avatarDraftPath: '',
     profileForm: {
       name: '',
-      nickname: '',
     },
     saving: false,
   },
@@ -116,7 +114,6 @@ Page({
       avatarDraftPath: '',
       profileForm: {
         name: currentUser && currentUser.name ? currentUser.name : '',
-        nickname: currentUser && currentUser.nickname ? currentUser.nickname : '',
       },
     });
 
@@ -226,7 +223,6 @@ Page({
     const userInfo = this.data.userInfo;
     const userId = userInfo && userInfo._id ? userInfo._id : '';
     const name = normalizeText(this.data.profileForm.name);
-    const nickname = normalizeText(this.data.profileForm.nickname);
 
     if (!userId) {
       wx.showToast({ title: '用户信息异常', icon: 'none' });
@@ -246,7 +242,6 @@ Page({
       const result = await callCloudFunction('updateUserProfile', {
         userId,
         name,
-        nickname,
         avatar,
       });
 

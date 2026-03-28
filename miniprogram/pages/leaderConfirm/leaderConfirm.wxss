@@ -156,6 +156,11 @@
   color: #7e92c7;
 }
 
+.member-status.muted {
+  background: #faf5fc;
+  color: #958aa5;
+}
+
 .check-row {
   display: flex;
   gap: 12rpx;
@@ -198,6 +203,46 @@
   display: flex;
   gap: 12rpx;
   margin-top: 20rpx;
+}
+
+.overtime-box {
+  margin-top: 18rpx;
+  padding: 20rpx 18rpx;
+  border-radius: 24rpx;
+  background: linear-gradient(180deg, rgba(249, 244, 255, 0.96) 0%, rgba(255, 255, 255, 0.98) 100%);
+}
+
+.overtime-title {
+  display: block;
+  font-size: 22rpx;
+  color: #a398b0;
+}
+
+.overtime-status {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
+.overtime-status.success {
+  color: #6ba28d;
+}
+
+.overtime-status.warning {
+  color: #c68f63;
+}
+
+.overtime-status.danger {
+  color: #cd8794;
+}
+
+.overtime-status.primary {
+  color: #7e92c7;
+}
+
+.overtime-status.muted {
+  color: #958aa5;
 }
 
 .action-btn {

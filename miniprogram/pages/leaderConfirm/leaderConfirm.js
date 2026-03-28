@@ -84,7 +84,7 @@ Page({
   },
 
   onSwitchShift(e) {
-    const scheduleId = String(e.currentTarget.dataset.id || '');
+    const scheduleId = String(e.currentTarget.dataset.id || '').trim();
     if (!scheduleId || (this.data.activeSchedule && scheduleId === this.data.activeSchedule._id)) {
       return;
     }
@@ -93,11 +93,11 @@ Page({
   },
 
   onConfirmPresent(e) {
-    this.confirmAttendance(e.currentTarget.dataset.id, 'present');
+    this.confirmAttendance(String(e.currentTarget.dataset.id || '').trim(), 'present');
   },
 
   onConfirmAbsent(e) {
-    this.confirmAttendance(e.currentTarget.dataset.id, 'absent');
+    this.confirmAttendance(String(e.currentTarget.dataset.id || '').trim(), 'absent');
   },
 
   async confirmAttendance(scheduleId, action) {
@@ -106,7 +106,7 @@ Page({
       return;
     }
 
-    const actionText = action === 'present' ? '确认为到岗' : '标记为旷岗';
+    const actionText = action === 'present' ? '确认签到' : '标记旷岗';
 
     wx.showModal({
       title: '确认操作',
@@ -136,6 +136,60 @@ Page({
         } catch (error) {
           wx.showToast({
             title: error.message || '操作失败',
+            icon: 'none',
+          });
+        } finally {
+          wx.hideLoading();
+          this.setData({ loading: false });
+        }
+      },
+    });
+  },
+
+  onApproveOvertime(e) {
+    this.reviewOvertime(String(e.currentTarget.dataset.id || '').trim(), 'approve');
+  },
+
+  onRejectOvertime(e) {
+    this.reviewOvertime(String(e.currentTarget.dataset.id || '').trim(), 'reject');
+  },
+
+  async reviewOvertime(scheduleId, action) {
+    const userInfo = app.globalData.userInfo;
+    if (!userInfo || !userInfo._id || !scheduleId || this.data.loading) {
+      return;
+    }
+
+    const actionText = action === 'approve' ? '通过' : '驳回';
+
+    wx.showModal({
+      title: '确认审批',
+      content: `确定要${actionText}这条加班申请吗？`,
+      success: async (res) => {
+        if (!res.confirm) {
+          return;
+        }
+
+        this.setData({ loading: true });
+        wx.showLoading({ title: '审批中' });
+
+        try {
+          const result = await callCloudFunction('reviewOvertimeRequest', {
+            requesterId: userInfo._id,
+            requesterName: userInfo.name || '',
+            scheduleId,
+            action,
+          });
+
+          wx.showToast({
+            title: result.message || '审批成功',
+            icon: 'success',
+          });
+
+          await this.loadRoster(this.data.activeSchedule ? this.data.activeSchedule._id : '');
+        } catch (error) {
+          wx.showToast({
+            title: error.message || '审批失败',
             icon: 'none',
           });
         } finally {

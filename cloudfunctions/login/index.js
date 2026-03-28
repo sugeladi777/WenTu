@@ -23,10 +23,6 @@ function normalizeName(value) {
   return String(value || '').trim().slice(0, 30);
 }
 
-function normalizeNickname(value) {
-  return String(value || '').trim().slice(0, 30);
-}
-
 function normalizeRoles(user = {}) {
   const roles = [];
 
@@ -74,7 +70,7 @@ function omitPassword(user) {
 
   return {
     ...userInfo,
-    nickname: userInfo.nickname || userInfo.name || '',
+    nickname: '',
     roles,
     role: primaryRole,
     primaryRole,
@@ -147,7 +143,7 @@ async function findUserByStudentId(studentId) {
   return result.data && result.data[0] ? result.data[0] : null;
 }
 
-async function registerUser(studentId, password, name, nickname) {
+async function registerUser(studentId, password, name) {
   const hashedPassword = await hashPassword(password);
 
   const result = await db.collection('users').add({
@@ -155,7 +151,7 @@ async function registerUser(studentId, password, name, nickname) {
       studentId,
       password: hashedPassword,
       name,
-      nickname: nickname || name,
+      nickname: '',
       role: ROLE_MEMBER,
       roles: [ROLE_MEMBER],
       avatar: '',
@@ -173,7 +169,6 @@ exports.main = async (event) => {
   const studentId = normalizeStudentId(event.studentId);
   const password = normalizePassword(event.password);
   const name = normalizeName(event.name);
-  const nickname = normalizeNickname(event.nickname);
 
   if (!studentId || !password) {
     return { success: false, error: '请输入学号和密码' };
@@ -190,7 +185,7 @@ exports.main = async (event) => {
         return { success: false, error: '该账号已存在' };
       }
 
-      const userId = await registerUser(studentId, password, name, nickname);
+      const userId = await registerUser(studentId, password, name);
       const newUser = await db.collection('users').doc(userId).get();
 
       return {

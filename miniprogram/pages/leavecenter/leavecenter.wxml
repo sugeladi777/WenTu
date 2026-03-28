@@ -1,15 +1,15 @@
 <view class="container">
   <view class="hero-card">
-    <text class="hero-kicker">请假与替班</text>
+    <text class="hero-kicker">可替班班次</text>
     <text class="hero-title">{{semester ? semester.name : '可替班班次'}}</text>
-    <text class="hero-subtitle">这里会显示其他同学发布的请假班次，点击后可以进入认领替班。</text>
+    <text class="hero-subtitle">查看其他同学发布的请假班次。</text>
   </view>
 
   <view class="list-card card" wx:if="{{leaveList.length > 0}}">
     <view class="list-header">
       <view>
         <text class="section-title">待认领班次</text>
-        <text class="section-desc">挑一个合适的班次点进去，就可以继续查看详情并认领替班。</text>
+        <text class="section-desc">选择后可查看详情并认领。</text>
       </view>
     </view>
 
@@ -36,14 +36,14 @@
           <view class="game-spark spark-a"></view>
           <view class="game-spark spark-b"></view>
           <view class="game-spark spark-c"></view>
-          <text class="game-button-text">去替班</text>
+          <text class="game-button-text">查看</text>
         </view>
       </view>
     </view>
   </view>
 
   <view class="empty card" wx:if="{{!loading && leaveList.length === 0}}">
-    <text class="empty-title">当前没有待替班班次</text>
-    <text class="empty-text">如果有人发布了请假，这里会第一时间出现可以认领的班次。</text>
+    <text class="empty-title">暂无可替班班次</text>
+    <text class="empty-text">有新的请假申请时会出现在这里。</text>
   </view>
 </view>

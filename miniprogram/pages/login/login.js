@@ -1,4 +1,4 @@
-﻿const app = getApp();
+const app = getApp();
 
 const { callCloudFunction } = require('../../utils/cloud');
 const { getActiveRole, getRoleOptions } = require('../../utils/role');
@@ -8,7 +8,6 @@ Page({
     studentId: '',
     password: '',
     name: '',
-    nickname: '',
     mode: 'login',
     loading: false,
   },
@@ -54,10 +53,6 @@ Page({
 
   onNameInput(e) {
     this.setData({ name: String(e.detail.value || '').trim() });
-  },
-
-  onNicknameInput(e) {
-    this.setData({ nickname: String(e.detail.value || '').trim() });
   },
 
   setMode(mode) {
@@ -116,7 +111,6 @@ Page({
     const studentId = this.data.studentId.trim();
     const password = this.data.password;
     const name = this.data.name.trim();
-    const nickname = this.data.nickname.trim();
     const isRegister = this.data.mode === 'register';
 
     if (!studentId || !password) {
@@ -138,7 +132,6 @@ Page({
         password,
         action: this.data.mode,
         name,
-        nickname,
       });
 
       const userInfo = result.userInfo || null;

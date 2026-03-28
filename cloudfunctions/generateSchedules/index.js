@@ -87,6 +87,18 @@ function buildTemplateKey(date, shiftId) {
   return `${date}::${shiftId}`;
 }
 
+function buildRecurringLeaderKey({ semesterId, dayOfWeek, shiftId, startTime, endTime }) {
+  if (!semesterId && semesterId !== '') {
+    return '';
+  }
+
+  if (shiftId) {
+    return `${semesterId}::${dayOfWeek}::${shiftId}`;
+  }
+
+  return `${semesterId}::${dayOfWeek}::${startTime}::${endTime}`;
+}
+
 function shouldPreserveSchedule(schedule, regenerateFromDate) {
   if (!schedule || !schedule.date) {
     return true;
@@ -115,7 +127,7 @@ function shouldPreserveSchedule(schedule, regenerateFromDate) {
   return false;
 }
 
-function createScheduleRecord({ semesterId, userId, userName, date, dayOfWeek, template }) {
+function createScheduleRecord({ semesterId, userId, userName, date, dayOfWeek, template, leaderInfo }) {
   return {
     semesterId,
     userId,
@@ -133,13 +145,18 @@ function createScheduleRecord({ semesterId, userId, userName, date, dayOfWeek, t
     attendanceStatus: null,
     overtimeHours: 0,
     overtimeApproved: false,
+    overtimeStatus: '',
+    overtimeRequestedAt: null,
+    overtimeReviewedAt: null,
+    overtimeReviewedBy: null,
+    overtimeReviewedByName: '',
     leaveReason: '',
     leaveStatus: null,
     leaveApprovedBy: null,
     leaveApprovedAt: null,
     originalUserId: null,
-    leaderUserId: null,
-    leaderUserName: '',
+    leaderUserId: leaderInfo && leaderInfo.leaderUserId ? leaderInfo.leaderUserId : null,
+    leaderUserName: leaderInfo && leaderInfo.leaderUserName ? leaderInfo.leaderUserName : '',
     leaderConfirmStatus: null,
     leaderConfirmedAt: null,
     leaderConfirmedBy: null,
@@ -152,6 +169,43 @@ function createScheduleRecord({ semesterId, userId, userName, date, dayOfWeek, t
     createdAt: db.serverDate(),
     updatedAt: db.serverDate(),
   };
+}
+
+async function loadRecurringLeaderMap(semesterId, preferences) {
+  const recurringLeaderMap = {};
+  const uniqueKeys = new Set();
+
+  await Promise.all(preferences.map(async (item) => {
+    const key = buildRecurringLeaderKey({
+      semesterId,
+      dayOfWeek: item.dayOfWeek,
+      shiftId: item.shiftId,
+    });
+
+    if (!key || uniqueKeys.has(key)) {
+      return;
+    }
+
+    uniqueKeys.add(key);
+
+    const schedules = await loadAllDocuments(db.collection('schedules'), {
+      semesterId,
+      dayOfWeek: item.dayOfWeek,
+      shiftId: item.shiftId,
+    });
+
+    const leaderSchedule = schedules.find((schedule) => String(schedule.leaderUserId || '').trim());
+    if (!leaderSchedule) {
+      return;
+    }
+
+    recurringLeaderMap[key] = {
+      leaderUserId: String(leaderSchedule.leaderUserId || '').trim(),
+      leaderUserName: String(leaderSchedule.leaderUserName || '').trim(),
+    };
+  }));
+
+  return recurringLeaderMap;
 }
 
 exports.main = async (event) => {
@@ -189,6 +243,7 @@ exports.main = async (event) => {
       .get();
     const selection = selectionResult.data && selectionResult.data[0] ? selectionResult.data[0] : null;
     const preferences = sanitizePreferences(selection ? selection.preferences : []);
+    const recurringLeaderMap = await loadRecurringLeaderMap(semesterId, preferences);
 
     const templateList = await loadAllDocuments(db.collection('shiftTemplates'), { semesterId });
     const templateMap = {};
@@ -257,6 +312,14 @@ exports.main = async (event) => {
             return;
           }
 
+          const leaderInfo = recurringLeaderMap[buildRecurringLeaderKey({
+            semesterId,
+            dayOfWeek,
+            shiftId: template._id,
+            startTime: template.startTime,
+            endTime: template.endTime,
+          })] || null;
+
           schedulesToCreate.push(createScheduleRecord({
             semesterId,
             userId,
@@ -264,6 +327,7 @@ exports.main = async (event) => {
             date,
             dayOfWeek,
             template,
+            leaderInfo,
           }));
         });
 

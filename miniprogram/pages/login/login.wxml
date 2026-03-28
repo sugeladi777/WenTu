@@ -14,7 +14,7 @@
 
   <view class="form-section">
     <view class="form-head">
-      <text class="form-title">{{mode === 'login' ? '登录账号' : '创建账号'}}</text>
+      <text class="form-title">{{mode === 'login' ? '账号登录' : '注册账号'}}</text>
     </view>
 
     <view class="form-item">
@@ -49,26 +49,16 @@
       />
     </view>
 
-    <view class="form-item" wx:if="{{mode === 'register'}}">
-      <text class="label">昵称</text>
-      <input
-        class="input"
-        placeholder="请输入昵称"
-        value="{{nickname}}"
-        bindinput="onNicknameInput"
-      />
-    </view>
-
     <button
       class="submit-btn {{loading ? 'disabled' : ''}}"
       hover-class="tap-button-hover"
       bindtap="onSubmit"
       disabled="{{loading}}">
-      {{mode === 'login' ? '登录账号' : '创建账号'}}
+      {{mode === 'login' ? '登录' : '注册'}}
     </button>
 
     <view class="toggle-mode">
-      <text>{{mode === 'login' ? '第一次使用？' : '已经有账号了？'}}</text>
+      <text>{{mode === 'login' ? '还没有账号？' : '已有账号？'}}</text>
       <text class="link" bindtap="onToggleMode">
         {{mode === 'login' ? '去注册' : '去登录'}}
       </text>

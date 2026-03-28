@@ -1,14 +1,14 @@
-﻿<view class="container">
+<view class="container">
   <view class="hero-card">
     <text class="hero-kicker">管理员后台</text>
     <text class="hero-title">{{semester ? semester.name : '暂无学期'}}</text>
-    <text class="hero-subtitle">这里只保留创建学期和志愿者名单。点击姓名可查看该志愿者的班次、签到签退、工资发放和更多信息。</text>
+    <text class="hero-subtitle">管理学期与志愿者，进入详情后可查看班次、工资和班负任命。</text>
   </view>
 
   <view class="card section-card">
     <view class="section-head">
       <text class="section-title">创建学期</text>
-      <text class="section-desc">新建学期后，班次与工资统计都会围绕当前学期展开。</text>
+      <text class="section-desc">排班和工资统计会以当前学期为准。</text>
     </view>
 
     <input
@@ -68,6 +68,6 @@
 
   <view class="empty-card card" wx:else>
     <text class="empty-title">暂无用户</text>
-    <text class="empty-desc">当前还没有可查看的志愿者账号。</text>
+    <text class="empty-desc">当前没有可查看的账号。</text>
   </view>
 </view>

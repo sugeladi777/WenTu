@@ -7,6 +7,7 @@
       <text class="header-tag soft">{{shift.startTime}} - {{shift.endTime}}</text>
       <text class="header-tag salary" wx:if="{{shift.salaryPaid}}">工资已发</text>
       <text class="header-tag soft" wx:if="{{source === 'market'}}">可替班</text>
+      <text class="header-tag soft" wx:if="{{canAdminEdit}}">管理员视角</text>
     </view>
   </view>
 
@@ -18,12 +19,20 @@
         <text class="info-value">{{shift.date}}</text>
       </view>
       <view class="info-row">
+        <text class="info-label">班次类型</text>
+        <text class="info-value">{{shift.shiftTypeText}}</text>
+      </view>
+      <view class="info-row">
         <text class="info-label">班次工时</text>
         <text class="info-value">{{shift.fixedHoursDisplay}} 小时</text>
       </view>
       <view class="info-row">
         <text class="info-label">时段</text>
         <text class="info-value">{{shift.startTime}} - {{shift.endTime}}</text>
+      </view>
+      <view class="info-row" wx:if="{{canAdminEdit}}">
+        <text class="info-label">记录 ID</text>
+        <text class="info-value info-id">{{shift._id}}</text>
       </view>
     </view>
 
@@ -75,9 +84,11 @@
       </view>
       <view class="info-row">
         <text class="info-label">考勤状态</text>
-        <text class="info-value {{shift.attendanceClass}}">
-          {{shift.attendanceText}}
-        </text>
+        <text class="info-value {{shift.attendanceClass}}">{{shift.attendanceText}}</text>
+      </view>
+      <view class="info-row" wx:if="{{shift.showLeaderConfirmRow}}">
+        <text class="info-label">班负确认</text>
+        <text class="info-value {{shift.leaderConfirmClass}}">{{shift.leaderConfirmText}}</text>
       </view>
     </view>
 
@@ -88,14 +99,16 @@
         <text class="info-value text-primary">{{shift.actualHoursDisplay}} 小时</text>
       </view>
       <view class="info-row">
-        <text class="info-label">加班工时</text>
+        <text class="info-label">申请加班</text>
         <text class="info-value">{{shift.overtimeHoursDisplay}} 小时</text>
       </view>
       <view class="info-row">
+        <text class="info-label">加班状态</text>
+        <text class="info-value {{shift.overtimeClass}}">{{shift.overtimeText}}</text>
+      </view>
+      <view class="info-row">
         <text class="info-label">是否有效</text>
-        <text class="info-value {{shift.validClass}}">
-          {{shift.validText}}
-        </text>
+        <text class="info-value {{shift.validClass}}">{{shift.validText}}</text>
       </view>
     </view>
 
@@ -121,6 +134,96 @@
     </view>
   </view>
 
+  <view class="card action-card" wx:if="{{shift && shift.showOvertimeSection}}">
+    <view class="section">
+      <view class="section-title">加班申请</view>
+      <text class="action-desc">{{shift.overtimeHint}}</text>
+
+      <view class="info-row compact-row">
+        <text class="info-label">当前状态</text>
+        <text class="info-value {{shift.overtimeClass}}">{{shift.overtimeText}}</text>
+      </view>
+
+      <textarea
+        class="reason-textarea"
+        wx:if="{{shift.canSubmitOvertime}}"
+        maxlength="10"
+        placeholder="填写加班时长，例如 1 或 1.5"
+        value="{{overtimeHoursInput}}"
+        bindinput="onOvertimeInput"
+      ></textarea>
+
+      <button
+        class="action-btn overtime"
+        wx:if="{{shift.canSubmitOvertime}}"
+        hover-class="tap-button-hover"
+        loading="{{loading}}"
+        bindtap="onSubmitOvertimeRequest">
+        {{shift.overtimeButtonText}}
+      </button>
+    </view>
+  </view>
+
+  <view class="card action-card" wx:if="{{shift && canAdminEdit}}">
+    <view class="section">
+      <view class="edit-head">
+        <view class="edit-copy">
+          <view class="section-title">管理员编辑</view>
+          <text class="action-desc">编辑服务器中的原始班次记录。除 `_id` 外，其他字段均可修改。</text>
+        </view>
+        <button
+          class="edit-toggle-btn"
+          hover-class="tap-button-hover"
+          disabled="{{!adminRawLoaded || adminRawLoading || loading}}"
+          bindtap="onToggleEditMode">
+          {{isEditMode ? '取消编辑' : '开始编辑'}}
+        </button>
+      </view>
+
+      <view class="admin-state">
+        <text class="admin-state-text {{adminRawLoaded ? 'text-success' : 'text-warning'}}">
+          {{adminRawLoaded ? '已加载服务器原始记录' : '正在加载服务器原始记录'}}
+        </text>
+        <button
+          class="mini-ghost-btn"
+          hover-class="tap-button-hover"
+          loading="{{adminRawLoading}}"
+          disabled="{{adminRawLoading || loading}}"
+          bindtap="onReloadAdminRaw">
+          重新加载
+        </button>
+      </view>
+
+      <view wx:if="{{isEditMode}}">
+        <textarea
+          class="json-textarea"
+          maxlength="-1"
+          auto-height
+          value="{{editJsonText}}"
+          bindinput="onAdminJsonInput"
+        ></textarea>
+
+        <view class="admin-edit-actions">
+          <button
+            class="secondary-btn subtle"
+            hover-class="tap-button-hover"
+            disabled="{{adminRawLoading || loading}}"
+            bindtap="onReloadAdminRaw">
+            恢复当前记录
+          </button>
+
+          <button
+            class="action-btn admin-save"
+            hover-class="tap-button-hover"
+            loading="{{loading}}"
+            bindtap="onSaveAdminEdit">
+            保存完整记录
+          </button>
+        </view>
+      </view>
+    </view>
+  </view>
+
   <view class="card action-card" wx:if="{{shift && (shift.canApplyLeave || shift.canClaimReplacement)}}">
     <view class="section">
       <view class="section-title">{{shift.actionTitle}}</view>
@@ -130,10 +233,10 @@
         class="reason-textarea"
         wx:if="{{shift.canApplyLeave}}"
         maxlength="120"
-        placeholder="简单写一下请假原因，例如课程冲突、身体不适、临时有事"
+        placeholder="填写请假原因"
         value="{{leaveReasonInput}}"
         bindinput="onReasonInput"
-      />
+      ></textarea>
 
       <button
         class="action-btn leave"
@@ -157,6 +260,6 @@
 
   <view class="empty card" wx:if="{{!shift && !loading}}">
     <text class="empty-title">数据加载失败</text>
-    <text class="empty-subtitle">请返回上一页后重新打开这条班次记录。</text>
+    <text class="empty-subtitle">请返回上一页后重新打开这条记录。</text>
   </view>
 </view>

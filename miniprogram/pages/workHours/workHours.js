@@ -220,7 +220,7 @@ Page({
             statusTone: getStatusTone(decorated.attendanceClass),
             hours,
             paidText: item.salaryPaid
-              ? `已发 ￥${formatMoney(salaryAmount)}`
+              ? `已发 ¥${formatMoney(salaryAmount)}`
               : (item.isValid ? '待发工资' : '不计工资'),
             timeRange: `${item.startTime || '--'} - ${item.endTime || '--'}`,
           };

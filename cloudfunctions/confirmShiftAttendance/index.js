@@ -167,10 +167,10 @@ exports.main = async (event) => {
 
     if (action === 'present') {
       if (!schedule.checkInTime) {
-        updateData.checkInTime = db.serverDate();
+        return { success: false, error: '该同学尚未自助签到，不能确认到岗' };
       }
 
-      updateData.attendanceStatus = evaluateAttendanceStatus(schedule, currentMinutes);
+      updateData.attendanceStatus = schedule.attendanceStatus || evaluateAttendanceStatus(schedule, currentMinutes);
     } else {
       if (schedule.checkInTime) {
         return { success: false, error: '该同学已经签到，不能再标记旷岗' };
@@ -185,7 +185,7 @@ exports.main = async (event) => {
 
     return {
       success: true,
-      message: action === 'present' ? '已确认到岗' : '已标记为旷岗',
+      message: action === 'present' ? '已确认签到' : '已标记为旷岗',
     };
   } catch (error) {
     return { success: false, error: error.message };

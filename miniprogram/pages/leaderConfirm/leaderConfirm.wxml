@@ -4,7 +4,7 @@
       <text class="hero-kicker">班负签到确认</text>
       <text class="hero-title">{{activeSchedule ? activeSchedule.shiftName : '今日班次'}}</text>
       <text class="hero-subtitle">
-        {{activeSchedule ? (activeSchedule.date + ' · ' + activeSchedule.startTime + ' - ' + activeSchedule.endTime) : '今天暂时没有可确认的班次'}}
+        {{activeSchedule ? (activeSchedule.date + ' · ' + activeSchedule.startTime + ' - ' + activeSchedule.endTime) : '今天暂无需要确认的班次'}}
       </text>
     </view>
   </view>
@@ -28,7 +28,7 @@
     <view class="roster-head">
       <view>
         <text class="section-title">班次成员</text>
-        <text class="section-desc">确认当前班次每个人的签到情况。</text>
+        <text class="section-desc">先确认签到，再处理加班审批。</text>
       </view>
       <text class="pill pill-ink">{{roster.length}} 人</text>
     </view>
@@ -45,22 +45,27 @@
 
         <view class="check-row">
           <text class="check-pill {{item.checkInTime ? 'success' : 'muted'}}">
-            {{item.checkInTime ? '已签到' : '未签到'}}
+            {{item.checkInTime ? '已自助签到' : '未签到'}}
+          </text>
+          <text class="check-pill {{item.checkOutTime ? 'success' : 'soft'}}">
+            {{item.checkOutTime ? '已签退' : '未签退'}}
           </text>
           <text class="check-pill {{item.attendanceStatus === 3 ? 'danger' : (item.attendanceStatus === 2 ? 'warning' : 'soft')}}">
-            {{item.attendanceStatus === 3 ? '旷岗记录' : (item.attendanceStatus === 2 ? '未签退' : '考勤正常')}}
+            {{item.attendanceStatus === 3 ? '旷岗记录' : (item.attendanceStatus === 2 ? '未签退记录' : '考勤正常')}}
           </text>
         </view>
 
-        <view class="action-row">
+        <view class="action-row" wx:if="{{item.canConfirmPresent || item.canConfirmAbsent}}">
           <button
+            wx:if="{{item.canConfirmPresent}}"
             class="action-btn confirm"
             hover-class="tap-button-hover"
             data-id="{{item._id}}"
             bindtap="onConfirmPresent">
-            确认为到岗
+            确认签到
           </button>
           <button
+            wx:if="{{item.canConfirmAbsent}}"
             class="action-btn absent"
             hover-class="tap-button-hover"
             data-id="{{item._id}}"
@@ -68,17 +73,39 @@
             标记旷岗
           </button>
         </view>
+
+        <view class="overtime-box">
+          <text class="overtime-title">加班申请</text>
+          <text class="overtime-status {{item.overtimeClass}}">{{item.overtimeText}}</text>
+
+          <view class="action-row" wx:if="{{item.canReviewOvertime}}">
+            <button
+              class="action-btn confirm"
+              hover-class="tap-button-hover"
+              data-id="{{item._id}}"
+              bindtap="onApproveOvertime">
+              通过加班
+            </button>
+            <button
+              class="action-btn absent"
+              hover-class="tap-button-hover"
+              data-id="{{item._id}}"
+              bindtap="onRejectOvertime">
+              驳回加班
+            </button>
+          </view>
+        </view>
       </view>
     </view>
   </view>
 
   <view class="empty card" wx:if="{{leaderSchedules.length > 0 && roster.length === 0 && !loading}}">
-    <text class="empty-title">这个班次暂时没有成员</text>
-    <text class="empty-text">可能是班次尚未生成排班，或者相关成员已经请假但还没有替班同学接手。</text>
+    <text class="empty-title">这个班次暂无成员</text>
+    <text class="empty-text">请稍后再看，或检查是否有人请假后尚未被认领。</text>
   </view>
 
   <view class="empty card" wx:if="{{leaderSchedules.length === 0 && !loading}}">
     <text class="empty-title">今天没有可确认的班次</text>
-    <text class="empty-text">当你今天被排到班次后，这里会自动显示同班次成员名单供你确认签到情况。</text>
+    <text class="empty-text">有负责班次时，这里会自动显示成员名单。</text>
   </view>
 </view>

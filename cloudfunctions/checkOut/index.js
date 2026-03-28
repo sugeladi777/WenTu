@@ -33,15 +33,6 @@ function formatChinaDate(input = new Date()) {
   return `${parts.year}-${padNumber(parts.month)}-${padNumber(parts.day)}`;
 }
 
-function sanitizeOvertimeHours(value) {
-  const hours = Number(value);
-  if (Number.isNaN(hours) || hours < 0) {
-    return 0;
-  }
-
-  return Math.round(hours * 100) / 100;
-}
-
 function timeToMinutes(timeString) {
   const match = /^(\d{2}):(\d{2})$/.exec(String(timeString || ''));
   if (!match) {
@@ -65,7 +56,6 @@ exports.main = async (event) => {
   const userId = String(event.userId || '').trim();
   const date = String(event.date || '').trim() || formatChinaDate();
   const scheduleId = String(event.scheduleId || '').trim();
-  const overtimeHours = sanitizeOvertimeHours(event.overtimeHours);
 
   if (!userId) {
     return { success: false, error: '用户 ID 不能为空' };
@@ -141,8 +131,13 @@ exports.main = async (event) => {
     await db.collection('schedules').doc(targetSchedule._id).update({
       data: {
         checkOutTime: db.serverDate(),
-        overtimeHours,
+        overtimeHours: 0,
         overtimeApproved: false,
+        overtimeStatus: '',
+        overtimeRequestedAt: null,
+        overtimeReviewedAt: null,
+        overtimeReviewedBy: null,
+        overtimeReviewedByName: '',
         updatedAt: db.serverDate(),
       },
     });

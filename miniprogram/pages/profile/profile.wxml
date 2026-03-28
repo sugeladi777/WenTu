@@ -22,8 +22,8 @@
 
   <view class="role-switch card" wx:if="{{roleOptions.length > 1}}">
     <view class="section-head">
-      <text class="section-title">切换进入身份</text>
-      <text class="section-desc">一个账号拥有多个身份时，可以在这里快速切换当前视角。</text>
+      <text class="section-title">切换身份</text>
+      <text class="section-desc">选择当前使用身份</text>
     </view>
 
     <view class="role-chip-list">
@@ -46,7 +46,7 @@
       <view class="entry-copy">
         <text class="entry-title">账户资料</text>
       </view>
-      <text class="entry-arrow">›</text>
+      <text class="entry-arrow">></text>
     </view>
 
     <view class="entry-card" hover-class="tap-card-hover" bindtap="onOpenPasswordEdit">
@@ -54,7 +54,7 @@
       <view class="entry-copy">
         <text class="entry-title">修改密码</text>
       </view>
-      <text class="entry-arrow">›</text>
+      <text class="entry-arrow">></text>
     </view>
   </view>
 

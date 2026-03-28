@@ -16,9 +16,7 @@ function normalizeText(value, maxLength = 30) {
 }
 
 function getDisplayName(userInfo) {
-  return normalizeText(userInfo && userInfo.nickname)
-    || normalizeText(userInfo && userInfo.name)
-    || '未登录';
+  return normalizeText(userInfo && userInfo.name) || '未登录';
 }
 
 function getAvatarText(userInfo) {

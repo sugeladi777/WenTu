@@ -13,7 +13,7 @@
       <text class="hours-unit">小时</text>
     </view>
 
-    <text class="summary-money">累计已发工资 ￥{{summary.totalPaidAmount}}</text>
+    <text class="summary-money">累计已发工资 ¥{{summary.totalPaidAmount}}</text>
 
     <view class="summary-stats">
       <view class="summary-chip">
@@ -57,8 +57,8 @@
   <view class="records-card card">
     <view class="records-head">
       <view>
-        <text class="section-title">记录列表</text>
-        <text class="section-desc">点击任意记录可以查看完整班次详情。</text>
+        <text class="section-title">工时记录</text>
+        <text class="section-desc">点击记录查看详情</text>
       </view>
       <text class="pill pill-ink">{{workHoursList.length}} 条</text>
     </view>
@@ -87,7 +87,7 @@
         <view class="record-bottom">
           <view class="record-meta">
             <text class="record-hours {{item.isValid ? 'is-valid' : ''}}">{{item.hours}} 小时</text>
-            <text class="record-paid {{item.isPaid ? 'is-paid' : ''}}">{{item.paidText}}</text>
+            <text class="record-paid {{item.salaryPaid ? 'is-paid' : ''}}">{{item.paidText}}</text>
           </view>
           <text class="record-arrow">></text>
         </view>
@@ -96,7 +96,7 @@
 
     <view class="empty-tip" wx:if="{{workHoursList.length === 0}}">
       <text class="empty-title">当前范围暂无工时记录</text>
-      <text class="empty-subtitle">切换日、周、月或本学期视图，可以更快找到对应记录。</text>
+      <text class="empty-subtitle">切换时间范围后再试。</text>
     </view>
   </view>
 </view>

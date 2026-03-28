@@ -1,4 +1,4 @@
-﻿const { clearStoredUser, getStoredUser, setStoredUser } = require('./utils/auth');
+const { clearStoredUser, getStoredUser, setStoredUser } = require('./utils/auth');
 const { getActiveRole } = require('./utils/role');
 
 App({

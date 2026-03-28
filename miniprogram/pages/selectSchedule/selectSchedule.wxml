@@ -12,7 +12,7 @@
 
   <view class="empty card" wx:if="{{!loading && shiftTemplates.length === 0}}">
     <text class="empty-title">当前学期暂无班次模板</text>
-    <text class="empty-hint">请联系管理员先配置固定班次模板。</text>
+    <text class="empty-hint">请联系管理员配置班次模板。</text>
   </view>
 
   <scroll-view class="table-scroll" scroll-x enhanced show-scrollbar="{{false}}" wx:if="{{shiftTemplates.length > 0}}">
@@ -59,8 +59,8 @@
 
   <view class="submit-section" wx:if="{{shiftTemplates.length > 0}}">
     <view class="submit-meta">
-      <text class="submit-title">已选择 {{selectedCount}} 个固定班次</text>
-      <text class="submit-desc">保存后会生成未来排班，不影响已有历史考勤</text>
+      <text class="submit-title">已选择 {{selectedCount}} 个班次</text>
+      <text class="submit-desc">保存后生成后续排班</text>
     </view>
     <button class="submit-btn" hover-class="tap-button-hover" bindtap="onSubmit" loading="{{loading}}">
       确认班次

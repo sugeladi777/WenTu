@@ -83,11 +83,11 @@ function getRoleText(role) {
 function getRoleDescription(role) {
   switch (Number(role)) {
     case USER_ROLE.LEADER:
-      return '处理本人班次，并确认当前班次成员的签到情况。';
+      return '处理个人班次，并确认负责班次的签到和加班审批。';
     case USER_ROLE.ADMIN:
-      return '查看全员工作概况、任命班负并管理整体运行。';
+      return '查看全员工作情况，管理学期、班次、班负和工资发放。';
     default:
-      return '查看个人排班、完成签到签退以及请假替班。';
+      return '查看个人排班，完成签到签退，并处理请假与替班。';
   }
 }
 

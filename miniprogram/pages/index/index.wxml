@@ -64,12 +64,10 @@
   <view class="no-shift card" wx:if="{{showShiftWorkspace && todayShifts.length === 0}}">
     <text class="no-shift-icon">{{activeRole === 1 ? '班' : '空'}}</text>
     <text class="no-shift-title">
-      {{activeRole === 1 ? '今天还没有需要处理的班次' : '今天没有值班安排'}}
+      {{activeRole === 1 ? '今天还没有需要确认的班次' : '今天没有值班安排'}}
     </text>
     <text class="no-shift-text">
-      {{activeRole === 1
-        ? '如果你今天被排到班次，这里会显示自己的签到签退按钮；班负签到确认入口仍可继续进入。'
-        : '你可以先去我的班次里查看排班、请假记录和替班入口。'}}
+      {{activeRole === 1 ? '如果后续有负责班次，这里会显示签到入口。' : '可以去“我的班次”查看后续排班。'}}
     </text>
   </view>
 

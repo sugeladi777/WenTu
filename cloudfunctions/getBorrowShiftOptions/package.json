@@ -1,0 +1,9 @@
+{
+  "name": "getBorrowShiftOptions",
+  "version": "1.0.0",
+  "description": "Get available borrow shift options for a date",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

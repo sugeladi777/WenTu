@@ -4,6 +4,24 @@ const { USER_ROLE } = require('../../utils/constants');
 const { getActiveRole } = require('../../utils/role');
 const { callCloudFunction } = require('../../utils/cloud');
 
+function pickActiveSchedule(scheduleId, schedules = [], fallbackSchedule = null) {
+  if (scheduleId) {
+    const matched = schedules.find((item) => item._id === scheduleId);
+    if (matched) {
+      return matched;
+    }
+  }
+
+  if (fallbackSchedule && fallbackSchedule._id) {
+    const fallbackMatched = schedules.find((item) => item._id === fallbackSchedule._id);
+    if (fallbackMatched) {
+      return fallbackMatched;
+    }
+  }
+
+  return schedules[0] || null;
+}
+
 Page({
   data: {
     requester: null,
@@ -53,7 +71,14 @@ Page({
       return;
     }
 
+    const activeRole = getActiveRole(userInfo);
+    const previousLeaderSchedules = this.data.leaderSchedules || [];
+    const previousActiveSchedule = this.data.activeSchedule || null;
+    const requestId = Date.now();
+
+    this._loadRosterRequestId = requestId;
     this.setData({ loading: true });
+
     if (showLoading) {
       wx.showLoading({ title: '加载中' });
     }
@@ -62,15 +87,30 @@ Page({
       const result = await callCloudFunction('getLeaderShiftRoster', {
         requesterId: userInfo._id,
         scheduleId,
+        activeRole,
       });
+
+      if (this._loadRosterRequestId !== requestId) {
+        return;
+      }
+
+      const nextLeaderSchedules = Array.isArray(result.leaderSchedules) && result.leaderSchedules.length > 0
+        ? result.leaderSchedules
+        : previousLeaderSchedules;
+      const nextActiveSchedule = result.activeSchedule
+        || pickActiveSchedule(scheduleId, nextLeaderSchedules, previousActiveSchedule);
 
       this.setData({
         requester: result.requester || null,
-        leaderSchedules: result.leaderSchedules || [],
-        activeSchedule: result.activeSchedule || null,
+        leaderSchedules: nextLeaderSchedules,
+        activeSchedule: nextActiveSchedule,
         roster: result.roster || [],
       });
     } catch (error) {
+      if (this._loadRosterRequestId !== requestId) {
+        return;
+      }
+
       wx.showToast({
         title: error.message || '加载失败',
         icon: 'none',
@@ -79,7 +119,10 @@ Page({
       if (showLoading) {
         wx.hideLoading();
       }
-      this.setData({ loading: false });
+
+      if (this._loadRosterRequestId === requestId) {
+        this.setData({ loading: false });
+      }
     }
   },
 

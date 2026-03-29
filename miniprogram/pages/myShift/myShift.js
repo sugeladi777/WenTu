@@ -153,6 +153,12 @@ Page({
     });
   },
 
+  onOpenBorrowCenter() {
+    wx.navigateTo({
+      url: '/pages/borrowCenter/borrowCenter',
+    });
+  },
+
   openShiftDetail(shift, source = 'my') {
     if (!shift) {
       return;

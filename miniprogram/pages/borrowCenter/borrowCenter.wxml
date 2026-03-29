@@ -1,0 +1,73 @@
+<view class="container">
+  <view class="hero-card" wx:if="{{semester}}">
+    <text class="hero-kicker">添加蹭班</text>
+    <text class="hero-title">{{semester.name}}</text>
+    <text class="hero-subtitle">选择一个日期的班次，直接加入自己的班次列表。</text>
+  </view>
+
+  <view class="card date-card" wx:if="{{semester}}">
+    <view class="date-copy">
+      <text class="section-title">选择日期</text>
+      <text class="section-desc">只能添加当前学期内、尚未开始的班次。</text>
+    </view>
+
+    <picker mode="date" value="{{selectedDate}}" start="{{minDate}}" end="{{maxDate}}" bindchange="onDateChange">
+      <view class="date-picker">
+        <text class="date-picker-label">当前日期</text>
+        <text class="date-picker-value">{{selectedDate}}</text>
+      </view>
+    </picker>
+  </view>
+
+  <view class="list-card card" wx:if="{{semester && optionList.length > 0}}">
+    <view class="list-header">
+      <view>
+        <text class="section-title">可添加班次</text>
+        <text class="section-desc">添加后会在我的班次和班负确认名单中显示为蹭班。</text>
+      </view>
+      <text class="pill pill-ink">{{optionList.length}} 个</text>
+    </view>
+
+    <view class="quick-list">
+      <view class="quick-item" wx:for="{{optionList}}" wx:key="shiftId">
+        <view class="item-glow glow-a"></view>
+        <view class="item-glow glow-b"></view>
+
+        <view class="quick-copy">
+          <view class="title-row">
+            <text class="quick-title">{{item.shiftName}}</text>
+            <text class="status-pill {{item.statusClass}}">{{item.statusText}}</text>
+          </view>
+
+          <text class="quick-sub">{{item.timeRange}} · {{item.fixedHours}} 小时</text>
+
+          <view class="meta-row">
+            <text class="meta-pill">班负 {{item.leaderText}}</text>
+            <text class="meta-pill">当前排班 {{item.assignedText}}</text>
+            <text class="meta-pill">类型 蹭班</text>
+          </view>
+        </view>
+
+        <button
+          class="{{item.joinButtonClass}}"
+          hover-class="tap-button-hover"
+          data-shiftid="{{item.shiftId}}"
+          loading="{{loading}}"
+          disabled="{{!item.canJoin || loading}}"
+          bindtap="onJoinTap">
+          {{item.joinButtonText}}
+        </button>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty card" wx:if="{{semester && !loading && optionList.length === 0}}">
+    <text class="empty-title">当天暂无可添加班次</text>
+    <text class="empty-text">可以切换到其他日期继续查看。</text>
+  </view>
+
+  <view class="empty card" wx:if="{{!semester && !loading}}">
+    <text class="empty-title">当前没有可用学期</text>
+    <text class="empty-text">请先让管理员创建并启用学期。</text>
+  </view>
+</view>

@@ -1,0 +1,9 @@
+{
+  "name": "createBorrowShift",
+  "version": "1.0.0",
+  "description": "Create a borrow shift for the current user",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

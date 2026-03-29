@@ -5,22 +5,43 @@
     <text class="hero-subtitle">{{currentWeekLabel || '查看本周排班'}}</text>
   </view>
 
-  <view class="market-entry card" hover-class="tap-card-hover" bindtap="onOpenLeaveMarket">
-    <view class="market-orb orb-a"></view>
-    <view class="market-orb orb-b"></view>
+  <view class="entry-stack">
+    <view class="market-entry card" hover-class="tap-card-hover" bindtap="onOpenLeaveMarket">
+      <view class="market-orb orb-a"></view>
+      <view class="market-orb orb-b"></view>
 
-    <view class="market-copy">
-      <text class="market-title">可替班班次</text>
-      <text class="market-desc">查看其他同学发布的请假班次。</text>
+      <view class="market-copy">
+        <text class="market-title">可替班班次</text>
+        <text class="market-desc">查看其他同学发布的请假班次。</text>
+      </view>
+
+      <view class="game-button game-button-portal">
+        <view class="game-beam beam-a"></view>
+        <view class="game-beam beam-b"></view>
+        <view class="game-spark spark-a"></view>
+        <view class="game-spark spark-b"></view>
+        <view class="game-spark spark-c"></view>
+        <text class="game-button-text">进入查看</text>
+      </view>
     </view>
 
-    <view class="game-button game-button-portal">
-      <view class="game-beam beam-a"></view>
-      <view class="game-beam beam-b"></view>
-      <view class="game-spark spark-a"></view>
-      <view class="game-spark spark-b"></view>
-      <view class="game-spark spark-c"></view>
-      <text class="game-button-text">进入查看</text>
+    <view class="market-entry borrow-entry card" hover-class="tap-card-hover" bindtap="onOpenBorrowCenter">
+      <view class="market-orb orb-a"></view>
+      <view class="market-orb orb-b"></view>
+
+      <view class="market-copy">
+        <text class="market-title">添加蹭班</text>
+        <text class="market-desc">选择某一天的班次，加入自己的班次列表。</text>
+      </view>
+
+      <view class="game-button game-button-portal borrow-button">
+        <view class="game-beam beam-a"></view>
+        <view class="game-beam beam-b"></view>
+        <view class="game-spark spark-a"></view>
+        <view class="game-spark spark-b"></view>
+        <view class="game-spark spark-c"></view>
+        <text class="game-button-text">去添加</text>
+      </view>
     </view>
   </view>
 

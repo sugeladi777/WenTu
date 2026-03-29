@@ -9,6 +9,8 @@ const ROLE_LEADER = 1;
 const ROLE_ADMIN = 2;
 const VALID_ROLES = [ROLE_MEMBER, ROLE_LEADER, ROLE_ADMIN];
 const SHIFT_TYPE_LEAVE = 1;
+const SHIFT_TYPE_SWAP = 2;
+const SHIFT_TYPE_BORROW = 3;
 
 function normalizeRoles(user = {}) {
   const roles = [];
@@ -48,6 +50,17 @@ function getPrimaryRole(roles) {
   }
 
   return ROLE_MEMBER;
+}
+
+function resolveActiveRole(user, requestedActiveRole) {
+  const roles = normalizeRoles(user);
+  const activeRole = Number(requestedActiveRole);
+
+  if (VALID_ROLES.includes(activeRole) && roles.includes(activeRole)) {
+    return activeRole;
+  }
+
+  return getPrimaryRole(roles);
 }
 
 function omitPassword(user) {
@@ -165,6 +178,38 @@ function getOvertimeClass(schedule) {
   return 'primary';
 }
 
+function getParticipantTypeText(schedule) {
+  if (!schedule) {
+    return '';
+  }
+
+  if (schedule.shiftType === SHIFT_TYPE_SWAP) {
+    return '替班';
+  }
+
+  if (schedule.shiftType === SHIFT_TYPE_BORROW) {
+    return '蹭班';
+  }
+
+  return '';
+}
+
+function getParticipantTypeClass(schedule) {
+  if (!schedule) {
+    return '';
+  }
+
+  if (schedule.shiftType === SHIFT_TYPE_SWAP) {
+    return 'primary';
+  }
+
+  if (schedule.shiftType === SHIFT_TYPE_BORROW) {
+    return 'warning';
+  }
+
+  return '';
+}
+
 function buildSlotMatcher(schedule) {
   if (schedule.shiftId) {
     return { date: schedule.date, shiftId: schedule.shiftId };
@@ -229,11 +274,12 @@ exports.main = async (event) => {
 
   try {
     const requester = await ensureRequester(requesterId);
+    const activeRole = resolveActiveRole(requester, event.activeRole);
     const now = toChinaDate();
     const currentMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
     let leaderSchedules = [];
 
-    if (hasRole(requester, ROLE_ADMIN) && selectedScheduleId) {
+    if (activeRole === ROLE_ADMIN && selectedScheduleId) {
       const selectedResult = await db.collection('schedules').doc(selectedScheduleId).get();
       const selectedSchedule = selectedResult.data || null;
 
@@ -301,6 +347,8 @@ exports.main = async (event) => {
       studentId: userMap[item.userId] ? userMap[item.userId].studentId : '',
       leaderConfirmText: getLeaderConfirmText(item),
       leaderConfirmClass: getLeaderConfirmClass(item),
+      participantTypeText: getParticipantTypeText(item),
+      participantTypeClass: getParticipantTypeClass(item),
       overtimeText: getOvertimeText(item),
       overtimeClass: getOvertimeClass(item),
       canConfirmPresent: Boolean(item.checkInTime) && item.leaderConfirmStatus !== 'present',

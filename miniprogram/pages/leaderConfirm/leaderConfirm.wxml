@@ -37,7 +37,10 @@
       <view class="member-item" wx:for="{{roster}}" wx:key="_id">
         <view class="member-top">
           <view class="member-copy">
-            <text class="member-name">{{item.userName}}</text>
+            <view class="member-name-row">
+              <text class="member-name">{{item.userName}}</text>
+              <text class="member-tag {{item.participantTypeClass}}" wx:if="{{item.participantTypeText}}">{{item.participantTypeText}}</text>
+            </view>
             <text class="member-meta">学号 {{item.studentId || '--'}} · {{item.startTime}} - {{item.endTime}}</text>
           </view>
           <text class="member-status {{item.leaderConfirmClass}}">{{item.leaderConfirmText}}</text>

@@ -118,10 +118,37 @@
   flex-direction: column;
 }
 
+.member-name-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  flex-wrap: wrap;
+}
+
 .member-name {
   font-size: 30rpx;
   font-weight: 700;
   color: #6c6078;
+}
+
+.member-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6rpx 14rpx;
+  border-radius: 999rpx;
+  font-size: 18rpx;
+  font-weight: 700;
+}
+
+.member-tag.primary {
+  color: #718bc2;
+  background: rgba(223, 233, 255, 0.94);
+}
+
+.member-tag.warning {
+  color: #cf8f62;
+  background: rgba(255, 231, 205, 0.94);
 }
 
 .member-meta {

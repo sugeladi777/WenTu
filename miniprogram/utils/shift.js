@@ -69,7 +69,7 @@ function getShiftTypeText(shiftType) {
     case SHIFT_TYPE.SWAP:
       return '替班';
     case SHIFT_TYPE.BORROW:
-      return '借班';
+      return '蹭班';
     default:
       return '正常';
   }

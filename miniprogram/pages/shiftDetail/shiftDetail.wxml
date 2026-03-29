@@ -68,6 +68,22 @@
       </view>
     </view>
 
+    <view class="section" wx:if="{{shift.showBorrowSection}}">
+      <view class="section-title">蹭班信息</view>
+      <view class="info-row">
+        <text class="info-label">班次类型</text>
+        <text class="info-value text-primary">{{shift.shiftTypeText}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">当前状态</text>
+        <text class="info-value text-primary">{{shift.borrowStatusText}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">班负</text>
+        <text class="info-value">{{shift.borrowLeaderText}}</text>
+      </view>
+    </view>
+
     <view class="section">
       <view class="section-title">考勤信息</view>
       <view class="info-row">

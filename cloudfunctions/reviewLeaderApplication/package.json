@@ -1,0 +1,9 @@
+{
+  "name": "reviewLeaderApplication",
+  "version": "1.0.0",
+  "description": "Admin reviews leader applications",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

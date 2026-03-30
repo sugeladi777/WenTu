@@ -24,7 +24,7 @@ async function loadAllDocuments(collection, filter) {
   return documents;
 }
 
-exports.main = async (event) => {
+exports.main = async (event = {}) => {
   const userId = String(event.userId || '').trim();
   const semesterId = String(event.semesterId || '').trim();
   const startDate = String(event.startDate || '').trim();

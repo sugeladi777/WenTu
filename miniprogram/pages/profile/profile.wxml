@@ -56,6 +56,14 @@
       </view>
       <text class="entry-arrow">></text>
     </view>
+
+    <view class="entry-card" hover-class="tap-card-hover" bindtap="onOpenLeaderApplication">
+      <view class="entry-icon mint">班</view>
+      <view class="entry-copy">
+        <text class="entry-title">成为班负</text>
+      </view>
+      <text class="entry-arrow">></text>
+    </view>
   </view>
 
   <button class="logout-btn" hover-class="tap-button-hover" bindtap="onLogout">

@@ -1,0 +1,9 @@
+{
+  "name": "submitLeaderApplication",
+  "version": "1.0.0",
+  "description": "Submit leader application for a recurring shift",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

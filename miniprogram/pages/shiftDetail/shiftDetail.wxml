@@ -30,6 +30,10 @@
         <text class="info-label">时段</text>
         <text class="info-value">{{shift.startTime}} - {{shift.endTime}}</text>
       </view>
+      <view class="info-row">
+        <text class="info-label">班负</text>
+        <text class="info-value {{shift.leaderNameClass}}">{{shift.leaderNameText}}</text>
+      </view>
       <view class="info-row" wx:if="{{canAdminEdit}}">
         <text class="info-label">记录 ID</text>
         <text class="info-value info-id">{{shift._id}}</text>
@@ -80,7 +84,7 @@
       </view>
       <view class="info-row">
         <text class="info-label">班负</text>
-        <text class="info-value">{{shift.borrowLeaderText}}</text>
+        <text class="info-value {{shift.borrowLeaderClass}}">{{shift.borrowLeaderText}}</text>
       </view>
     </view>
 

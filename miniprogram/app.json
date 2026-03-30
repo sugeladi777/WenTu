@@ -9,6 +9,7 @@
     "pages/index/index",
     "pages/workHours/workHours",
     "pages/myShift/myShift",
+    "pages/leaderApplication/leaderApplication",
     "pages/borrowCenter/borrowCenter",
     "pages/leavecenter/leavecenter",
     "pages/shiftDetail/shiftDetail",

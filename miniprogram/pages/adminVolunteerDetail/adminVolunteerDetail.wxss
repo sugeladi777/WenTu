@@ -650,6 +650,18 @@
   color: #988faa;
 }
 
+.calendar-shift-leader {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 18rpx;
+  color: #8b7ea0;
+}
+
+.calendar-shift-leader.leader-self {
+  color: #7b6597;
+  font-weight: 700;
+}
+
 .calendar-shift-type {
   display: block;
   margin-top: 8rpx;

@@ -17,6 +17,7 @@ const FALLBACK_COLLECTIONS = [
   'weeklySelections',
   'shiftRequests',
   'rewards',
+  'leaderApplications',
 ];
 const BATCH_SIZE = 100;
 

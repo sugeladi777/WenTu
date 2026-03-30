@@ -110,6 +110,18 @@ async function loadAllDocuments(collection, filter = {}, options = {}) {
   return documents;
 }
 
+async function loadOptionalDocuments(collectionName, filter = {}, options = {}) {
+  try {
+    return await loadAllDocuments(db.collection(collectionName), filter, options);
+  } catch (error) {
+    const message = String(error && error.message ? error.message : '');
+    if (/collection/i.test(message) && /not\s*exist/i.test(message)) {
+      return [];
+    }
+    throw error;
+  }
+}
+
 async function findSemester(semesterId) {
   if (semesterId) {
     const result = await db.collection('semesters').doc(semesterId).get();
@@ -160,6 +172,23 @@ function buildSummary(users = []) {
   };
 }
 
+function sortApplications(list = []) {
+  return list.slice().sort((left, right) => {
+    const leftDay = Number(left.dayOfWeek);
+    const rightDay = Number(right.dayOfWeek);
+    if (leftDay !== rightDay) {
+      return leftDay - rightDay;
+    }
+
+    const startCompare = String(left.startTime || '').localeCompare(String(right.startTime || ''));
+    if (startCompare !== 0) {
+      return startCompare;
+    }
+
+    return String(left.userName || '').localeCompare(String(right.userName || ''));
+  });
+}
+
 exports.main = async (event) => {
   const requesterId = String(event.requesterId || '').trim();
   const semesterId = String(event.semesterId || '').trim();
@@ -175,11 +204,18 @@ exports.main = async (event) => {
       findSemester(semesterId),
       loadAllDocuments(db.collection('users'), {}, { orderByField: 'studentId' }),
     ]);
+    const leaderApplications = semester && semester._id
+      ? sortApplications(await loadOptionalDocuments('leaderApplications', {
+        semesterId: semester._id,
+        status: 'pending',
+      }))
+      : [];
 
     return {
       success: true,
       semester,
       summary: buildSummary(users),
+      leaderApplications,
       users: users.map((user) => omitPassword(user)),
     };
   } catch (error) {

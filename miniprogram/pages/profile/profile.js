@@ -149,6 +149,12 @@ Page({
     });
   },
 
+  onOpenLeaderApplication() {
+    wx.navigateTo({
+      url: '/pages/leaderApplication/leaderApplication',
+    });
+  },
+
   onSwitchRole(e) {
     const role = Number(e.currentTarget.dataset.role);
     if (Number.isNaN(role) || role === this.data.activeRole) {

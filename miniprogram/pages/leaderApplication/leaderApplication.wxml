@@ -1,0 +1,48 @@
+<view class="container">
+  <view class="hero-card" wx:if="{{semester}}">
+    <text class="hero-kicker">成为班负</text>
+    <text class="hero-title">{{semester.name}}</text>
+    <text class="hero-subtitle">选择自己想负责的固定班次，提交后由管理员审批。</text>
+  </view>
+
+  <view class="list-card card" wx:if="{{slotList.length > 0}}">
+    <view class="list-head">
+      <view>
+        <text class="section-title">可申请班次</text>
+        <text class="section-desc">同一个固定班次可重复申请，但待审批时不能再次提交。</text>
+      </view>
+      <text class="pill pill-ink">{{slotList.length}} 项</text>
+    </view>
+
+    <view class="slot-list">
+      <view class="slot-card" wx:for="{{slotList}}" wx:key="slotKey">
+        <view class="slot-copy">
+          <text class="slot-title">{{item.titleLine}}</text>
+          <text class="slot-meta">{{item.timeLine}}</text>
+          <text class="slot-meta">{{item.currentLeaderLine}}</text>
+          <text class="slot-status {{item.statusClass}}">{{item.statusText}}</text>
+        </view>
+
+        <button
+          class="{{item.actionClass}}"
+          hover-class="tap-button-hover"
+          data-id="{{item.scheduleId}}"
+          loading="{{submittingScheduleId === item.scheduleId}}"
+          disabled="{{!item.canApply || loading}}"
+          bindtap="onApplyTap">
+          {{item.buttonText}}
+        </button>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty card" wx:if="{{semester && !loading && slotList.length === 0}}">
+    <text class="empty-title">当前没有可申请的固定班次</text>
+    <text class="empty-text">请先完成本学期班次选择后再来申请。</text>
+  </view>
+
+  <view class="empty card" wx:if="{{!semester && !loading}}">
+    <text class="empty-title">当前没有可用学期</text>
+    <text class="empty-text">请先让管理员创建并启用学期。</text>
+  </view>
+</view>

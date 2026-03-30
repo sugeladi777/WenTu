@@ -215,6 +215,29 @@
   color: #58758d;
 }
 
+.leader-tip {
+  margin-top: 18rpx;
+  padding: 26rpx 28rpx;
+  background:
+    radial-gradient(circle at 90% 10%, rgba(255, 255, 255, 0.72), transparent 28%),
+    linear-gradient(135deg, rgba(255, 244, 232, 0.98) 0%, rgba(238, 243, 255, 0.98) 100%);
+}
+
+.leader-tip-title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #6d607a;
+}
+
+.leader-tip-text {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 22rpx;
+  line-height: 1.7;
+  color: #9e93ad;
+}
+
 .week-overview {
   padding: 26rpx 28rpx;
   margin: 18rpx 0;
@@ -318,6 +341,18 @@
   margin-top: 8rpx;
   font-size: 20rpx;
   color: #988faa;
+}
+
+.shift-owner {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 18rpx;
+  color: #8b7ea0;
+}
+
+.shift-owner.leader-self {
+  color: #7b6597;
+  font-weight: 700;
 }
 
 .shift-type {

@@ -200,6 +200,10 @@
   background: linear-gradient(135deg, rgba(255, 237, 200, 0.98) 0%, rgba(255, 248, 232, 0.98) 100%);
 }
 
+.entry-icon.mint {
+  background: linear-gradient(135deg, rgba(214, 242, 229, 0.98) 0%, rgba(238, 250, 246, 0.98) 100%);
+}
+
 .entry-copy {
   flex: 1;
   display: flex;

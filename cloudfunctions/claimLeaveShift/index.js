@@ -4,10 +4,99 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 
 const db = cloud.database();
 
+const ROLE_MEMBER = 0;
+const ROLE_LEADER = 1;
+const ROLE_ADMIN = 2;
 const SHIFT_TYPE_LEAVE = 1;
 const SHIFT_TYPE_SWAP = 2;
 const LEAVE_STATUS_PENDING = 0;
 const LEAVE_STATUS_APPROVED = 1;
+const VALID_ROLES = [ROLE_MEMBER, ROLE_LEADER, ROLE_ADMIN];
+
+function normalizeRoles(user = {}) {
+  const roles = [];
+
+  if (Array.isArray(user.roles)) {
+    user.roles.forEach((item) => {
+      const role = Number(item);
+      if (VALID_ROLES.includes(role) && !roles.includes(role)) {
+        roles.push(role);
+      }
+    });
+  }
+
+  const legacyRole = Number(user.role);
+  if (!roles.length && VALID_ROLES.includes(legacyRole)) {
+    roles.push(legacyRole);
+  }
+
+  if (!roles.includes(ROLE_MEMBER)) {
+    roles.push(ROLE_MEMBER);
+  }
+
+  return roles.sort((left, right) => left - right);
+}
+
+function hasRole(user, role) {
+  return normalizeRoles(user).includes(role);
+}
+
+function getPrimaryRole(roles) {
+  if (roles.includes(ROLE_ADMIN)) {
+    return ROLE_ADMIN;
+  }
+
+  if (roles.includes(ROLE_LEADER)) {
+    return ROLE_LEADER;
+  }
+
+  return ROLE_MEMBER;
+}
+
+async function syncLeaderRole(userId) {
+  const normalizedUserId = String(userId || '').trim();
+  if (!normalizedUserId) {
+    return;
+  }
+
+  const userResult = await db.collection('users').doc(normalizedUserId).get();
+  const user = userResult.data || null;
+  if (!user) {
+    return;
+  }
+
+  const currentRoles = normalizeRoles(user);
+  const leaderScheduleResult = await db.collection('schedules')
+    .where({
+      userId: normalizedUserId,
+      leaderUserId: normalizedUserId,
+      shiftType: db.command.neq(SHIFT_TYPE_LEAVE),
+    })
+    .limit(1)
+    .get();
+
+  const hasLeaderAssignment = Boolean(leaderScheduleResult.data && leaderScheduleResult.data.length > 0);
+  const nextRoles = hasLeaderAssignment
+    ? [...new Set([...currentRoles, ROLE_LEADER])].sort((left, right) => left - right)
+    : currentRoles.filter((item) => item !== ROLE_LEADER);
+  const primaryRole = getPrimaryRole(nextRoles);
+  const rawRoles = Array.isArray(user.roles) ? user.roles : [];
+  const shouldUpdate = rawRoles.length !== nextRoles.length
+    || rawRoles.some((item, index) => Number(item) !== nextRoles[index])
+    || Number(user.role) !== primaryRole;
+
+  if (!shouldUpdate) {
+    return;
+  }
+
+  await db.collection('users').doc(normalizedUserId).update({
+    data: {
+      roles: nextRoles,
+      role: primaryRole,
+      updatedAt: db.serverDate(),
+    },
+  });
+}
 
 function padNumber(value) {
   return String(value).padStart(2, '0');
@@ -82,7 +171,75 @@ function hasTimeConflict(candidate, existing) {
   return candidateStart < existingEnd && candidateEnd > existingStart;
 }
 
-function buildReplacementSchedule(leaveSchedule, userId, userName) {
+function buildSlotMatcher(schedule = {}) {
+  if (schedule.shiftId) {
+    return {
+      date: schedule.date,
+      shiftId: schedule.shiftId,
+    };
+  }
+
+  return {
+    date: schedule.date,
+    startTime: schedule.startTime,
+    endTime: schedule.endTime,
+  };
+}
+
+function buildRecurringMatcher(schedule = {}) {
+  const semesterId = String(schedule.semesterId || '').trim();
+  const dayOfWeek = Number(schedule.dayOfWeek);
+
+  if (!semesterId || Number.isNaN(dayOfWeek)) {
+    return null;
+  }
+
+  const matcher = {
+    semesterId,
+    dayOfWeek,
+  };
+
+  if (schedule.shiftId) {
+    matcher.shiftId = schedule.shiftId;
+    return matcher;
+  }
+
+  if (!schedule.startTime || !schedule.endTime) {
+    return null;
+  }
+
+  matcher.startTime = schedule.startTime;
+  matcher.endTime = schedule.endTime;
+  return matcher;
+}
+
+function isSameSlot(left = {}, right = {}) {
+  if (!left || !right || String(left.date || '') !== String(right.date || '')) {
+    return false;
+  }
+
+  if (left.shiftId || right.shiftId) {
+    return String(left.shiftId || '') === String(right.shiftId || '');
+  }
+
+  return String(left.startTime || '') === String(right.startTime || '')
+    && String(left.endTime || '') === String(right.endTime || '');
+}
+
+function getSlotLeaderInfo(slotSchedules = []) {
+  const leaderSchedule = slotSchedules.find((item) => {
+    return item
+      && item.shiftType !== SHIFT_TYPE_LEAVE
+      && String(item.leaderUserId || '').trim();
+  }) || null;
+
+  return {
+    leaderUserId: leaderSchedule ? String(leaderSchedule.leaderUserId || '').trim() : '',
+    leaderUserName: leaderSchedule ? String(leaderSchedule.leaderUserName || '').trim() : '',
+  };
+}
+
+function buildReplacementSchedule(leaveSchedule, userId, userName, leaderInfo = {}) {
   return {
     semesterId: leaveSchedule.semesterId,
     userId,
@@ -112,8 +269,8 @@ function buildReplacementSchedule(leaveSchedule, userId, userName) {
     originalUserId: leaveSchedule.userId,
     originalUserName: leaveSchedule.userName || '',
     relatedLeaveScheduleId: leaveSchedule._id,
-    leaderUserId: leaveSchedule.leaderUserId || null,
-    leaderUserName: leaveSchedule.leaderUserName || '',
+    leaderUserId: leaderInfo.leaderUserId || null,
+    leaderUserName: leaderInfo.leaderUserName || '',
     leaderConfirmStatus: null,
     leaderConfirmedAt: null,
     leaderConfirmedBy: null,
@@ -154,7 +311,60 @@ async function loadAllDocuments(collection, filter) {
   return documents;
 }
 
-exports.main = async (event) => {
+async function detectLeaderLeave(leaveSchedule) {
+  const releasedLeaderUserId = String(leaveSchedule.leaveReleasedLeaderUserId || '').trim();
+  const requesterId = String(leaveSchedule.leaveRequesterId || leaveSchedule.userId || '').trim();
+
+  if (releasedLeaderUserId && requesterId && releasedLeaderUserId === requesterId) {
+    return true;
+  }
+
+  if (String(leaveSchedule.leaderUserId || '').trim() === requesterId && requesterId) {
+    return true;
+  }
+
+  const recurringMatcher = buildRecurringMatcher(leaveSchedule);
+  if (!recurringMatcher || !requesterId) {
+    return false;
+  }
+
+  const result = await db.collection('schedules')
+    .where({
+      ...recurringMatcher,
+      leaderUserId: requesterId,
+      shiftType: db.command.neq(SHIFT_TYPE_LEAVE),
+    })
+    .limit(1)
+    .get();
+
+  return Boolean(result.data && result.data.length > 0);
+}
+
+async function assignSlotLeader(slotSchedules, leaderUserId, leaderUserName) {
+  const normalizedLeaderUserId = String(leaderUserId || '').trim();
+  const normalizedLeaderUserName = String(leaderUserName || '').trim();
+  const tasks = (slotSchedules || [])
+    .filter((item) => {
+      const currentLeaderUserId = String(item.leaderUserId || '').trim();
+      const currentLeaderUserName = String(item.leaderUserName || '').trim();
+      return currentLeaderUserId !== normalizedLeaderUserId || currentLeaderUserName !== normalizedLeaderUserName;
+    })
+    .map((item) => {
+      return db.collection('schedules').doc(item._id).update({
+        data: {
+          leaderUserId: normalizedLeaderUserId || null,
+          leaderUserName: normalizedLeaderUserName || '',
+          updatedAt: db.serverDate(),
+        },
+      });
+    });
+
+  if (tasks.length > 0) {
+    await Promise.all(tasks);
+  }
+}
+
+exports.main = async (event = {}) => {
   const userId = String(event.userId || '').trim();
   const userName = String(event.userName || '').trim();
   const scheduleId = String(event.scheduleId || '').trim();
@@ -164,11 +374,19 @@ exports.main = async (event) => {
   }
 
   try {
-    const leaveScheduleResult = await db.collection('schedules').doc(scheduleId).get();
-    const leaveSchedule = leaveScheduleResult.data;
+    const [leaveScheduleResult, claimantResult] = await Promise.all([
+      db.collection('schedules').doc(scheduleId).get(),
+      db.collection('users').doc(userId).get(),
+    ]);
+    const leaveSchedule = leaveScheduleResult.data || null;
+    const claimant = claimantResult.data || null;
 
     if (!leaveSchedule) {
       return { success: false, error: '请假班次不存在' };
+    }
+
+    if (!claimant) {
+      return { success: false, error: '认领用户不存在' };
     }
 
     if (leaveSchedule.userId === userId) {
@@ -195,19 +413,80 @@ exports.main = async (event) => {
       return { success: false, error: '只能认领尚未开始的班次' };
     }
 
-    const mySchedules = await loadAllDocuments(db.collection('schedules'), {
-      userId,
-      date: db.command.gte(today),
-      ...(leaveSchedule.semesterId ? { semesterId: leaveSchedule.semesterId } : {}),
-    });
+    const [slotSchedules, mySchedules] = await Promise.all([
+      loadAllDocuments(db.collection('schedules'), buildSlotMatcher(leaveSchedule)),
+      loadAllDocuments(db.collection('schedules'), {
+        userId,
+        date: leaveSchedule.date,
+        ...(leaveSchedule.semesterId ? { semesterId: leaveSchedule.semesterId } : {}),
+      }),
+    ]);
 
-    if (mySchedules.some((schedule) => hasTimeConflict(leaveSchedule, schedule))) {
+    const slotLeaderInfo = getSlotLeaderInfo(slotSchedules);
+    const slotAlreadyHasLeader = Boolean(slotLeaderInfo.leaderUserId);
+    const sameSlotSchedule = mySchedules.find((schedule) => {
+      return schedule
+        && schedule.shiftType !== SHIFT_TYPE_LEAVE
+        && isSameSlot(schedule, leaveSchedule);
+    }) || null;
+    const otherConflictSchedule = mySchedules.find((schedule) => {
+      return schedule
+        && (!sameSlotSchedule || schedule._id !== sameSlotSchedule._id)
+        && hasTimeConflict(leaveSchedule, schedule);
+    }) || null;
+
+    if (otherConflictSchedule) {
       return { success: false, error: '你在该时间段已经有其他班次，无法替班' };
     }
 
+    const isLeaderLeave = await detectLeaderLeave(leaveSchedule);
+    const claimantCanTakeLeader = hasRole(claimant, ROLE_LEADER) || hasRole(claimant, ROLE_ADMIN);
+    const canTakeOverLeaderOnly = Boolean(
+      sameSlotSchedule
+      && isLeaderLeave
+      && claimantCanTakeLeader
+      && !slotAlreadyHasLeader,
+    );
+
+    if (sameSlotSchedule && !canTakeOverLeaderOnly) {
+      return { success: false, error: '你在该时间段已经有其他班次，无法替班' };
+    }
+
+    if (canTakeOverLeaderOnly) {
+      await assignSlotLeader(slotSchedules, userId, userName);
+
+      await db.collection('schedules').doc(scheduleId).update({
+        data: {
+          leaveStatus: LEAVE_STATUS_APPROVED,
+          replacementUserId: userId,
+          replacementUserName: userName,
+          replacementScheduleId: sameSlotSchedule._id,
+          leaveApprovedAt: db.serverDate(),
+          updatedAt: db.serverDate(),
+        },
+      });
+
+      await syncLeaderRole(userId);
+
+      return {
+        success: true,
+        message: '已接任当前班次的班负职责',
+        replacementScheduleId: sameSlotSchedule._id,
+        usedExistingSchedule: true,
+      };
+    }
+
+    const replacementLeaderInfo = (isLeaderLeave && claimantCanTakeLeader && !slotAlreadyHasLeader)
+      ? { leaderUserId: userId, leaderUserName: userName }
+      : slotLeaderInfo;
     const replacementResult = await db.collection('schedules').add({
-      data: buildReplacementSchedule(leaveSchedule, userId, userName),
+      data: buildReplacementSchedule(leaveSchedule, userId, userName, replacementLeaderInfo),
     });
+
+    if (isLeaderLeave && claimantCanTakeLeader && !slotAlreadyHasLeader) {
+      await assignSlotLeader(slotSchedules, userId, userName);
+      await syncLeaderRole(userId);
+    }
 
     await db.collection('schedules').doc(scheduleId).update({
       data: {

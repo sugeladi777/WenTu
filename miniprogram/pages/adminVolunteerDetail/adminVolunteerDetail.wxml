@@ -48,6 +48,7 @@
                       bindtap="onOpenShift">
                       <text class="calendar-shift-name">{{shift.shiftName}}</text>
                       <text class="calendar-shift-time">{{shift.startTime}}</text>
+                      <text class="calendar-shift-leader {{shift.leaderNameClass}}">班负：{{shift.leaderNameText}}</text>
                       <text class="calendar-shift-salary" wx:if="{{shift.salaryPaid}}">工资已发</text>
                       <text class="calendar-shift-type" wx:if="{{shift.shiftType > 0}}">{{shift.shiftTypeText}}</text>
                     </view>
@@ -68,8 +69,8 @@
 
   <view class="shift-section">
     <view class="section-head standalone">
-      <text class="section-title">固定班次任命</text>
-      <text class="section-desc">点选表格即可任命、改派或撤销班负。</text>
+      <text class="section-title">固定班次负责情况</text>
+      <text class="section-desc">这里仅展示这个同学当前固定班次的负责情况。</text>
     </view>
 
     <scroll-view class="table-scroll" scroll-x enhanced show-scrollbar="{{false}}" wx:if="{{shiftTableRows.length}}">
@@ -114,24 +115,33 @@
       </view>
     </scroll-view>
 
-    <view class="card leader-action-card" wx:if="{{selectedShiftSlot}}">
-      <view class="leader-action-copy">
-        <text class="leader-action-title">{{selectedShiftSlot.shiftName}}</text>
-        <text class="leader-action-subtitle">{{selectedShiftSlot.weekdayText}} · {{selectedShiftSlot.timeRange}}</text>
+    <view class="card selected-slot-card" wx:if="{{selectedShiftSlot}}">
+      <view class="selected-slot-head">
+        <view class="selected-slot-copy">
+          <text class="selected-slot-title">{{selectedShiftSlot.shiftName}}</text>
+          <text class="selected-slot-meta">{{selectedShiftSlot.weekdayText}} · {{selectedShiftSlot.timeRange}}</text>
+        </view>
+        <text class="selected-slot-badge">{{selectedShiftSlot.cellTitle}}</text>
       </view>
 
-      <button
-        wx:if="{{selectedShiftSlot.canManageLeader}}"
-        class="shift-leader-btn {{selectedShiftSlot.leaderActionClass}} compact"
-        hover-class="tap-button-hover"
-        bindtap="onToggleShiftLeader"
-        data-id="{{selectedShiftSlot.scheduleId}}"
-        data-action="{{selectedShiftSlot.leaderAction}}"
-        loading="{{leaderActionScheduleId === selectedShiftSlot.scheduleId}}">
-        {{selectedShiftSlot.leaderActionText}}
-      </button>
-
-      <view wx:else class="shift-leader-disabled">{{selectedShiftSlot.leaderActionText}}</view>
+      <view class="selected-slot-grid">
+        <view class="detail-item">
+          <text class="detail-label">当前班负</text>
+          <text class="detail-value {{selectedShiftSlot.leaderDisplayClass}}">{{selectedShiftSlot.leaderDisplayText}}</text>
+        </view>
+        <view class="detail-item">
+          <text class="detail-label">班次样例日期</text>
+          <text class="detail-value">{{selectedShiftSlot.sampleDate || '--'}}</text>
+        </view>
+        <view class="detail-item">
+          <text class="detail-label">记录总数</text>
+          <text class="detail-value">{{selectedShiftSlot.totalOccurrenceCount}}</text>
+        </view>
+        <view class="detail-item">
+          <text class="detail-label">其中请假记录</text>
+          <text class="detail-value">{{selectedShiftSlot.leaveOccurrenceCount}}</text>
+        </view>
+      </view>
     </view>
 
     <view class="empty-card card" wx:if="{{!shiftTableRows.length}}">

@@ -1,4 +1,4 @@
-﻿const cloud = require('wx-server-sdk');
+const cloud = require('wx-server-sdk');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 
@@ -48,7 +48,7 @@ function getPrimaryRole(roles) {
   return ROLE_MEMBER;
 }
 
-function buildSlotMatcher(schedule) {
+function buildSlotMatcher(schedule = {}) {
   if (schedule.shiftId) {
     return {
       date: schedule.date,
@@ -164,7 +164,7 @@ function hasScheduleStarted(schedule, today, currentMinutes) {
   return currentMinutes >= startMinutes;
 }
 
-exports.main = async (event) => {
+exports.main = async (event = {}) => {
   const userId = String(event.userId || '').trim();
   const scheduleId = String(event.scheduleId || '').trim();
   const reason = String(event.reason || '').trim();
@@ -205,7 +205,9 @@ exports.main = async (event) => {
       return { success: false, error: '只能对未开始的班次申请请假' };
     }
 
-    if (String(schedule.leaderUserId || '').trim() === userId) {
+    const isCurrentSlotLeader = String(schedule.leaderUserId || '').trim() === userId;
+
+    if (isCurrentSlotLeader) {
       const slotResult = await db.collection('schedules')
         .where(buildSlotMatcher(schedule))
         .limit(100)
@@ -230,6 +232,10 @@ exports.main = async (event) => {
         leaveRequestedAt: db.serverDate(),
         leaveRequesterId: schedule.userId,
         leaveRequesterName: schedule.userName || '',
+        leaveReleasedLeaderUserId: isCurrentSlotLeader ? userId : '',
+        leaveReleasedLeaderUserName: isCurrentSlotLeader
+          ? String(schedule.leaderUserName || schedule.userName || '').trim()
+          : '',
         replacementUserId: null,
         replacementUserName: '',
         replacementScheduleId: null,
@@ -238,7 +244,7 @@ exports.main = async (event) => {
       },
     });
 
-    if (String(schedule.leaderUserId || '').trim() === userId) {
+    if (isCurrentSlotLeader) {
       await syncLeaderRole(userId);
     }
 

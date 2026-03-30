@@ -1,6 +1,8 @@
 const app = getApp();
 
+const { USER_ROLE } = require('../../utils/constants');
 const { formatDate } = require('../../utils/date');
+const { getActiveRole } = require('../../utils/role');
 const { buildWeeklyCalendarData, decorateSchedule } = require('../../utils/shift');
 const { callCloudFunction } = require('../../utils/cloud');
 
@@ -14,6 +16,41 @@ function sortByDateTime(list = []) {
   });
 }
 
+function resolveLeaderName(item = {}) {
+  return String(
+    item.leaderUserName
+    || item.leaveReleasedLeaderUserName
+    || item.borrowLeaderText
+    || '',
+  ).trim() || '未安排班负';
+}
+
+function isSelfLeader(item = {}, userId = '') {
+  const currentUserId = String(userId || '').trim();
+  if (!currentUserId) {
+    return false;
+  }
+
+  const leaderUserId = String(
+    item.leaderUserId
+    || item.leaveReleasedLeaderUserId
+    || '',
+  ).trim();
+
+  return Boolean(leaderUserId) && leaderUserId === currentUserId;
+}
+
+function decorateMyShift(item, userId) {
+  const decorated = decorateSchedule(item);
+  const leaderSelf = isSelfLeader(item, userId);
+
+  return {
+    ...decorated,
+    leaderNameText: resolveLeaderName(item),
+    leaderNameClass: leaderSelf ? 'leader-self' : '',
+  };
+}
+
 Page({
   data: {
     semester: null,
@@ -21,6 +58,7 @@ Page({
     weeklyShifts: [],
     currentWeekIndex: 0,
     currentWeekLabel: '',
+    activeRole: USER_ROLE.MEMBER,
     weekDayNames: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
     loading: false,
   },
@@ -102,6 +140,8 @@ Page({
       return;
     }
 
+    const activeRole = getActiveRole(userInfo);
+
     this.setData({ loading: true });
 
     try {
@@ -119,7 +159,9 @@ Page({
         semesterId: semester ? semester._id : '',
       });
 
-      const shiftList = sortByDateTime((shiftResult.schedules || []).map((item) => decorateSchedule(item)));
+      const shiftList = sortByDateTime((shiftResult.schedules || []).map((item) => {
+        return decorateMyShift(item, userInfo._id);
+      }));
       const weeklyShifts = buildWeeklyCalendarData(shiftList);
       const currentWeekIndex = this.findCurrentWeekIndex(weeklyShifts);
       const currentWeek = weeklyShifts[currentWeekIndex] || null;
@@ -130,6 +172,7 @@ Page({
         weeklyShifts,
         currentWeekIndex,
         currentWeekLabel: currentWeek ? `${currentWeek.weekStart} 至 ${currentWeek.weekEnd}` : '',
+        activeRole,
       });
     } catch (error) {
       wx.showToast({

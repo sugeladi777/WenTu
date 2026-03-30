@@ -80,6 +80,29 @@ function compareSchedules(left = {}, right = {}) {
   return String(left.startTime || '').localeCompare(String(right.startTime || ''));
 }
 
+function resolveLeaderName(item = {}) {
+  return String(
+    item.leaderUserName
+    || item.leaveReleasedLeaderUserName
+    || '',
+  ).trim() || '未安排班负';
+}
+
+function isTargetLeader(item = {}, targetUserId = '') {
+  const currentTargetUserId = String(targetUserId || '').trim();
+  if (!currentTargetUserId) {
+    return false;
+  }
+
+  const leaderUserId = String(
+    item.leaderUserId
+    || item.leaveReleasedLeaderUserId
+    || '',
+  ).trim();
+
+  return Boolean(leaderUserId) && leaderUserId === currentTargetUserId;
+}
+
 Page({
   data: {
     loading: false,
@@ -253,6 +276,8 @@ Page({
       return {
         ...decorated,
         ...leaderMeta,
+        leaderNameText: resolveLeaderName(item),
+        leaderNameClass: isTargetLeader(item, this.targetUserId) ? 'leader-self' : '',
         actualHoursText: formatHours(item.actualHours || item.hours || 0),
         fixedHoursText: formatHours(item.fixedHours || 0),
         timeRange: `${item.startTime || '--'} - ${item.endTime || '--'}`,

@@ -51,6 +51,29 @@ function stringifyScheduleRecord(schedule = {}) {
   return JSON.stringify(schedule, null, 2);
 }
 
+function resolveLeaderName(shift = {}) {
+  return String(
+    shift.leaderUserName
+    || shift.leaveReleasedLeaderUserName
+    || '',
+  ).trim() || '未安排班负';
+}
+
+function isSelfLeader(shift = {}, userId = '') {
+  const currentUserId = String(userId || '').trim();
+  if (!currentUserId) {
+    return false;
+  }
+
+  const leaderUserId = String(
+    shift.leaderUserId
+    || shift.leaveReleasedLeaderUserId
+    || '',
+  ).trim();
+
+  return Boolean(leaderUserId) && leaderUserId === currentUserId;
+}
+
 function canSubmitOvertimeRequest(shift, isMine, effectiveAttendanceStatus) {
   if (!shift || !isMine) {
     return false;
@@ -118,6 +141,7 @@ Page({
       && decorated.shiftType === SHIFT_TYPE.LEAVE
       && decorated.leaveStatus === LEAVE_STATUS.PENDING
       && !shiftStarted;
+    const leaderSelf = isSelfLeader(shift, userInfo._id);
     const canSubmitOvertime = canSubmitOvertimeRequest(decorated, isMine, effectiveAttendanceStatus);
     const overtimeStatus = String(shift.overtimeStatus || decorated.overtimeStatus || '');
     let overtimeHint = '如有加班，可在这里填写时长并提交；没有加班可直接忽略。';
@@ -157,12 +181,15 @@ Page({
       leaveOwnerName: shift.userName || shift.leaveRequesterName || '未记录',
       replacementName: shift.replacementUserName || '暂无',
       originalOwnerName: shift.originalUserName || '',
+      leaderNameText: resolveLeaderName(shift),
+      leaderNameClass: leaderSelf ? 'leader-self' : '',
       leaveStatusText: decorated.leaveProgressText || decorated.attendanceText,
       showLeaveSection: decorated.shiftType === SHIFT_TYPE.LEAVE || source === 'market',
       showSwapSection: decorated.shiftType === SHIFT_TYPE.SWAP,
       showBorrowSection: decorated.shiftType === SHIFT_TYPE.BORROW,
       borrowStatusText: decorated.shiftType === SHIFT_TYPE.BORROW ? '已加入我的班次' : '',
       borrowLeaderText: decorated.leaderUserName || '当前未安排班负',
+      borrowLeaderClass: leaderSelf ? 'leader-self' : '',
       showLeaderConfirmRow: decorated.shiftType !== SHIFT_TYPE.LEAVE,
       showOvertimeSection: isMine && decorated.shiftType !== SHIFT_TYPE.LEAVE && Boolean(decorated.checkOutTime),
       overtimeHint,
@@ -170,7 +197,7 @@ Page({
       actionTitle: canApplyLeave ? '申请请假' : (canClaimReplacement ? '认领替班' : ''),
       actionDesc: canApplyLeave
         ? '班次尚未开始，提交后会进入可替班列表。'
-        : (canClaimReplacement ? '认领后班次会加入你的排班，请按时签到签退。' : ''),
+        : (canClaimReplacement ? '认领后，如你原本不在这个班次中，系统会加入你的排班；若你是在原班次中接任班负，则不会重复新增班次。' : ''),
     };
   },
 
@@ -517,7 +544,7 @@ Page({
 
     wx.showModal({
       title: '确认替班',
-      content: '认领后班次会加入你的排班列表，请按时完成签到和签退。',
+      content: '认领后，如你原本不在这个班次中，系统会加入你的排班；若你是在原班次中接任班负，则不会重复新增班次。',
       success: async (res) => {
         if (!res.confirm) {
           return;

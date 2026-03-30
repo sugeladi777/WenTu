@@ -134,6 +134,11 @@
   word-break: break-all;
 }
 
+.info-value.leader-self {
+  color: #7b6597;
+  font-weight: 700;
+}
+
 .info-id {
   font-size: 22rpx;
   color: #9b8faa;

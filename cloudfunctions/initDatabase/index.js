@@ -1,32 +1,42 @@
-// 云函数入口文件 - 初始化数据库
 const cloud = require('wx-server-sdk');
+
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
+
 const db = cloud.database();
 
-// 初始化数据库：创建集合
-exports.main = async (event, context) => {
+const COLLECTIONS = [
+  'users',
+  'semesters',
+  'shiftTemplates',
+  'schedules',
+  'weeklySelections',
+  'shiftRequests',
+  'rewards',
+  'leaderApplications',
+];
+
+exports.main = async () => {
   try {
-    // 创建集合
-    const collections = [
-      'users',           // 用户表
-      'semesters',       // 学期表
-      'shiftTemplates',  // 班次模板
-      'schedules',       // 排班表（整合签到、请假、替班、工资）
-      'weeklySelections', // 用户周班次选择
-      'shiftRequests',   // 调班申请
-      'rewards',        // 奖惩记录
-    ];
-    
-    for (const name of collections) {
+    for (const name of COLLECTIONS) {
       try {
         await db.createCollection(name);
-      } catch (e) {
-        // 集合已存在，忽略错误
+      } catch (error) {
+        const message = String(error && error.message ? error.message : '');
+        if (!/exists|already/i.test(message)) {
+          throw error;
+        }
       }
     }
 
-    return { success: true, message: '数据库初始化完成' };
-  } catch (e) {
-    return { success: false, error: e.message };
+    return {
+      success: true,
+      message: '数据库初始化完成',
+      collections: COLLECTIONS,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message,
+    };
   }
 };

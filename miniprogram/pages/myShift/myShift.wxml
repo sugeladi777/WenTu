@@ -11,8 +11,8 @@
       <view class="market-orb orb-b"></view>
 
       <view class="market-copy">
-        <text class="market-title">可替班班次</text>
-        <text class="market-desc">查看其他同学发布的请假班次。</text>
+        <text class="market-title">{{activeRole === 1 ? '班负替班入口' : '可替班班次'}}</text>
+        <text class="market-desc">{{activeRole === 1 ? '班负身份下也可以认领其他同学发布的请假班次。' : '查看其他同学发布的请假班次。'}}</text>
       </view>
 
       <view class="game-button game-button-portal">
@@ -43,6 +43,11 @@
         <text class="game-button-text">去添加</text>
       </view>
     </view>
+  </view>
+
+  <view class="leader-tip card" wx:if="{{activeRole === 1}}">
+    <text class="leader-tip-title">班负身份下可继续处理个人班次</text>
+    <text class="leader-tip-text">每个班次都会直接显示当前班负姓名，便于你快速查看当前由谁负责该班次。</text>
   </view>
 
   <view class="week-overview card" wx:if="{{weeklyShifts.length > 0}}">
@@ -77,6 +82,7 @@
                     bindtap="onShiftTap">
                     <text class="shift-name">{{shift.shiftName}}</text>
                     <text class="shift-time">{{shift.startTime}}</text>
+                    <text class="shift-owner {{shift.leaderNameClass}}">班负：{{shift.leaderNameText}}</text>
                     <text class="shift-salary" wx:if="{{shift.salaryPaid}}">工资已发</text>
                     <text class="shift-type" wx:if="{{shift.shiftType > 0}}">{{shift.shiftTypeText}}</text>
                   </view>

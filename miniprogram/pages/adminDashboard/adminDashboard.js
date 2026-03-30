@@ -61,6 +61,8 @@ function getRoleBadgeText(userInfo) {
   return '志愿者';
 }
 
+const WEEKDAY_TEXTS = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+
 function sortUsers(users = []) {
   return users.slice().sort((left, right) => {
     const leftStudentId = String(left.studentId || '');
@@ -78,7 +80,9 @@ Page({
     semester: null,
     userList: [],
     userCount: 0,
+    leaderApplications: [],
     loading: false,
+    reviewingApplicationId: '',
     createSemesterName: '',
     createSemesterStart: '',
     createSemesterEnd: '',
@@ -141,6 +145,19 @@ Page({
     }));
   },
 
+  buildLeaderApplications(applications = []) {
+    return applications.map((item) => {
+      const weekdayIndex = Number(item.dayOfWeek);
+      return {
+        ...item,
+        weekdayText: WEEKDAY_TEXTS[weekdayIndex] || '未设置',
+        applicantText: `${item.userName || '未命名用户'} · 学号 ${item.studentId || '未填写'}`,
+        timeRange: `${item.startTime || '--'} - ${item.endTime || '--'}`,
+        leaderText: item.currentLeaderUserName ? `当前班负：${item.currentLeaderUserName}` : '当前班负：未任命',
+      };
+    });
+  },
+
   async loadDashboard(showLoading = false) {
     const userInfo = app.globalData.userInfo;
     if (!userInfo || !userInfo._id) {
@@ -159,12 +176,14 @@ Page({
 
       const semester = result.semester || null;
       const userList = this.buildUserList(result.users || []);
+      const leaderApplications = this.buildLeaderApplications(result.leaderApplications || []);
 
       this.ensureSemesterFormDefaults(semester);
       this.setData({
         semester,
         userList,
         userCount: userList.length,
+        leaderApplications,
       });
     } catch (error) {
       wx.showToast({
@@ -266,6 +285,76 @@ Page({
 
     wx.navigateTo({
       url: `/pages/adminVolunteerDetail/adminVolunteerDetail?userId=${userId}`,
+    });
+  },
+
+  onApproveLeaderApplication(e) {
+    const applicationId = String(e.currentTarget.dataset.id || '').trim();
+    if (!applicationId) {
+      return;
+    }
+
+    this.reviewLeaderApplication(applicationId, 'approve');
+  },
+
+  onRejectLeaderApplication(e) {
+    const applicationId = String(e.currentTarget.dataset.id || '').trim();
+    if (!applicationId) {
+      return;
+    }
+
+    this.reviewLeaderApplication(applicationId, 'reject');
+  },
+
+  reviewLeaderApplication(applicationId, action) {
+    const application = this.data.leaderApplications.find((item) => item._id === applicationId);
+    const requester = app.globalData.userInfo;
+
+    if (!application || !requester || !requester._id || this.data.loading || this.data.reviewingApplicationId) {
+      return;
+    }
+
+    const actionText = action === 'approve' ? '通过' : '驳回';
+    wx.showModal({
+      title: '确认操作',
+      content: `确定要${actionText}${application.userName || '该同学'}对“${application.shiftName || '该班次'}”的班负申请吗？`,
+      success: async (res) => {
+        if (!res.confirm) {
+          return;
+        }
+
+        this.setData({
+          loading: true,
+          reviewingApplicationId: applicationId,
+        });
+        wx.showLoading({ title: '提交中' });
+
+        try {
+          const result = await callCloudFunction('reviewLeaderApplication', {
+            requesterId: requester._id,
+            applicationId,
+            action,
+          });
+
+          wx.showToast({
+            title: result.message || '操作成功',
+            icon: 'success',
+          });
+
+          await this.loadDashboard();
+        } catch (error) {
+          wx.showToast({
+            title: error.message || '操作失败',
+            icon: 'none',
+          });
+        } finally {
+          wx.hideLoading();
+          this.setData({
+            loading: false,
+            reviewingApplicationId: '',
+          });
+        }
+      },
     });
   },
 });

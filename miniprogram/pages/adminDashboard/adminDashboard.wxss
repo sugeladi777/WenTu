@@ -126,6 +126,74 @@
     inset 0 4rpx 0 rgba(255, 255, 255, 0.52);
 }
 
+.application-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  margin-top: 22rpx;
+}
+
+.application-card {
+  padding: 24rpx 22rpx;
+  border-radius: 28rpx;
+  background:
+    radial-gradient(circle at 92% 8%, rgba(255, 255, 255, 0.72), transparent 28%),
+    linear-gradient(180deg, rgba(255, 250, 252, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%);
+  box-shadow:
+    0 16rpx 34rpx rgba(208, 188, 211, 0.16),
+    inset 0 2rpx 0 rgba(255, 255, 255, 0.58);
+}
+
+.application-copy {
+  display: flex;
+  flex-direction: column;
+}
+
+.application-title {
+  font-size: 28rpx;
+  font-weight: 800;
+  color: #6c6078;
+}
+
+.application-meta {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: #a398b0;
+}
+
+.application-actions {
+  display: flex;
+  gap: 12rpx;
+  margin-top: 18rpx;
+}
+
+.mini-action-btn {
+  flex: 1;
+  height: 78rpx;
+  line-height: 78rpx;
+  border-radius: 24rpx;
+  font-size: 24rpx;
+  font-weight: 700;
+  box-shadow:
+    0 10rpx 0 rgba(173, 143, 170, 0.1),
+    0 18rpx 30rpx rgba(221, 190, 210, 0.14),
+    inset 0 4rpx 0 rgba(255, 255, 255, 0.52);
+}
+
+.mini-action-btn.approve {
+  color: #6788a1;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 32%),
+    linear-gradient(145deg, #cdeedc 0%, #d7e4ff 54%, #fff0b8 100%);
+}
+
+.mini-action-btn.reject {
+  color: #ca8794;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 32%),
+    linear-gradient(145deg, #ffc2cd 0%, #ffd8ec 54%, #fff1f4 100%);
+}
+
 .list-head {
   display: flex;
   align-items: flex-end;

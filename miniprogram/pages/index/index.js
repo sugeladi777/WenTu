@@ -285,6 +285,21 @@ function buildAdminStats(summary) {
   ];
 }
 
+const WEEKDAY_TEXTS = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+
+function buildAdminLeaderApplications(applications = []) {
+  return applications.map((item) => {
+    const weekdayIndex = Number(item.dayOfWeek);
+    return {
+      ...item,
+      weekdayText: WEEKDAY_TEXTS[weekdayIndex] || '未设置',
+      applicantText: `${item.userName || '未命名用户'} · 学号 ${item.studentId || '未填写'}`,
+      timeRange: `${item.startTime || '--'} - ${item.endTime || '--'}`,
+      leaderText: item.currentLeaderUserName ? `当前班负：${item.currentLeaderUserName}` : '当前班负：未任命',
+    };
+  });
+}
+
 Page({
   data: {
     semester: null,
@@ -320,6 +335,8 @@ Page({
     statsCards: [],
     roleMission: null,
     showShiftWorkspace: true,
+    leaderApplications: [],
+    reviewingApplicationId: '',
   },
 
   onLoad() {
@@ -473,6 +490,13 @@ Page({
     };
   },
 
+  applyAdminApplications(leaderApplications = []) {
+    return {
+      leaderApplications: buildAdminLeaderApplications(leaderApplications),
+      reviewingApplicationId: '',
+    };
+  },
+
   async loadPageData(showLoading = false) {
     if (this.loadPageDataPromise) {
       return this.loadPageDataPromise;
@@ -521,10 +545,12 @@ Page({
           const adminResult = await callCloudFunction('getAdminDashboard', {
             requesterId: userInfo._id,
           });
+          const adminSemester = adminResult.semester || semester;
 
           this.setData({
-            ...this.applyRoleMeta(activeRole, userInfo, semester, adminResult.summary || null),
-            ...this.applyAdminSummary(adminResult.summary || null, semester),
+            ...this.applyRoleMeta(activeRole, userInfo, adminSemester, adminResult.summary || null),
+            ...this.applyAdminSummary(adminResult.summary || null, adminSemester),
+            ...this.applyAdminApplications(adminResult.leaderApplications || []),
           });
           this._hasPageData = true;
           return;
@@ -670,6 +696,76 @@ Page({
       wx.hideLoading();
       this.setData({ loading: false });
     }
+  },
+
+  onApproveLeaderApplication(e) {
+    const applicationId = String(e.currentTarget.dataset.id || '').trim();
+    if (!applicationId) {
+      return;
+    }
+
+    this.reviewLeaderApplication(applicationId, 'approve');
+  },
+
+  onRejectLeaderApplication(e) {
+    const applicationId = String(e.currentTarget.dataset.id || '').trim();
+    if (!applicationId) {
+      return;
+    }
+
+    this.reviewLeaderApplication(applicationId, 'reject');
+  },
+
+  reviewLeaderApplication(applicationId, action) {
+    const application = this.data.leaderApplications.find((item) => item._id === applicationId);
+    const requester = app.globalData.userInfo;
+
+    if (!application || !requester || !requester._id || this.data.loading || this.data.reviewingApplicationId) {
+      return;
+    }
+
+    const actionText = action === 'approve' ? '通过' : '驳回';
+    wx.showModal({
+      title: '确认操作',
+      content: `确定要${actionText}${application.userName || '该同学'}对“${application.shiftName || '该班次'}”的班负申请吗？`,
+      success: async (res) => {
+        if (!res.confirm) {
+          return;
+        }
+
+        this.setData({
+          loading: true,
+          reviewingApplicationId: applicationId,
+        });
+        wx.showLoading({ title: '提交中' });
+
+        try {
+          const result = await callCloudFunction('reviewLeaderApplication', {
+            requesterId: requester._id,
+            applicationId,
+            action,
+          });
+
+          wx.showToast({
+            title: result.message || '操作成功',
+            icon: 'success',
+          });
+
+          await this.loadPageData(false);
+        } catch (error) {
+          wx.showToast({
+            title: error.message || '操作失败',
+            icon: 'none',
+          });
+        } finally {
+          wx.hideLoading();
+          this.setData({
+            loading: false,
+            reviewingApplicationId: '',
+          });
+        }
+      },
+    });
   },
 
   onMissionTap() {

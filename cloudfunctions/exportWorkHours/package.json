@@ -1,0 +1,10 @@
+{
+  "name": "exportWorkHours",
+  "version": "1.0.0",
+  "description": "Export work hours report as xlsx",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3",
+    "xlsx": "^0.18.5"
+  }
+}

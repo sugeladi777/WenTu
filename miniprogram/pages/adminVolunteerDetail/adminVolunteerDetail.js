@@ -175,7 +175,6 @@ Page({
       displayName: userInfo.name || '未命名用户',
       createdAtText: formatDateTime(userInfo.createdAt),
       updatedAtText: formatDateTime(userInfo.updatedAt),
-      rewardScoreText: String(Number(userInfo.rewardScore || 0)),
       roleClass: getRoleClass(userInfo),
       roleBadgeText: getRoleBadgeText(userInfo),
       grantedRolesText: formatGrantedRoles(userInfo),

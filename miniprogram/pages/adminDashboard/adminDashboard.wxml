@@ -1,19 +1,164 @@
 <view class="container">
   <view class="hero-card">
-    <text class="hero-kicker">管理员后台</text>
-    <text class="hero-title">{{semester ? semester.name : '暂无学期'}}</text>
-    <text class="hero-subtitle">管理学期与志愿者，并审批班负申请、查看班次与工资情况。</text>
+    <view class="hero-top">
+      <view class="hero-copy">
+        <text class="hero-kicker">管理员后台</text>
+        <text class="hero-title">{{semester ? semester.name : '暂无学期'}}</text>
+        <text class="hero-subtitle">{{semesterRangeText}}</text>
+      </view>
+      <text class="semester-pill {{semester ? '' : 'ghost'}}">{{semester ? '当前学期' : '待创建学期'}}</text>
+    </view>
+
+    <view class="hero-metrics" wx:if="{{summaryCards.length}}">
+      <view class="hero-metric" wx:for="{{summaryCards}}" wx:key="label">
+        <text class="hero-metric-value">{{item.value}}</text>
+        <text class="hero-metric-label">{{item.label}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card section-card export-card">
+    <view class="section-head">
+      <text class="section-title">导出工时报表</text>
+      <text class="section-desc">按指定时间段导出全员工时、班次考评记录，以及请假和替班次数，生成 xlsx 文件。</text>
+    </view>
+
+    <view class="range-grid">
+      <view class="range-block">
+        <text class="range-label">开始时间</text>
+        <view class="picker-row compact">
+          <picker class="picker-field" mode="date" value="{{exportStartDate}}" bindchange="onExportStartDateChange">
+            <view class="picker-inner">
+              <text class="picker-label">开始日期</text>
+              <text class="picker-value">{{exportStartDate || '选择日期'}}</text>
+            </view>
+          </picker>
+          <picker class="picker-field time-field" mode="time" value="{{exportStartTime}}" bindchange="onExportStartTimeChange">
+            <view class="picker-inner">
+              <text class="picker-label">开始时刻</text>
+              <text class="picker-value">{{exportStartTime || '00:00'}}</text>
+            </view>
+          </picker>
+        </view>
+      </view>
+
+      <view class="range-block">
+        <text class="range-label">结束时间</text>
+        <view class="picker-row compact">
+          <picker class="picker-field" mode="date" value="{{exportEndDate}}" bindchange="onExportEndDateChange">
+            <view class="picker-inner">
+              <text class="picker-label">结束日期</text>
+              <text class="picker-value">{{exportEndDate || '选择日期'}}</text>
+            </view>
+          </picker>
+          <picker class="picker-field time-field" mode="time" value="{{exportEndTime}}" bindchange="onExportEndTimeChange">
+            <view class="picker-inner">
+              <text class="picker-label">结束时刻</text>
+              <text class="picker-value">{{exportEndTime || '23:59'}}</text>
+            </view>
+          </picker>
+        </view>
+      </view>
+    </view>
+
+    <view class="export-quick-row" wx:if="{{semester}}">
+      <button class="ghost-btn" hover-class="tap-button-hover" bindtap="onUseSemesterRange">
+        使用当前学期范围
+      </button>
+      <text class="export-meta">{{semester.startDate}} 至 {{semester.endDate}}</text>
+    </view>
+
+    <button
+      class="action-btn"
+      hover-class="tap-button-hover"
+      bindtap="onExportWorkHours"
+      loading="{{exporting}}"
+      disabled="{{loading || exporting}}">
+      导出 xlsx 报表
+    </button>
+
+    <text class="export-hint">导出后会自动下载，并尝试在当前设备上直接打开文件。</text>
+  </view>
+
+  <view class="card section-card salary-card">
+    <view class="section-head">
+      <text class="section-title">批量发放工资</text>
+      <text class="section-desc">按指定时间段筛选全部有效且尚未发薪的班次，并统一记录为工资已发放。</text>
+    </view>
+
+    <view class="range-grid">
+      <view class="range-block">
+        <text class="range-label">发薪范围</text>
+        <view class="picker-row compact">
+          <picker class="picker-field" mode="date" value="{{batchSalaryStartDate}}" bindchange="onBatchSalaryStartDateChange">
+            <view class="picker-inner">
+              <text class="picker-label">开始日期</text>
+              <text class="picker-value">{{batchSalaryStartDate || '选择日期'}}</text>
+            </view>
+          </picker>
+          <picker class="picker-field time-field" mode="time" value="{{batchSalaryStartTime}}" bindchange="onBatchSalaryStartTimeChange">
+            <view class="picker-inner">
+              <text class="picker-label">开始时刻</text>
+              <text class="picker-value">{{batchSalaryStartTime || '00:00'}}</text>
+            </view>
+          </picker>
+        </view>
+
+        <view class="picker-row compact">
+          <picker class="picker-field" mode="date" value="{{batchSalaryEndDate}}" bindchange="onBatchSalaryEndDateChange">
+            <view class="picker-inner">
+              <text class="picker-label">结束日期</text>
+              <text class="picker-value">{{batchSalaryEndDate || '选择日期'}}</text>
+            </view>
+          </picker>
+          <picker class="picker-field time-field" mode="time" value="{{batchSalaryEndTime}}" bindchange="onBatchSalaryEndTimeChange">
+            <view class="picker-inner">
+              <text class="picker-label">结束时刻</text>
+              <text class="picker-value">{{batchSalaryEndTime || '23:59'}}</text>
+            </view>
+          </picker>
+        </view>
+      </view>
+    </view>
+
+    <input
+      class="soft-input"
+      type="digit"
+      placeholder="输入每工时工资，例如 18"
+      placeholder-style="color: #b4a9c2;"
+      value="{{batchHourlyRate}}"
+      bindinput="onBatchHourlyRateInput"
+    />
+
+    <view class="export-quick-row" wx:if="{{semester}}">
+      <button class="ghost-btn" hover-class="tap-button-hover" bindtap="onUseSemesterRangeForSalary">
+        使用当前学期范围
+      </button>
+      <text class="export-meta">{{semester.startDate}} 至 {{semester.endDate}}</text>
+    </view>
+
+    <button
+      class="action-btn salary-action-btn"
+      hover-class="tap-button-hover"
+      bindtap="onBatchIssueSalary"
+      loading="{{batchIssuing}}"
+      disabled="{{loading || batchIssuing}}">
+      批量记录已发工资
+    </button>
+
+    <text class="export-hint">只会处理有效工时大于 0 且当前还未发薪的班次，已经发过工资的记录不会重复处理。</text>
   </view>
 
   <view class="card section-card">
     <view class="section-head">
       <text class="section-title">创建学期</text>
-      <text class="section-desc">排班和工资统计会以当前学期为准。</text>
+      <text class="section-desc">排班、导出和工资统计都会以当前学期为准。</text>
     </view>
 
     <input
       class="soft-input"
       placeholder="输入学期名称，例如 2026 春季学期"
+      placeholder-style="color: #b4a9c2;"
       value="{{createSemesterName}}"
       bindinput="onSemesterNameInput"
     />
@@ -38,75 +183,54 @@
     </button>
   </view>
 
-  <view class="card section-card" wx:if="{{leaderApplications.length > 0}}">
-    <view class="section-head">
-      <text class="section-title">班负申请审批</text>
-      <text class="section-desc">当前有 {{leaderApplications.length}} 条待审批申请</text>
+  <view class="card section-card">
+    <view class="list-head">
+      <view>
+        <text class="section-title">志愿者列表</text>
+        <text class="section-desc" wx:if="{{userSearchKeyword}}">筛选结果 {{displayedUserCount}} / {{userCount}} 人</text>
+        <text class="section-desc" wx:else>当前共 {{userCount}} 人</text>
+      </view>
+      <text class="semester-pill secondary" wx:if="{{semester}}">{{semester.name}}</text>
     </view>
 
-    <view class="application-list">
-      <view class="application-card" wx:for="{{leaderApplications}}" wx:key="_id">
-        <view class="application-copy">
-          <text class="application-title">{{item.weekdayText}} · {{item.shiftName}}</text>
-          <text class="application-meta">{{item.timeRange}} · {{item.fixedHours}} 小时</text>
-          <text class="application-meta">{{item.applicantText}}</text>
-          <text class="application-meta">{{item.leaderText}}</text>
-        </view>
+    <view class="search-shell">
+      <input
+        class="search-input"
+        placeholder="搜索姓名、学号或身份"
+        placeholder-style="color: #b4a9c2;"
+        value="{{userSearchKeyword}}"
+        bindinput="onUserSearchInput"
+        confirm-type="search"
+      />
+      <text class="clear-search" wx:if="{{userSearchKeyword}}" bindtap="onClearUserSearch">清空</text>
+    </view>
 
-        <view class="application-actions">
-          <button
-            class="mini-action-btn approve"
-            hover-class="tap-button-hover"
-            data-id="{{item._id}}"
-            loading="{{reviewingApplicationId === item._id}}"
-            disabled="{{loading && reviewingApplicationId !== item._id}}"
-            bindtap="onApproveLeaderApplication">
-            通过
-          </button>
-          <button
-            class="mini-action-btn reject"
-            hover-class="tap-button-hover"
-            data-id="{{item._id}}"
-            loading="{{reviewingApplicationId === item._id}}"
-            disabled="{{loading && reviewingApplicationId !== item._id}}"
-            bindtap="onRejectLeaderApplication">
-            驳回
-          </button>
+    <view class="user-list" wx:if="{{displayedUserList.length}}">
+      <view
+        class="user-card"
+        wx:for="{{displayedUserList}}"
+        wx:key="_id"
+        data-userid="{{item._id}}"
+        hover-class="tap-card-hover"
+        bindtap="onOpenUserDetail">
+        <view class="user-main">
+          <view class="user-copy">
+            <view class="user-title-row">
+              <text class="user-name">{{item.displayName}}</text>
+              <text class="role-chip {{item.roleClass}}">{{item.roleBadgeText}}</text>
+            </view>
+            <text class="user-meta">学号 {{item.studentId || '未填写'}} · {{item.grantedRolesText}}</text>
+          </view>
+          <view class="user-side">
+            <text class="detail-link">查看详情</text>
+          </view>
         </view>
       </view>
     </view>
-  </view>
 
-  <view class="list-head">
-    <view>
-      <text class="section-title">志愿者列表</text>
-      <text class="section-desc">当前共 {{userCount}} 人</text>
+    <view class="empty-card" wx:else>
+      <text class="empty-title">{{userSearchKeyword ? '没有搜索结果' : '暂无用户'}}</text>
+      <text class="empty-desc">{{userSearchKeyword ? '换个姓名、学号或身份关键词再试。' : '当前没有可查看的账号。'}}</text>
     </view>
-    <text class="semester-pill" wx:if="{{semester}}">当前学期：{{semester.name}}</text>
-  </view>
-
-  <view class="user-list" wx:if="{{userList.length}}">
-    <view
-      class="user-card card"
-      wx:for="{{userList}}"
-      wx:key="_id"
-      data-userid="{{item._id}}"
-      hover-class="tap-card-hover"
-      bindtap="onOpenUserDetail">
-      <view class="user-main">
-        <view class="user-copy">
-          <text class="user-name">{{item.displayName}}</text>
-          <text class="user-meta">学号 {{item.studentId || '未填写'}}</text>
-        </view>
-        <view class="user-side">
-          <text class="detail-link">查看详情</text>
-        </view>
-      </view>
-    </view>
-  </view>
-
-  <view class="empty-card card" wx:else>
-    <text class="empty-title">暂无用户</text>
-    <text class="empty-desc">当前没有可查看的账号。</text>
   </view>
 </view>

@@ -11,7 +11,6 @@ const COLLECTIONS = [
   'schedules',
   'weeklySelections',
   'shiftRequests',
-  'rewards',
   'leaderApplications',
 ];
 

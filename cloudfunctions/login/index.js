@@ -155,7 +155,6 @@ async function registerUser(studentId, password, name) {
       role: ROLE_MEMBER,
       roles: [ROLE_MEMBER],
       avatar: '',
-      rewardScore: 0,
       createdAt: db.serverDate(),
       updatedAt: db.serverDate(),
     },

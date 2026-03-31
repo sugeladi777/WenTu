@@ -76,13 +76,13 @@ async function ensureAdmin(requesterId) {
   const user = result.data || null;
 
   if (!user || !normalizeRoles(user).includes(ROLE_ADMIN)) {
-    throw new Error('只有管理员可以发放工资');
+    throw new Error('只有管理员可以批量发放工资');
   }
 
   return user;
 }
 
-async function loadAllDocuments(collection, filter) {
+async function loadAllDocuments(collection, filter = {}) {
   const pageSize = 100;
   const documents = [];
   let offset = 0;
@@ -100,6 +100,60 @@ async function loadAllDocuments(collection, filter) {
   }
 
   return documents;
+}
+
+function buildDateTimeValue(dateString, timeString) {
+  const safeDate = String(dateString || '').trim();
+  const safeTime = String(timeString || '').trim();
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(safeDate) || !/^\d{2}:\d{2}$/.test(safeTime)) {
+    return Number.NaN;
+  }
+
+  return new Date(`${safeDate}T${safeTime}:00+08:00`).getTime();
+}
+
+function resolveRange(event = {}) {
+  const startDate = String(event.startDate || '').trim();
+  const startTime = String(event.startTime || '').trim();
+  const endDate = String(event.endDate || '').trim();
+  const endTime = String(event.endTime || '').trim();
+
+  if (!startDate || !startTime || !endDate || !endTime) {
+    throw new Error('请完整选择开始和结束时间');
+  }
+
+  const startValue = buildDateTimeValue(startDate, startTime);
+  const endValue = buildDateTimeValue(endDate, endTime);
+
+  if (Number.isNaN(startValue) || Number.isNaN(endValue)) {
+    throw new Error('时间格式不正确');
+  }
+
+  if (startValue > endValue) {
+    throw new Error('开始时间不能晚于结束时间');
+  }
+
+  return {
+    startDate,
+    startTime,
+    endDate,
+    endTime,
+    startValue,
+    endValue,
+    label: `${startDate} ${startTime} - ${endDate} ${endTime}`,
+  };
+}
+
+function scheduleOverlapsRange(schedule = {}, range) {
+  const startValue = buildDateTimeValue(schedule.date, schedule.startTime || '00:00');
+  const endValue = buildDateTimeValue(schedule.date, schedule.endTime || '23:59');
+
+  if (Number.isNaN(startValue) || Number.isNaN(endValue)) {
+    return false;
+  }
+
+  return endValue >= range.startValue && startValue <= range.endValue;
 }
 
 function getEffectiveAttendanceStatus(schedule = {}) {
@@ -168,30 +222,32 @@ function isValidSalarySchedule(schedule) {
 
 exports.main = async (event) => {
   const requesterId = String(event.requesterId || '').trim();
-  const targetUserId = String(event.targetUserId || '').trim();
-  const semesterId = String(event.semesterId || '').trim();
   const hourlyRate = roundNumber(event.hourlyRate);
 
-  if (!requesterId || !targetUserId || !semesterId || !hourlyRate) {
-    return { success: false, error: '参数错误' };
+  if (!requesterId) {
+    return { success: false, error: '请求用户不能为空' };
   }
 
-  if (hourlyRate <= 0) {
-    return { success: false, error: '每工时工资必须大于 0' };
+  if (!hourlyRate || hourlyRate <= 0) {
+    return { success: false, error: '请填写正确的每工时工资' };
   }
 
   try {
     const requester = await ensureAdmin(requesterId);
+    const range = resolveRange(event);
     const schedules = await loadAllDocuments(db.collection('schedules'), {
-      userId: targetUserId,
-      semesterId,
+      date: db.command.gte(range.startDate).and(db.command.lte(range.endDate)),
     });
 
-    const payableSchedules = schedules.filter((schedule) => isValidSalarySchedule(schedule));
+    const payableSchedules = schedules.filter((schedule) => {
+      return scheduleOverlapsRange(schedule, range) && isValidSalarySchedule(schedule);
+    });
+
     if (!payableSchedules.length) {
-      return { success: false, error: '当前没有可发放工资的班次' };
+      return { success: false, error: '所选时间段内没有待发薪的有效班次' };
     }
 
+    const affectedUsers = new Set();
     let totalHours = 0;
     let totalAmount = 0;
 
@@ -201,6 +257,7 @@ exports.main = async (event) => {
 
       totalHours = roundNumber(totalHours + actualHours);
       totalAmount = roundNumber(totalAmount + salaryAmount);
+      affectedUsers.add(schedule.userId);
 
       await db.collection('schedules').doc(schedule._id).update({
         data: {
@@ -218,11 +275,16 @@ exports.main = async (event) => {
     return {
       success: true,
       updatedCount: payableSchedules.length,
+      affectedUserCount: affectedUsers.size,
       totalHours,
       totalAmount,
-      message: `已发放 ${payableSchedules.length} 个班次，共 ${totalAmount} 元`,
+      rangeLabel: range.label,
+      message: `已发放 ${payableSchedules.length} 个班次，涉及 ${affectedUsers.size} 人，共 ${totalAmount} 元`,
     };
   } catch (error) {
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: error.message,
+    };
   }
 };

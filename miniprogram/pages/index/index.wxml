@@ -28,6 +28,48 @@
     </button>
   </view>
 
+  <view class="card application-panel" wx:if="{{activeRole === 2 && leaderApplications.length > 0}}">
+    <view class="record-title-row">
+      <view>
+        <text class="section-title">班负申请审批</text>
+        <text class="section-desc">当前有 {{leaderApplications.length}} 条待审批申请</text>
+      </view>
+      <text class="pill pill-ink">{{leaderApplications.length}} 条</text>
+    </view>
+
+    <view class="application-list">
+      <view class="application-card" wx:for="{{leaderApplications}}" wx:key="_id">
+        <view class="application-copy">
+          <text class="application-title">{{item.weekdayText}} · {{item.shiftName}}</text>
+          <text class="application-meta">{{item.timeRange}} · {{item.fixedHours}} 小时</text>
+          <text class="application-meta">{{item.applicantText}}</text>
+          <text class="application-meta">{{item.leaderText}}</text>
+        </view>
+
+        <view class="application-actions">
+          <button
+            class="mini-action-btn approve"
+            hover-class="tap-button-hover"
+            data-id="{{item._id}}"
+            loading="{{reviewingApplicationId === item._id}}"
+            disabled="{{loading && reviewingApplicationId !== item._id}}"
+            bindtap="onApproveLeaderApplication">
+            通过
+          </button>
+          <button
+            class="mini-action-btn reject"
+            hover-class="tap-button-hover"
+            data-id="{{item._id}}"
+            loading="{{reviewingApplicationId === item._id}}"
+            disabled="{{loading && reviewingApplicationId !== item._id}}"
+            bindtap="onRejectLeaderApplication">
+            驳回
+          </button>
+        </view>
+      </view>
+    </view>
+  </view>
+
   <view class="focus-card compact card" wx:if="{{showShiftWorkspace && todayShifts.length > 0}}">
     <text class="focus-heading">切换班次</text>
 

@@ -6,6 +6,7 @@ const db = cloud.database();
 
 const ATTENDANCE_NORMAL = 0;
 const ATTENDANCE_LATE = 1;
+const ATTENDANCE_MISSING_CHECKOUT = 2;
 const ATTENDANCE_ABSENT = 3;
 const SHIFT_TYPE_LEAVE = 1;
 
@@ -33,6 +34,76 @@ function roundNumber(value) {
   return Math.round(Number(value || 0) * 100) / 100;
 }
 
+function padNumber(value) {
+  return String(value).padStart(2, '0');
+}
+
+function toChinaDate(input = new Date()) {
+  const date = input instanceof Date ? input : new Date(input);
+  const offsetMinutes = 8 * 60 + date.getTimezoneOffset();
+  return new Date(date.getTime() + offsetMinutes * 60 * 1000);
+}
+
+function formatChinaDate(input = new Date()) {
+  const chinaDate = toChinaDate(input);
+  return `${chinaDate.getUTCFullYear()}-${padNumber(chinaDate.getUTCMonth() + 1)}-${padNumber(chinaDate.getUTCDate())}`;
+}
+
+function getChinaMinutes(input = new Date()) {
+  const chinaDate = toChinaDate(input);
+  return chinaDate.getUTCHours() * 60 + chinaDate.getUTCMinutes();
+}
+
+function timeToMinutes(timeString) {
+  const match = /^(\d{2}):(\d{2})$/.exec(String(timeString || ''));
+  if (!match) {
+    return null;
+  }
+
+  return Number(match[1]) * 60 + Number(match[2]);
+}
+
+function getEffectiveAttendanceStatus(schedule = {}) {
+  if (!schedule || schedule.shiftType === SHIFT_TYPE_LEAVE) {
+    return schedule ? schedule.attendanceStatus : null;
+  }
+
+  if (schedule.attendanceStatus === ATTENDANCE_ABSENT) {
+    return ATTENDANCE_ABSENT;
+  }
+
+  if (schedule.attendanceStatus === ATTENDANCE_MISSING_CHECKOUT) {
+    return ATTENDANCE_MISSING_CHECKOUT;
+  }
+
+  if (schedule.checkOutTime) {
+    return schedule.attendanceStatus;
+  }
+
+  if (!schedule.date) {
+    return schedule.attendanceStatus;
+  }
+
+  const endMinutes = timeToMinutes(schedule.endTime);
+  if (endMinutes === null) {
+    return schedule.attendanceStatus;
+  }
+
+  const today = formatChinaDate();
+  const currentMinutes = getChinaMinutes();
+  const cutoffPassed = schedule.date < today || (schedule.date === today && currentMinutes > endMinutes + 30);
+
+  if (!cutoffPassed) {
+    return schedule.attendanceStatus;
+  }
+
+  if (!schedule.checkInTime) {
+    return ATTENDANCE_ABSENT;
+  }
+
+  return ATTENDANCE_MISSING_CHECKOUT;
+}
+
 function sortSchedules(schedules) {
   return schedules.slice().sort((left, right) => {
     if (left.date !== right.date) {
@@ -44,16 +115,12 @@ function sortSchedules(schedules) {
 }
 
 function buildWorkHourItem(schedule) {
-  const isCompleted = Boolean(schedule.checkOutTime);
-  const hasValidAttendance = (
-    schedule.attendanceStatus === ATTENDANCE_NORMAL
-    || schedule.attendanceStatus === ATTENDANCE_LATE
-  );
-  const isValid = (
-    isCompleted
-    && hasValidAttendance
+  const effectiveAttendanceStatus = getEffectiveAttendanceStatus(schedule);
+  const isValid = Boolean(
+    schedule.checkOutTime
+    && (effectiveAttendanceStatus === ATTENDANCE_NORMAL || effectiveAttendanceStatus === ATTENDANCE_LATE)
     && schedule.shiftType !== SHIFT_TYPE_LEAVE
-    && schedule.attendanceStatus !== ATTENDANCE_ABSENT
+    && effectiveAttendanceStatus !== ATTENDANCE_ABSENT,
   );
   const shiftHours = isValid ? (Number(schedule.fixedHours) || 0) : 0;
   const approvedOvertimeHours = isValid && schedule.overtimeApproved
@@ -64,6 +131,8 @@ function buildWorkHourItem(schedule) {
 
   return {
     ...schedule,
+    attendanceStatus: effectiveAttendanceStatus,
+    effectiveAttendanceStatus,
     shiftHours,
     overtimeHours: Number(schedule.overtimeHours) || 0,
     approvedOvertimeHours,

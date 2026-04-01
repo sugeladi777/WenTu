@@ -11,6 +11,8 @@ const VALID_ROLES = [ROLE_MEMBER, ROLE_LEADER, ROLE_ADMIN];
 const SHIFT_TYPE_LEAVE = 1;
 const SHIFT_TYPE_SWAP = 2;
 const SHIFT_TYPE_BORROW = 3;
+const ATTENDANCE_MISSING_CHECKOUT = 2;
+const ATTENDANCE_ABSENT = 3;
 
 function normalizeRoles(user = {}) {
   const roles = [];
@@ -222,7 +224,59 @@ function buildSlotMatcher(schedule) {
   };
 }
 
-function selectActiveShift(leaderSchedules, selectedScheduleId, currentMinutes) {
+function buildSlotKey(schedule = {}) {
+  if (schedule.shiftId) {
+    return `${schedule.date || ''}::${schedule.shiftId || ''}`;
+  }
+
+  return `${schedule.date || ''}::${schedule.startTime || ''}::${schedule.endTime || ''}`;
+}
+
+function buildLeaderScheduleList(scheduleList = []) {
+  const slotMap = {};
+
+  scheduleList.forEach((item) => {
+    const slotKey = buildSlotKey(item);
+    if (!slotKey) {
+      return;
+    }
+
+    const current = slotMap[slotKey];
+    if (!current) {
+      slotMap[slotKey] = item;
+      return;
+    }
+
+    const currentShiftType = Number(current.shiftType);
+    const nextShiftType = Number(item.shiftType);
+    if (currentShiftType === SHIFT_TYPE_SWAP && nextShiftType !== SHIFT_TYPE_SWAP) {
+      slotMap[slotKey] = item;
+    }
+  });
+
+  return Object.values(slotMap).sort((left, right) => {
+    if (String(left.date || '') !== String(right.date || '')) {
+      return String(left.date || '').localeCompare(String(right.date || ''));
+    }
+
+    const timeCompare = String(left.startTime || '').localeCompare(String(right.startTime || ''));
+    if (timeCompare !== 0) {
+      return timeCompare;
+    }
+
+    return String(left.shiftName || '').localeCompare(String(right.shiftName || ''));
+  });
+}
+
+function isTodaySchedule(schedule, today) {
+  return Boolean(schedule) && String(schedule.date || '') === String(today || '');
+}
+
+function isFutureSchedule(schedule, today) {
+  return Boolean(schedule) && String(schedule.date || '') > String(today || '');
+}
+
+function selectActiveShift(leaderSchedules, selectedScheduleId, today, currentMinutes) {
   if (!leaderSchedules.length) {
     return null;
   }
@@ -235,6 +289,10 @@ function selectActiveShift(leaderSchedules, selectedScheduleId, currentMinutes) 
   }
 
   const currentShift = leaderSchedules.find((item) => {
+    if (!isTodaySchedule(item, today)) {
+      return false;
+    }
+
     const start = timeToMinutes(item.startTime);
     const end = timeToMinutes(item.endTime);
     return start !== null && end !== null && currentMinutes >= start - 15 && currentMinutes <= end + 30;
@@ -245,11 +303,20 @@ function selectActiveShift(leaderSchedules, selectedScheduleId, currentMinutes) 
   }
 
   const upcoming = leaderSchedules.find((item) => {
+    if (!isTodaySchedule(item, today)) {
+      return false;
+    }
+
     const start = timeToMinutes(item.startTime);
     return start !== null && currentMinutes < start;
   });
 
-  return upcoming || leaderSchedules[0];
+  if (upcoming) {
+    return upcoming;
+  }
+
+  const future = leaderSchedules.find((item) => isFutureSchedule(item, today));
+  return future || leaderSchedules[0];
 }
 
 async function ensureRequester(requesterId) {
@@ -266,7 +333,7 @@ async function ensureRequester(requesterId) {
 exports.main = async (event) => {
   const requesterId = String(event.requesterId || '').trim();
   const selectedScheduleId = String(event.scheduleId || '').trim();
-  const date = String(event.date || '').trim() || formatChinaDate();
+  const today = formatChinaDate();
 
   if (!requesterId) {
     return { success: false, error: '请求用户不能为空' };
@@ -283,7 +350,7 @@ exports.main = async (event) => {
       const selectedResult = await db.collection('schedules').doc(selectedScheduleId).get();
       const selectedSchedule = selectedResult.data || null;
 
-      if (selectedSchedule && selectedSchedule.date === date && selectedSchedule.shiftType !== SHIFT_TYPE_LEAVE) {
+      if (selectedSchedule && String(selectedSchedule.date || '') >= today && selectedSchedule.shiftType !== SHIFT_TYPE_LEAVE) {
         leaderSchedules = [selectedSchedule];
       }
     }
@@ -291,19 +358,19 @@ exports.main = async (event) => {
     if (!leaderSchedules.length) {
       const leaderScheduleResult = await db.collection('schedules')
         .where({
-          userId: requesterId,
           leaderUserId: requesterId,
-          date,
+          date: db.command.gte(today),
           shiftType: db.command.neq(SHIFT_TYPE_LEAVE),
         })
+        .orderBy('date', 'asc')
         .orderBy('startTime', 'asc')
-        .limit(50)
+        .limit(100)
         .get();
 
-      leaderSchedules = leaderScheduleResult.data || [];
+      leaderSchedules = buildLeaderScheduleList(leaderScheduleResult.data || []);
     }
 
-    const activeSchedule = selectActiveShift(leaderSchedules, selectedScheduleId, currentMinutes);
+    const activeSchedule = selectActiveShift(leaderSchedules, selectedScheduleId, today, currentMinutes);
 
     if (!activeSchedule) {
       return {
@@ -351,8 +418,13 @@ exports.main = async (event) => {
       participantTypeClass: getParticipantTypeClass(item),
       overtimeText: getOvertimeText(item),
       overtimeClass: getOvertimeClass(item),
-      canConfirmPresent: Boolean(item.checkInTime) && item.leaderConfirmStatus !== 'present',
-      canConfirmAbsent: !item.checkInTime && item.leaderConfirmStatus !== 'absent',
+      canNormalizeAttendance: item.date === today && (
+        item.attendanceStatus === ATTENDANCE_ABSENT
+        || item.attendanceStatus === ATTENDANCE_MISSING_CHECKOUT
+        || item.leaderConfirmStatus === 'absent'
+      ),
+      canConfirmPresent: item.date === today && Boolean(item.checkInTime) && item.leaderConfirmStatus !== 'present',
+      canConfirmAbsent: item.date === today && !item.checkInTime && item.leaderConfirmStatus !== 'absent',
       canReviewOvertime: Boolean(item.checkOutTime) && item.overtimeStatus === 'pending' && Number(item.overtimeHours || 0) > 0,
     }));
 

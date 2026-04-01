@@ -2,9 +2,9 @@
   <view class="hero-card">
     <view class="hero-copy">
       <text class="hero-kicker">班负签到确认</text>
-      <text class="hero-title">{{activeSchedule ? activeSchedule.shiftName : '今日班次'}}</text>
+      <text class="hero-title">{{activeSchedule ? activeSchedule.shiftName : '班负班次'}}</text>
       <text class="hero-subtitle">
-        {{activeSchedule ? (activeSchedule.date + ' · ' + activeSchedule.startTime + ' - ' + activeSchedule.endTime) : '今天暂无需要确认的班次'}}
+        {{activeSchedule ? (activeSchedule.date + ' | ' + activeSchedule.startTime + ' - ' + activeSchedule.endTime) : '这里会显示今天和未来未开始的负责班次'}}
       </text>
     </view>
   </view>
@@ -19,7 +19,7 @@
         hover-class="tap-soft-hover"
         bindtap="onSwitchShift">
         <text class="tab-title">{{item.shiftName}}</text>
-        <text class="tab-sub">{{item.startTime}} - {{item.endTime}}</text>
+        <text class="tab-sub">{{item.date}} · {{item.startTime}} - {{item.endTime}}</text>
       </view>
     </view>
   </scroll-view>
@@ -41,7 +41,7 @@
               <text class="member-name">{{item.userName}}</text>
               <text class="member-tag {{item.participantTypeClass}}" wx:if="{{item.participantTypeText}}">{{item.participantTypeText}}</text>
             </view>
-            <text class="member-meta">学号 {{item.studentId || '--'}} · {{item.startTime}} - {{item.endTime}}</text>
+            <text class="member-meta">学号 {{item.studentId || '--'}} | {{item.startTime}} - {{item.endTime}}</text>
           </view>
           <text class="member-status {{item.leaderConfirmClass}}">{{item.leaderConfirmText}}</text>
         </view>
@@ -58,7 +58,7 @@
           </text>
         </view>
 
-        <view class="action-row" wx:if="{{item.canConfirmPresent || item.canConfirmAbsent}}">
+        <view class="action-row" wx:if="{{item.canConfirmPresent || item.canConfirmAbsent || item.canNormalizeAttendance}}">
           <button
             wx:if="{{item.canConfirmPresent}}"
             class="action-btn confirm"
@@ -74,6 +74,14 @@
             data-id="{{item._id}}"
             bindtap="onConfirmAbsent">
             标记旷岗
+          </button>
+          <button
+            wx:if="{{item.canNormalizeAttendance}}"
+            class="action-btn reset"
+            hover-class="tap-button-hover"
+            data-id="{{item._id}}"
+            bindtap="onNormalizeAttendance">
+            改为正常签到
           </button>
         </view>
 
@@ -108,7 +116,7 @@
   </view>
 
   <view class="empty card" wx:if="{{leaderSchedules.length === 0 && !loading}}">
-    <text class="empty-title">今天没有可确认的班次</text>
-    <text class="empty-text">有负责班次时，这里会自动显示成员名单。</text>
+    <text class="empty-title">当前没有可查看的班次</text>
+    <text class="empty-text">这里会显示今天和未来未开始的负责班次。</text>
   </view>
 </view>

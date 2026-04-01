@@ -299,6 +299,13 @@
   color: #ca8794;
 }
 
+.action-btn.reset {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 32%),
+    linear-gradient(145deg, #c8e7ff 0%, #dfe9ff 54%, #f5f0ff 100%);
+  color: #6f86c4;
+}
+
 .empty {
   margin-top: 20rpx;
   padding: 84rpx 30rpx;

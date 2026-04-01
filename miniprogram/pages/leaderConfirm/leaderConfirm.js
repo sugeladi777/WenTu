@@ -22,6 +22,22 @@ function pickActiveSchedule(scheduleId, schedules = [], fallbackSchedule = null)
   return schedules[0] || null;
 }
 
+function getAttendanceActionText(action) {
+  if (action === 'present') {
+    return '确认签到';
+  }
+
+  if (action === 'absent') {
+    return '标记旷岗';
+  }
+
+  if (action === 'normalize') {
+    return '改为正常签到';
+  }
+
+  return '确认操作';
+}
+
 Page({
   data: {
     requester: null,
@@ -143,13 +159,17 @@ Page({
     this.confirmAttendance(String(e.currentTarget.dataset.id || '').trim(), 'absent');
   },
 
+  onNormalizeAttendance(e) {
+    this.confirmAttendance(String(e.currentTarget.dataset.id || '').trim(), 'normalize');
+  },
+
   async confirmAttendance(scheduleId, action) {
     const userInfo = app.globalData.userInfo;
     if (!userInfo || !userInfo._id || !scheduleId || this.data.loading) {
       return;
     }
 
-    const actionText = action === 'present' ? '确认签到' : '标记旷岗';
+    const actionText = getAttendanceActionText(action);
 
     wx.showModal({
       title: '确认操作',

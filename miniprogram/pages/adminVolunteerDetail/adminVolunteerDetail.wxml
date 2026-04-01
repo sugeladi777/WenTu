@@ -8,6 +8,16 @@
       </view>
       <text class="role-chip {{userInfo.roleClass}}">{{userInfo.roleBadgeText}}</text>
     </view>
+    <view class="hero-actions">
+      <button
+        class="danger-btn"
+        loading="{{retiring}}"
+        disabled="{{loading || retiring || leaderActionScheduleId}}"
+        bindtap="onRetireVolunteer">
+        退岗
+      </button>
+      <text class="hero-action-hint">会删除该志愿者未来未开始的所有班次，并清空固定班次选择。</text>
+    </view>
   </view>
 
   <view class="shift-section">

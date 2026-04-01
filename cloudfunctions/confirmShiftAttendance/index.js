@@ -11,6 +11,7 @@ const VALID_ROLES = [ROLE_MEMBER, ROLE_LEADER, ROLE_ADMIN];
 const SHIFT_TYPE_LEAVE = 1;
 const ATTENDANCE_NORMAL = 0;
 const ATTENDANCE_LATE = 1;
+const ATTENDANCE_MISSING_CHECKOUT = 2;
 const ATTENDANCE_ABSENT = 3;
 
 function normalizeRoles(user = {}) {
@@ -65,6 +66,16 @@ function timeToMinutes(timeString) {
   return Number(match[1]) * 60 + Number(match[2]);
 }
 
+function buildChinaDateTime(dateString, timeString) {
+  const dateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dateString || ''));
+  const timeMatch = /^(\d{2}):(\d{2})$/.exec(String(timeString || ''));
+  if (!dateMatch || !timeMatch) {
+    return null;
+  }
+
+  return new Date(`${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}T${timeMatch[1]}:${timeMatch[2]}:00+08:00`);
+}
+
 function buildSlotMatcher(schedule) {
   if (schedule.shiftId) {
     return { date: schedule.date, shiftId: schedule.shiftId };
@@ -97,6 +108,31 @@ function evaluateAttendanceStatus(schedule, currentMinutes) {
   return currentMinutes > startMinutes + 5 ? ATTENDANCE_LATE : ATTENDANCE_NORMAL;
 }
 
+function buildNormalizedUpdateData(schedule, requesterId, requesterName, currentMinutes, endMinutes) {
+  const updateData = {
+    leaderConfirmStatus: 'present',
+    leaderConfirmedAt: db.serverDate(),
+    leaderConfirmedBy: requesterId,
+    leaderConfirmedByName: requesterName,
+    attendanceStatus: ATTENDANCE_NORMAL,
+    updatedAt: db.serverDate(),
+  };
+
+  const correctionAfterCheckoutDeadline = endMinutes !== null && currentMinutes > endMinutes + 30;
+
+  if (!schedule.checkInTime) {
+    updateData.checkInTime = correctionAfterCheckoutDeadline
+      ? (buildChinaDateTime(schedule.date, schedule.startTime) || db.serverDate())
+      : db.serverDate();
+  }
+
+  if (!schedule.checkOutTime && (schedule.attendanceStatus === ATTENDANCE_MISSING_CHECKOUT || correctionAfterCheckoutDeadline)) {
+    updateData.checkOutTime = buildChinaDateTime(schedule.date, schedule.endTime) || db.serverDate();
+  }
+
+  return updateData;
+}
+
 exports.main = async (event) => {
   const requesterId = String(event.requesterId || '').trim();
   const requesterName = String(event.requesterName || '').trim();
@@ -107,7 +143,7 @@ exports.main = async (event) => {
     return { success: false, error: '参数错误' };
   }
 
-  if (!['present', 'absent'].includes(action)) {
+  if (!['present', 'absent', 'normalize'].includes(action)) {
     return { success: false, error: '不支持的确认动作' };
   }
 
@@ -137,14 +173,13 @@ exports.main = async (event) => {
       return { success: false, error: '班次时间配置异常' };
     }
 
-    if (currentMinutes < startMinutes - 15 || currentMinutes > endMinutes + 60) {
+    if (action !== 'normalize' && (currentMinutes < startMinutes - 15 || currentMinutes > endMinutes + 60)) {
       return { success: false, error: '当前不在可确认的班次时间窗口内' };
     }
 
     if (!hasRole(requester, ROLE_ADMIN)) {
       const leaderSlotResult = await db.collection('schedules')
         .where({
-          userId: requesterId,
           leaderUserId: requesterId,
           shiftType: db.command.neq(SHIFT_TYPE_LEAVE),
           ...buildSlotMatcher(schedule),
@@ -157,11 +192,12 @@ exports.main = async (event) => {
       }
     }
 
-    const updateData = {
+    const normalizedRequesterName = requesterName || requester.name || '';
+    let updateData = {
       leaderConfirmStatus: action,
       leaderConfirmedAt: db.serverDate(),
       leaderConfirmedBy: requesterId,
-      leaderConfirmedByName: requesterName || requester.name || '',
+      leaderConfirmedByName: normalizedRequesterName,
       updatedAt: db.serverDate(),
     };
 
@@ -171,6 +207,22 @@ exports.main = async (event) => {
       }
 
       updateData.attendanceStatus = schedule.attendanceStatus || evaluateAttendanceStatus(schedule, currentMinutes);
+    } else if (action === 'normalize') {
+      const hasAbnormalStatus = schedule.attendanceStatus === ATTENDANCE_ABSENT
+        || schedule.attendanceStatus === ATTENDANCE_MISSING_CHECKOUT
+        || schedule.leaderConfirmStatus === 'absent';
+
+      if (!hasAbnormalStatus) {
+        return { success: false, error: '当前不是可恢复的异常状态' };
+      }
+
+      updateData = buildNormalizedUpdateData(
+        schedule,
+        requesterId,
+        normalizedRequesterName,
+        currentMinutes,
+        endMinutes,
+      );
     } else {
       if (schedule.checkInTime) {
         return { success: false, error: '该同学已经签到，不能再标记旷岗' };
@@ -185,7 +237,9 @@ exports.main = async (event) => {
 
     return {
       success: true,
-      message: action === 'present' ? '已确认签到' : '已标记为旷岗',
+      message: action === 'present'
+        ? '已确认签到'
+        : (action === 'normalize' ? '已恢复为正常签到' : '已标记为旷岗'),
     };
   } catch (error) {
     return { success: false, error: error.message };

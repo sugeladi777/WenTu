@@ -106,6 +106,7 @@ function isTargetLeader(item = {}, targetUserId = '') {
 Page({
   data: {
     loading: false,
+    retiring: false,
     leaderActionScheduleId: '',
     semester: null,
     userInfo: null,
@@ -543,6 +544,70 @@ Page({
     wx.navigateTo({
       url: `/pages/shiftDetail/shiftDetail?shiftData=${shiftData}&source=admin`,
     });
+  },
+
+  onRetireVolunteer() {
+    const { userInfo, loading, retiring, leaderActionScheduleId } = this.data;
+    if (!userInfo || loading || retiring || leaderActionScheduleId) {
+      return;
+    }
+
+    wx.showModal({
+      title: '确认退岗',
+      content: `退岗后会清空 ${userInfo.displayName} 当前及后续固定班次选择，并删除所有未来未开始的班次。已发生或已开始的记录会保留，确定继续吗？`,
+      confirmColor: '#d96b5f',
+      success: async (res) => {
+        if (!res.confirm) {
+          return;
+        }
+
+        await this.submitRetireVolunteer();
+      },
+    });
+  },
+
+  async submitRetireVolunteer() {
+    const requester = app.globalData.userInfo;
+    if (!requester || !requester._id) {
+      return;
+    }
+
+    this.setData({
+      loading: true,
+      retiring: true,
+    });
+    wx.showLoading({ title: '处理中' });
+
+    try {
+      const result = await callCloudFunction('retireVolunteerByAdmin', {
+        requesterId: requester._id,
+        targetUserId: this.targetUserId,
+      });
+
+      wx.showToast({
+        title: '退岗完成',
+        icon: 'success',
+      });
+
+      await this.loadDetail(false);
+
+      wx.showModal({
+        title: '已完成退岗',
+        content: result.message || '未来班次已清理完成',
+        showCancel: false,
+      });
+    } catch (error) {
+      wx.showToast({
+        title: error.message || '退岗失败',
+        icon: 'none',
+      });
+    } finally {
+      wx.hideLoading();
+      this.setData({
+        loading: false,
+        retiring: false,
+      });
+    }
   },
 
   onToggleShiftLeader(e) {

@@ -103,6 +103,8 @@ exports.main = async (event) => {
     const currentMinutes = now.hour * 60 + now.minute;
     const baseQuery = {
       date: db.command.gte(today),
+      shiftType: SHIFT_TYPE_LEAVE,
+      leaveStatus: LEAVE_STATUS_PENDING,
     };
 
     if (semesterId) {
@@ -114,14 +116,6 @@ exports.main = async (event) => {
     const availableList = schedules
       .filter((schedule) => {
         if (!schedule || schedule.userId === userId) {
-          return false;
-        }
-
-        if (schedule.shiftType !== SHIFT_TYPE_LEAVE) {
-          return false;
-        }
-
-        if (schedule.leaveStatus !== LEAVE_STATUS_PENDING) {
           return false;
         }
 

@@ -166,6 +166,10 @@ function isValidSalarySchedule(schedule) {
   return Boolean(schedule && !schedule.salaryPaid && getActualHours(schedule) > 0);
 }
 
+function isUpdateSuccessful(result) {
+  return Number(result && result.stats && result.stats.updated) > 0;
+}
+
 exports.main = async (event) => {
   const requesterId = String(event.requesterId || '').trim();
   const targetUserId = String(event.targetUserId || '').trim();
@@ -194,15 +198,17 @@ exports.main = async (event) => {
 
     let totalHours = 0;
     let totalAmount = 0;
+    let updatedCount = 0;
+    let skippedCount = 0;
 
     for (const schedule of payableSchedules) {
       const actualHours = getActualHours(schedule);
       const salaryAmount = roundNumber(actualHours * hourlyRate);
 
-      totalHours = roundNumber(totalHours + actualHours);
-      totalAmount = roundNumber(totalAmount + salaryAmount);
-
-      await db.collection('schedules').doc(schedule._id).update({
+      const updateResult = await db.collection('schedules').where({
+        _id: schedule._id,
+        salaryPaid: false,
+      }).update({
         data: {
           salaryPaid: true,
           salaryRate: hourlyRate,
@@ -213,14 +219,30 @@ exports.main = async (event) => {
           updatedAt: db.serverDate(),
         },
       });
+
+      if (!isUpdateSuccessful(updateResult)) {
+        skippedCount += 1;
+        continue;
+      }
+
+      updatedCount += 1;
+      totalHours = roundNumber(totalHours + actualHours);
+      totalAmount = roundNumber(totalAmount + salaryAmount);
+    }
+
+    if (!updatedCount) {
+      return { success: false, error: '这些班次刚刚已被其他管理员处理，请刷新后重试' };
     }
 
     return {
       success: true,
-      updatedCount: payableSchedules.length,
+      updatedCount,
+      skippedCount,
       totalHours,
       totalAmount,
-      message: `已发放 ${payableSchedules.length} 个班次，共 ${totalAmount} 元`,
+      message: skippedCount > 0
+        ? `已发放 ${updatedCount} 个班次，跳过 ${skippedCount} 个已处理班次，共 ${totalAmount} 元`
+        : `已发放 ${updatedCount} 个班次，共 ${totalAmount} 元`,
     };
   } catch (error) {
     return { success: false, error: error.message };

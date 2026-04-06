@@ -159,9 +159,19 @@ async function syncLeaderRole(userId) {
   });
 }
 
-async function updateRecurringLeader(application) {
+function buildReviewPayload(requesterId, reviewerName, status) {
+  return {
+    status,
+    reviewedAt: db.serverDate(),
+    reviewedBy: requesterId,
+    reviewedByName: reviewerName,
+    updatedAt: db.serverDate(),
+  };
+}
+
+async function updateRecurringLeader(application, schedulesCollection = db.collection('schedules')) {
   const recurringSchedules = await loadAllDocuments(
-    db.collection('schedules'),
+    schedulesCollection,
     buildRecurringMatcher(application),
   );
 
@@ -216,7 +226,7 @@ async function updateRecurringLeader(application) {
     affectedScheduleCount += slotSchedules.length;
 
     await Promise.all(slotSchedules.map((item) => {
-      return db.collection('schedules').doc(item._id).update({
+      return schedulesCollection.doc(item._id).update({
         data: {
           leaderUserId: nextLeaderUserId || null,
           leaderUserName: nextLeaderUserName || '',
@@ -252,79 +262,87 @@ exports.main = async (event) => {
 
   try {
     const admin = await ensureAdmin(requesterId);
-    const applicationResult = await db.collection('leaderApplications').doc(applicationId).get();
-    const application = applicationResult.data || null;
+    const reviewerName = String(admin.name || '').trim();
+    const result = await db.runTransaction(async (transaction) => {
+      const applicationCollection = transaction.collection('leaderApplications');
+      const schedulesCollection = transaction.collection('schedules');
+      const applicationResult = await applicationCollection.doc(applicationId).get();
+      const application = applicationResult.data || null;
 
-    if (!application) {
-      return { success: false, error: '申请记录不存在' };
-    }
+      if (!application) {
+        throw new Error('申请记录不存在');
+      }
 
-    if (String(application.status || '') !== 'pending') {
-      return { success: false, error: '该申请已处理，请刷新后重试' };
-    }
+      if (String(application.status || '') !== 'pending') {
+        throw new Error('该申请已处理，请刷新后重试');
+      }
 
-    if (action === 'reject') {
-      await db.collection('leaderApplications').doc(applicationId).update({
-        data: {
-          status: 'rejected',
-          reviewedAt: db.serverDate(),
-          reviewedBy: requesterId,
-          reviewedByName: String(admin.name || '').trim(),
-          updatedAt: db.serverDate(),
-        },
+      if (action === 'reject') {
+        await applicationCollection.doc(applicationId).update({
+          data: buildReviewPayload(requesterId, reviewerName, 'rejected'),
+        });
+
+        return {
+          action,
+          application,
+        };
+      }
+
+      const siblingApplications = await loadAllDocuments(applicationCollection, {
+        semesterId: application.semesterId,
+        dayOfWeek: Number(application.dayOfWeek),
+        ...(application.shiftId
+          ? { shiftId: application.shiftId }
+          : { startTime: application.startTime, endTime: application.endTime }),
+      });
+      const approvedSibling = siblingApplications.find((item) => {
+        return String(item._id || '') !== applicationId && String(item.status || '') === 'approved';
       });
 
+      if (approvedSibling) {
+        throw new Error('该固定班次已有申请被审批，请刷新后重试');
+      }
+
+      const recurringResult = await updateRecurringLeader(application, schedulesCollection);
+      await applicationCollection.doc(applicationId).update({
+        data: buildReviewPayload(requesterId, reviewerName, 'approved'),
+      });
+
+      const otherPendingApplications = siblingApplications.filter((item) => {
+        return String(item._id || '') !== applicationId && String(item.status || '') === 'pending';
+      });
+
+      for (const item of otherPendingApplications) {
+        await applicationCollection.doc(item._id).update({
+          data: buildReviewPayload(requesterId, reviewerName, 'rejected'),
+        });
+      }
+
+      return {
+        action,
+        application,
+        recurringResult,
+        slotKey: buildRecurringKey(application),
+      };
+    });
+
+    if (result.action === 'reject') {
       return {
         success: true,
         message: '已拒绝班负申请',
       };
     }
 
-    const recurringResult = await updateRecurringLeader(application);
-    const affectedUserIds = new Set(recurringResult.currentLeaderIds);
-    affectedUserIds.add(String(application.userId || '').trim());
-
+    const affectedUserIds = new Set(result.recurringResult.currentLeaderIds);
+    affectedUserIds.add(String(result.application.userId || '').trim());
     await Promise.all([...affectedUserIds].map((userId) => syncLeaderRole(userId)));
-
-    await db.collection('leaderApplications').doc(applicationId).update({
-      data: {
-        status: 'approved',
-        reviewedAt: db.serverDate(),
-        reviewedBy: requesterId,
-        reviewedByName: String(admin.name || '').trim(),
-        updatedAt: db.serverDate(),
-      },
-    });
-
-    const otherPendingApplications = await loadAllDocuments(db.collection('leaderApplications'), {
-      semesterId: application.semesterId,
-      status: 'pending',
-      dayOfWeek: Number(application.dayOfWeek),
-      ...(application.shiftId
-        ? { shiftId: application.shiftId }
-        : { startTime: application.startTime, endTime: application.endTime }),
-    });
-
-    await Promise.all(otherPendingApplications
-      .filter((item) => String(item._id || '') !== applicationId)
-      .map((item) => {
-        return db.collection('leaderApplications').doc(item._id).update({
-          data: {
-            status: 'rejected',
-            reviewedAt: db.serverDate(),
-            reviewedBy: requesterId,
-            reviewedByName: String(admin.name || '').trim(),
-            updatedAt: db.serverDate(),
-          },
-        });
-      }));
 
     return {
       success: true,
       message: '班负申请已审批通过',
-      affectedScheduleCount: recurringResult.affectedScheduleCount,
-      affectedDateSlotCount: recurringResult.affectedDateSlotCount,
-      slotKey: buildRecurringKey(application),
+      affectedScheduleCount: result.recurringResult.affectedScheduleCount,
+      affectedDateSlotCount: result.recurringResult.affectedDateSlotCount,
+      slotKey: result.slotKey,
     };
   } catch (error) {
     return { success: false, error: error.message };

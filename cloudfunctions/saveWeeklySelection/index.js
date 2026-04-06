@@ -4,6 +4,37 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 
 const db = cloud.database();
 
+function buildSelectionDocId(semesterId, userId) {
+  return `weeklySelection_${String(semesterId || '').trim()}_${String(userId || '').trim()}`;
+}
+
+function getTimestamp(value) {
+  if (!value) {
+    return 0;
+  }
+
+  if (value instanceof Date) {
+    return value.getTime();
+  }
+
+  if (typeof value === 'object') {
+    if (typeof value.getTime === 'function') {
+      const timestamp = value.getTime();
+      return Number.isFinite(timestamp) ? timestamp : 0;
+    }
+
+    if (typeof value.seconds === 'number') {
+      const milliseconds = typeof value.milliseconds === 'number'
+        ? value.milliseconds
+        : (typeof value.nanoseconds === 'number' ? Math.floor(value.nanoseconds / 1e6) : 0);
+      return value.seconds * 1000 + milliseconds;
+    }
+  }
+
+  const timestamp = new Date(value).getTime();
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
 function sanitizePreferences(preferences) {
   const preferenceMap = {};
 
@@ -59,7 +90,50 @@ async function loadAllDocuments(collection, filter, options = {}) {
   return documents;
 }
 
-function buildCapacityMap(templates, selections, currentUserId) {
+function pickCanonicalSelection(selections = [], preferredId = '') {
+  const normalizedPreferredId = String(preferredId || '').trim();
+
+  return selections
+    .slice()
+    .sort((left, right) => {
+      const leftIsPreferred = String(left && left._id || '') === normalizedPreferredId;
+      const rightIsPreferred = String(right && right._id || '') === normalizedPreferredId;
+      if (leftIsPreferred !== rightIsPreferred) {
+        return leftIsPreferred ? -1 : 1;
+      }
+
+      const timestampDiff = getTimestamp(right && (right.updatedAt || right.createdAt))
+        - getTimestamp(left && (left.updatedAt || left.createdAt));
+      if (timestampDiff !== 0) {
+        return timestampDiff;
+      }
+
+      return String(right && right._id || '').localeCompare(String(left && left._id || ''));
+    })[0] || null;
+}
+
+function normalizeSelectionsByUser(selections = []) {
+  const groupedSelections = {};
+
+  selections.forEach((item) => {
+    const userId = String(item && item.userId || '').trim();
+    if (!userId) {
+      return;
+    }
+
+    if (!groupedSelections[userId]) {
+      groupedSelections[userId] = [];
+    }
+
+    groupedSelections[userId].push(item);
+  });
+
+  return Object.keys(groupedSelections).map((userId) => {
+    return pickCanonicalSelection(groupedSelections[userId]);
+  }).filter(Boolean);
+}
+
+function buildCapacityMap(templates, selections) {
   const capacityMap = {};
 
   templates.forEach((template) => {
@@ -74,7 +148,7 @@ function buildCapacityMap(templates, selections, currentUserId) {
   });
 
   selections.forEach((selection) => {
-    if (!selection || selection.userId === currentUserId || !Array.isArray(selection.preferences)) {
+    if (!selection || !Array.isArray(selection.preferences)) {
       return;
     }
 
@@ -93,97 +167,109 @@ exports.main = async (event) => {
   const semesterId = String(event.semesterId || '').trim();
   const userId = String(event.userId || '').trim();
   const preferences = sanitizePreferences(event.preferences);
+  const selectionDocId = buildSelectionDocId(semesterId, userId);
 
   if (!semesterId || !userId) {
     return { success: false, error: '参数错误' };
   }
 
   try {
-    const semesterResult = await db.collection('semesters').doc(semesterId).get();
-    const semester = semesterResult.data;
+    const result = await db.runTransaction(async (transaction) => {
+      const semesterResult = await transaction.collection('semesters').doc(semesterId).get();
+      const semester = semesterResult.data;
 
-    if (!semester) {
-      return { success: false, error: '学期不存在' };
-    }
-
-    if (semester.status !== 'active') {
-      return { success: false, error: '当前学期不可编辑班次' };
-    }
-
-    const templateList = await loadAllDocuments(db.collection('shiftTemplates'), { semesterId });
-    const templateMap = {};
-
-    templateList.forEach((template) => {
-      templateMap[template._id] = template;
-    });
-
-    for (const preference of preferences) {
-      if (!templateMap[preference.shiftId]) {
-        return { success: false, error: '存在无效的班次模板' };
-      }
-    }
-
-    const selectionList = await loadAllDocuments(
-      db.collection('weeklySelections'),
-      { semesterId },
-      {
-        field: {
-          _id: true,
-          userId: true,
-          preferences: true,
-        },
-      }
-    );
-
-    const capacityMap = buildCapacityMap(templateList, selectionList, userId);
-
-    for (const preference of preferences) {
-      const key = `${preference.shiftId}::${preference.dayOfWeek}`;
-      const currentCapacity = capacityMap[key];
-
-      if (!currentCapacity) {
-        return { success: false, error: '班次容量信息异常' };
+      if (!semester) {
+        throw new Error('学期不存在');
       }
 
-      if (currentCapacity.currentCount >= currentCapacity.maxCapacity) {
-        return { success: false, error: '所选班次已满员，请刷新后重试' };
+      if (semester.status !== 'active') {
+        throw new Error('当前学期不可编辑班次');
       }
 
-      currentCapacity.currentCount += 1;
-    }
+      const templateList = await loadAllDocuments(transaction.collection('shiftTemplates'), { semesterId });
+      const templateMap = {};
 
-    const collection = db.collection('weeklySelections');
-    const existing = await collection.where({ semesterId, userId }).limit(1).get();
+      templateList.forEach((template) => {
+        templateMap[template._id] = template;
+      });
 
-    if (existing.data && existing.data.length > 0) {
-      await collection.doc(existing.data[0]._id).update({
+      for (const preference of preferences) {
+        if (!templateMap[preference.shiftId]) {
+          throw new Error('存在无效的班次模板');
+        }
+      }
+
+      const selectionList = await loadAllDocuments(
+        transaction.collection('weeklySelections'),
+        { semesterId },
+        {
+          field: {
+            _id: true,
+            userId: true,
+            preferences: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        }
+      );
+
+      const currentUserSelections = selectionList.filter((item) => String(item.userId || '').trim() === userId);
+      const currentCanonicalSelection = pickCanonicalSelection(currentUserSelections, selectionDocId);
+      const normalizedSelections = normalizeSelectionsByUser(selectionList)
+        .filter((item) => String(item.userId || '').trim() !== userId);
+      normalizedSelections.push({
+        _id: selectionDocId,
+        userId,
+        preferences,
+        createdAt: currentCanonicalSelection ? currentCanonicalSelection.createdAt : null,
+        updatedAt: currentCanonicalSelection ? currentCanonicalSelection.updatedAt : null,
+      });
+
+      const capacityMap = buildCapacityMap(templateList, normalizedSelections);
+
+      for (const preference of preferences) {
+        const key = `${preference.shiftId}::${preference.dayOfWeek}`;
+        const currentCapacity = capacityMap[key];
+
+        if (!currentCapacity) {
+          throw new Error('班次容量信息异常');
+        }
+
+        if (currentCapacity.currentCount > currentCapacity.maxCapacity) {
+          throw new Error('所选班次已满员，请刷新后重试');
+        }
+      }
+
+      await transaction.collection('weeklySelections').doc(selectionDocId).set({
         data: {
+          semesterId,
+          userId,
           preferences,
+          createdAt: currentCanonicalSelection && currentCanonicalSelection.createdAt
+            ? currentCanonicalSelection.createdAt
+            : db.serverDate(),
           updatedAt: db.serverDate(),
         },
       });
 
+      const duplicateSelectionIds = currentUserSelections
+        .map((item) => String(item._id || '').trim())
+        .filter((item) => item && item !== selectionDocId);
+
+      for (const duplicateSelectionId of duplicateSelectionIds) {
+        await transaction.collection('weeklySelections').doc(duplicateSelectionId).remove();
+      }
+
       return {
-        success: true,
-        selectionId: existing.data[0]._id,
+        selectionId: selectionDocId,
         preferences,
       };
-    }
-
-    const result = await collection.add({
-      data: {
-        semesterId,
-        userId,
-        preferences,
-        createdAt: db.serverDate(),
-        updatedAt: db.serverDate(),
-      },
     });
 
     return {
       success: true,
-      selectionId: result._id,
-      preferences,
+      selectionId: result.selectionId,
+      preferences: result.preferences,
     };
   } catch (error) {
     return { success: false, error: error.message };

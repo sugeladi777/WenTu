@@ -10,6 +10,10 @@ const SHIFT_TYPE_SWAP = 2;
 const SHIFT_TYPE_BORROW = 3;
 const ATTENDANCE_ABSENT = 3;
 
+function buildSelectionDocId(semesterId, userId) {
+  return `weeklySelection_${String(semesterId || '').trim()}_${String(userId || '').trim()}`;
+}
+
 function padNumber(value) {
   return String(value).padStart(2, '0');
 }
@@ -85,6 +89,55 @@ function buildScheduleSlotKey(schedule) {
 
 function buildTemplateKey(date, shiftId) {
   return `${date}::${shiftId}`;
+}
+
+function getTimestamp(value) {
+  if (!value) {
+    return 0;
+  }
+
+  if (value instanceof Date) {
+    return value.getTime();
+  }
+
+  if (typeof value === 'object') {
+    if (typeof value.getTime === 'function') {
+      const timestamp = value.getTime();
+      return Number.isFinite(timestamp) ? timestamp : 0;
+    }
+
+    if (typeof value.seconds === 'number') {
+      const milliseconds = typeof value.milliseconds === 'number'
+        ? value.milliseconds
+        : (typeof value.nanoseconds === 'number' ? Math.floor(value.nanoseconds / 1e6) : 0);
+      return value.seconds * 1000 + milliseconds;
+    }
+  }
+
+  const timestamp = new Date(value).getTime();
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function pickCanonicalSelection(selections = [], preferredId = '') {
+  const normalizedPreferredId = String(preferredId || '').trim();
+
+  return selections
+    .slice()
+    .sort((left, right) => {
+      const leftIsPreferred = String(left && left._id || '') === normalizedPreferredId;
+      const rightIsPreferred = String(right && right._id || '') === normalizedPreferredId;
+      if (leftIsPreferred !== rightIsPreferred) {
+        return leftIsPreferred ? -1 : 1;
+      }
+
+      const timestampDiff = getTimestamp(right && (right.updatedAt || right.createdAt))
+        - getTimestamp(left && (left.updatedAt || left.createdAt));
+      if (timestampDiff !== 0) {
+        return timestampDiff;
+      }
+
+      return String(right && right._id || '').localeCompare(String(left && left._id || ''));
+    })[0] || null;
 }
 
 function buildRecurringLeaderKey({ semesterId, dayOfWeek, shiftId, startTime, endTime }) {
@@ -237,11 +290,20 @@ exports.main = async (event) => {
       return { success: false, error: '学期日期配置异常' };
     }
 
-    const selectionResult = await db.collection('weeklySelections')
-      .where({ semesterId, userId })
-      .limit(1)
-      .get();
-    const selection = selectionResult.data && selectionResult.data[0] ? selectionResult.data[0] : null;
+    const preferredSelectionId = buildSelectionDocId(semesterId, userId);
+    let selection = null;
+
+    try {
+      const preferredSelectionResult = await db.collection('weeklySelections').doc(preferredSelectionId).get();
+      selection = preferredSelectionResult.data || null;
+    } catch (error) {
+      const selectionResult = await db.collection('weeklySelections')
+        .where({ semesterId, userId })
+        .limit(20)
+        .get();
+      selection = pickCanonicalSelection(selectionResult.data || [], preferredSelectionId);
+    }
+
     const preferences = sanitizePreferences(selection ? selection.preferences : []);
     const recurringLeaderMap = await loadRecurringLeaderMap(semesterId, preferences);
 

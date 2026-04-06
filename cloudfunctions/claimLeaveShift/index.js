@@ -12,6 +12,7 @@ const SHIFT_TYPE_SWAP = 2;
 const LEAVE_STATUS_PENDING = 0;
 const LEAVE_STATUS_APPROVED = 1;
 const VALID_ROLES = [ROLE_MEMBER, ROLE_LEADER, ROLE_ADMIN];
+const CLAIM_CONFLICT_ERROR = '该班次刚刚被其他同学认领了，请刷新列表';
 
 function normalizeRoles(user = {}) {
   const roles = [];
@@ -364,6 +365,58 @@ async function assignSlotLeader(slotSchedules, leaderUserId, leaderUserName) {
   }
 }
 
+function isUpdateSuccessful(result) {
+  return Number(result && result.stats && result.stats.updated) > 0;
+}
+
+async function finalizeLeaveClaim(leaveSchedule, replacementScheduleId, userId, userName) {
+  const result = await db.collection('schedules')
+    .where({
+      _id: leaveSchedule._id,
+      shiftType: SHIFT_TYPE_LEAVE,
+      leaveStatus: LEAVE_STATUS_PENDING,
+      replacementUserId: null,
+      replacementScheduleId: null,
+      updatedAt: leaveSchedule.updatedAt,
+    })
+    .update({
+      data: {
+        leaveStatus: LEAVE_STATUS_APPROVED,
+        replacementUserId: userId,
+        replacementUserName: userName,
+        replacementScheduleId,
+        leaveApprovedAt: db.serverDate(),
+        updatedAt: db.serverDate(),
+      },
+    });
+
+  return isUpdateSuccessful(result);
+}
+
+async function removeScheduleIfExists(scheduleId) {
+  const normalizedScheduleId = String(scheduleId || '').trim();
+  if (!normalizedScheduleId) {
+    return;
+  }
+
+  try {
+    await db.collection('schedules').doc(normalizedScheduleId).remove();
+  } catch (error) {
+    console.error('清理替班记录失败:', normalizedScheduleId, error);
+  }
+}
+
+async function completeLeaderHandover(slotSchedules, userId, userName) {
+  try {
+    await assignSlotLeader(slotSchedules, userId, userName);
+    await syncLeaderRole(userId);
+    return '';
+  } catch (error) {
+    console.error('同步替班后的班负职责失败:', error);
+    return '，班负职责同步稍后完成';
+  }
+}
+
 exports.main = async (event = {}) => {
   const userId = String(event.userId || '').trim();
   const userName = String(event.userName || '').trim();
@@ -453,24 +506,16 @@ exports.main = async (event = {}) => {
     }
 
     if (canTakeOverLeaderOnly) {
-      await assignSlotLeader(slotSchedules, userId, userName);
+      const finalized = await finalizeLeaveClaim(leaveSchedule, sameSlotSchedule._id, userId, userName);
+      if (!finalized) {
+        return { success: false, error: CLAIM_CONFLICT_ERROR };
+      }
 
-      await db.collection('schedules').doc(scheduleId).update({
-        data: {
-          leaveStatus: LEAVE_STATUS_APPROVED,
-          replacementUserId: userId,
-          replacementUserName: userName,
-          replacementScheduleId: sameSlotSchedule._id,
-          leaveApprovedAt: db.serverDate(),
-          updatedAt: db.serverDate(),
-        },
-      });
-
-      await syncLeaderRole(userId);
+      const leaderSyncSuffix = await completeLeaderHandover(slotSchedules, userId, userName);
 
       return {
         success: true,
-        message: '已接任当前班次的班负职责',
+        message: `已接任当前班次的班负职责${leaderSyncSuffix}`,
         replacementScheduleId: sameSlotSchedule._id,
         usedExistingSchedule: true,
       };
@@ -482,27 +527,24 @@ exports.main = async (event = {}) => {
     const replacementResult = await db.collection('schedules').add({
       data: buildReplacementSchedule(leaveSchedule, userId, userName, replacementLeaderInfo),
     });
+    const replacementScheduleId = String(replacementResult && replacementResult._id || '').trim();
+    const finalized = await finalizeLeaveClaim(leaveSchedule, replacementScheduleId, userId, userName);
 
-    if (isLeaderLeave && claimantCanTakeLeader && !slotAlreadyHasLeader) {
-      await assignSlotLeader(slotSchedules, userId, userName);
-      await syncLeaderRole(userId);
+    if (!finalized) {
+      await removeScheduleIfExists(replacementScheduleId);
+      return { success: false, error: CLAIM_CONFLICT_ERROR };
     }
 
-    await db.collection('schedules').doc(scheduleId).update({
-      data: {
-        leaveStatus: LEAVE_STATUS_APPROVED,
-        replacementUserId: userId,
-        replacementUserName: userName,
-        replacementScheduleId: replacementResult._id,
-        leaveApprovedAt: db.serverDate(),
-        updatedAt: db.serverDate(),
-      },
-    });
+    let successMessage = '替班认领成功';
+    if (isLeaderLeave && claimantCanTakeLeader && !slotAlreadyHasLeader) {
+      const leaderSyncSuffix = await completeLeaderHandover(slotSchedules, userId, userName);
+      successMessage += leaderSyncSuffix;
+    }
 
     return {
       success: true,
-      message: '替班认领成功',
-      replacementScheduleId: replacementResult._id,
+      message: successMessage,
+      replacementScheduleId,
     };
   } catch (error) {
     return { success: false, error: error.message };

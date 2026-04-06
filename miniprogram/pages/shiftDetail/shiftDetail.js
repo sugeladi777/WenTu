@@ -568,23 +568,28 @@ Page({
     wx.showLoading({ title: '认领中' });
 
     try {
-      await callCloudFunction('claimLeaveShift', {
+      const result = await callCloudFunction('claimLeaveShift', {
         userId: userInfo._id,
         userName: userInfo.name || '',
         scheduleId: shift._id,
       });
 
       wx.showToast({
-        title: '认领成功',
+        title: result.usedExistingSchedule ? '接任成功' : '认领成功',
         icon: 'success',
       });
 
       setTimeout(() => this.navigateBackSafely(), 600);
     } catch (error) {
+      const message = error.message || '认领失败';
       wx.showToast({
-        title: error.message || '认领失败',
+        title: message,
         icon: 'none',
       });
+
+      if (message.includes('被其他同学认领')) {
+        setTimeout(() => this.navigateBackSafely(), 900);
+      }
     } finally {
       wx.hideLoading();
       this.setData({ loading: false });

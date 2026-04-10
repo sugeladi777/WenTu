@@ -8,6 +8,16 @@ const SHIFT_TYPE_LEAVE = 1;
 const ATTENDANCE_NORMAL = 0;
 const ATTENDANCE_LATE = 1;
 const ATTENDANCE_ABSENT = 3;
+const CHECK_IN_CONFIG_COLLECTION = 'systemConfig';
+const CHECK_IN_CONFIG_DOC_ID = 'checkInPolicy';
+const DEFAULT_CHECK_IN_RADIUS_METERS = 200;
+const DEFAULT_CHECK_IN_POLICY = {
+  enabled: true,
+  latitude: 40.0042527778,
+  longitude: 116.3282916667,
+  radiusMeters: DEFAULT_CHECK_IN_RADIUS_METERS,
+  placeName: '文图签到点',
+};
 
 function padNumber(value) {
   return String(value).padStart(2, '0');
@@ -49,6 +59,112 @@ function formatMinutes(minutes) {
   const hour = Math.floor(safeMinutes / 60);
   const minute = safeMinutes % 60;
   return `${padNumber(hour)}:${padNumber(minute)}`;
+}
+
+function toNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function isValidLatitude(latitude) {
+  return Number.isFinite(latitude) && latitude >= -90 && latitude <= 90;
+}
+
+function isValidLongitude(longitude) {
+  return Number.isFinite(longitude) && longitude >= -180 && longitude <= 180;
+}
+
+function toRadians(degrees) {
+  return degrees * Math.PI / 180;
+}
+
+function calculateDistanceMeters(fromLatitude, fromLongitude, toLatitude, toLongitude) {
+  const earthRadiusMeters = 6371000;
+  const dLat = toRadians(toLatitude - fromLatitude);
+  const dLng = toRadians(toLongitude - fromLongitude);
+  const lat1 = toRadians(fromLatitude);
+  const lat2 = toRadians(toLatitude);
+
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+    + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return earthRadiusMeters * c;
+}
+
+function normalizeCheckInPolicy(rawPolicy = {}) {
+  const center = rawPolicy.center && typeof rawPolicy.center === 'object' ? rawPolicy.center : {};
+  const latitude = toNumber(center.latitude != null ? center.latitude : rawPolicy.latitude);
+  const longitude = toNumber(center.longitude != null ? center.longitude : rawPolicy.longitude);
+  const radiusCandidate = toNumber(rawPolicy.radiusMeters);
+  const radiusMeters = radiusCandidate && radiusCandidate > 0
+    ? radiusCandidate
+    : DEFAULT_CHECK_IN_POLICY.radiusMeters;
+  const placeName = String(
+    rawPolicy.placeName
+    || rawPolicy.name
+    || DEFAULT_CHECK_IN_POLICY.placeName
+    || '指定签到点',
+  ).trim() || '指定签到点';
+  const enabled = rawPolicy.enabled == null
+    ? DEFAULT_CHECK_IN_POLICY.enabled
+    : Boolean(rawPolicy.enabled);
+
+  return {
+    enabled,
+    latitude: latitude == null ? DEFAULT_CHECK_IN_POLICY.latitude : latitude,
+    longitude: longitude == null ? DEFAULT_CHECK_IN_POLICY.longitude : longitude,
+    radiusMeters,
+    placeName,
+  };
+}
+
+async function loadCheckInPolicy() {
+  try {
+    const result = await db.collection(CHECK_IN_CONFIG_COLLECTION).doc(CHECK_IN_CONFIG_DOC_ID).get();
+    return normalizeCheckInPolicy(result.data || {});
+  } catch (error) {
+    const message = String(error && error.message ? error.message : '');
+    if (
+      (/collection/i.test(message) && /not\s*exist/i.test(message))
+      || (/document/i.test(message) && /not\s*exist/i.test(message))
+      || /does not exist/i.test(message)
+    ) {
+      return normalizeCheckInPolicy({});
+    }
+    throw error;
+  }
+}
+
+function validateCheckInLocation(policy, latitude, longitude) {
+  if (!policy || !policy.enabled) {
+    return { ok: true, distanceMeters: null };
+  }
+
+  if (!isValidLatitude(policy.latitude) || !isValidLongitude(policy.longitude)) {
+    return { ok: false, error: '签到位置配置异常，请联系管理员' };
+  }
+
+  if (!isValidLatitude(latitude) || !isValidLongitude(longitude)) {
+    return { ok: false, error: '签到需要定位，请开启定位权限后重试' };
+  }
+
+  const distanceMeters = calculateDistanceMeters(
+    latitude,
+    longitude,
+    policy.latitude,
+    policy.longitude,
+  );
+
+  if (distanceMeters > policy.radiusMeters) {
+    return {
+      ok: false,
+      error: `不在签到范围内，请前往${policy.placeName}附近（${Math.round(policy.radiusMeters)}米内）签到`,
+      distanceMeters: Math.round(distanceMeters),
+    };
+  }
+
+  return { ok: true, distanceMeters: Math.round(distanceMeters) };
 }
 
 function evaluateSchedule(schedule, currentMinutes) {
@@ -109,8 +225,8 @@ exports.main = async (event) => {
   const userId = String(event.userId || '').trim();
   const date = String(event.date || '').trim() || formatChinaDate();
   const scheduleId = String(event.scheduleId || '').trim();
-  const latitude = typeof event.latitude === 'number' ? event.latitude : null;
-  const longitude = typeof event.longitude === 'number' ? event.longitude : null;
+  const latitude = toNumber(event.latitude);
+  const longitude = toNumber(event.longitude);
 
   if (!userId) {
     return { success: false, error: '用户ID不能为空' };
@@ -181,6 +297,16 @@ exports.main = async (event) => {
       return { success: false, error: evaluation ? evaluation.message : '签到失败' };
     }
 
+    const checkInPolicy = await loadCheckInPolicy();
+    const locationValidation = validateCheckInLocation(checkInPolicy, latitude, longitude);
+    if (!locationValidation.ok) {
+      return {
+        success: false,
+        error: locationValidation.error || '当前不满足签到位置要求',
+        distanceMeters: locationValidation.distanceMeters || null,
+      };
+    }
+
     await db.collection('schedules').doc(targetSchedule._id).update({
       data: {
         checkInTime: db.serverDate(),
@@ -189,7 +315,13 @@ exports.main = async (event) => {
         leaderConfirmedAt: null,
         leaderConfirmedBy: null,
         leaderConfirmedByName: '',
-        checkInLocation: latitude !== null && longitude !== null ? { latitude, longitude } : null,
+        checkInLocation: latitude !== null && longitude !== null
+          ? {
+            latitude,
+            longitude,
+            distanceMeters: locationValidation.distanceMeters,
+          }
+          : null,
         updatedAt: db.serverDate(),
       },
     });

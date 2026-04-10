@@ -626,6 +626,25 @@ Page({
     this.onCheckIn();
   },
 
+  getCurrentLocation() {
+    return new Promise((resolve, reject) => {
+      wx.getLocation({
+        type: 'gcj02',
+        isHighAccuracy: true,
+        highAccuracyExpireTime: 5000,
+        success: (location) => {
+          resolve({
+            latitude: Number(location.latitude),
+            longitude: Number(location.longitude),
+          });
+        },
+        fail: (error) => {
+          reject(error);
+        },
+      });
+    });
+  },
+
   async onCheckIn() {
     const userInfo = app.globalData.userInfo;
     const currentShift = this.data.currentShift;
@@ -639,10 +658,13 @@ Page({
     wx.showLoading({ title: '正在签到' });
 
     try {
+      const location = await this.getCurrentLocation();
       const result = await callCloudFunction('checkIn', {
         userId: userInfo._id,
         date: formatDate(new Date()),
         scheduleId: currentShift._id,
+        latitude: location.latitude,
+        longitude: location.longitude,
       });
 
       wx.showToast({
@@ -652,8 +674,10 @@ Page({
 
       await this.loadPageData(false);
     } catch (error) {
+      const message = String(error && (error.message || error.errMsg) || '');
+      const locationPermissionDenied = /auth deny|authorize|permission|scope.userLocation|system permission denied/i.test(message);
       wx.showToast({
-        title: error.message || '签到失败',
+        title: locationPermissionDenied ? '请开启定位权限后再签到' : (error.message || '签到失败'),
         icon: 'none',
       });
     } finally {

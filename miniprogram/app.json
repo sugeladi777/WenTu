@@ -24,6 +24,11 @@
     "navigationBarTitleText": "文小图",
     "navigationBarTextStyle": "black"
   },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "用于签到时校验是否在指定位置范围内"
+    }
+  },
   "tabBar": {
     "color": "#999999",
     "selectedColor": "#ffaaa5",

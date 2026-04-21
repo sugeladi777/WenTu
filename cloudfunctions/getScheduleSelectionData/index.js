@@ -122,43 +122,55 @@ async function loadAllDocuments(collection, filter, options = {}) {
 }
 
 async function findSemester(today) {
-  const currentResult = await db.collection('semesters')
-    .where({
-      status: 'active',
-      startDate: db.command.lte(today),
-      endDate: db.command.gte(today),
-    })
+  const semesterResult = await db.collection('semesters')
+    .where({ status: 'active' })
     .orderBy('startDate', 'desc')
-    .limit(1)
+    .limit(100)
     .get();
+  const semesterList = semesterResult.data || [];
 
-  if (currentResult.data && currentResult.data[0]) {
-    return currentResult.data[0];
+  const currentSemester = semesterList.find((item) => {
+    const startDate = String(item.startDate || '').trim();
+    const endDate = String(item.endDate || '').trim();
+    return startDate && endDate && startDate <= today && endDate >= today;
+  });
+
+  if (currentSemester) {
+    return { semester: currentSemester, semesterList };
   }
 
-  const upcomingResult = await db.collection('semesters')
-    .where({
-      status: 'active',
-      startDate: db.command.gt(today),
-    })
-    .orderBy('startDate', 'asc')
-    .limit(1)
-    .get();
+  const upcomingList = semesterList
+    .filter((item) => String(item.startDate || '').trim() > today)
+    .sort((left, right) => String(left.startDate || '').localeCompare(String(right.startDate || '')));
 
-  if (upcomingResult.data && upcomingResult.data[0]) {
-    return upcomingResult.data[0];
+  if (upcomingList.length > 0) {
+    return { semester: upcomingList[0], semesterList };
   }
 
-  return null;
+  return {
+    semester: semesterList[0] || null,
+    semesterList,
+  };
 }
 
 exports.main = async (event) => {
   const userId = String(event.userId || '').trim();
+  const preferredSemesterId = String(event.semesterId || '').trim();
 
   try {
-    const semester = await findSemester(formatChinaDate());
+    const { semesterList, semester: defaultSemester } = await findSemester(formatChinaDate());
+    const semester = preferredSemesterId
+      ? (semesterList.find((item) => String(item._id || '') === preferredSemesterId) || defaultSemester)
+      : defaultSemester;
     if (!semester) {
-      return { success: false, error: '暂无学期信息' };
+      return {
+        success: true,
+        semester: null,
+        semesterList,
+        shiftTemplates: [],
+        capacityList: [],
+        preferences: [],
+      };
     }
 
     const templates = await loadAllDocuments(db.collection('shiftTemplates'), { semesterId: semester._id });
@@ -228,6 +240,7 @@ exports.main = async (event) => {
     return {
       success: true,
       semester,
+      semesterList,
       shiftTemplates: templates,
       capacityList: Object.values(capacityMap),
       preferences,

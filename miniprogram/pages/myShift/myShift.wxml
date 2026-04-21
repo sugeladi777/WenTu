@@ -5,7 +5,40 @@
     <text class="hero-subtitle">{{currentWeekLabel || '查看本周排班'}}</text>
   </view>
 
+  <picker
+    class="semester-picker"
+    mode="selector"
+    range="{{semesterList}}"
+    range-key="name"
+    value="{{selectedSemesterIndex}}"
+    bindchange="onSemesterChange"
+    wx:if="{{semesterList.length > 0}}">
+    <view class="semester-picker-inner card">
+      <text class="semester-picker-label">当前查看学期</text>
+      <text class="semester-picker-value">{{semester ? semester.name : '选择学期'}}</text>
+    </view>
+  </picker>
+
   <view class="entry-stack">
+    <view class="market-entry edit-entry card" hover-class="tap-card-hover" bindtap="onOpenScheduleEditor">
+      <view class="market-orb orb-a"></view>
+      <view class="market-orb orb-b"></view>
+
+      <view class="market-copy">
+        <text class="market-title">修改固定排班</text>
+        <text class="market-desc">修改注册时选择的周期排班，并可切换学期设置。</text>
+      </view>
+
+      <view class="game-button game-button-portal edit-button">
+        <view class="game-beam beam-a"></view>
+        <view class="game-beam beam-b"></view>
+        <view class="game-spark spark-a"></view>
+        <view class="game-spark spark-b"></view>
+        <view class="game-spark spark-c"></view>
+        <text class="game-button-text">去修改</text>
+      </view>
+    </view>
+
     <view class="market-entry card" hover-class="tap-card-hover" bindtap="onOpenLeaveMarket">
       <view class="market-orb orb-a"></view>
       <view class="market-orb orb-b"></view>

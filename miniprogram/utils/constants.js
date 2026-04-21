@@ -1,5 +1,6 @@
 const STORAGE_KEYS = {
   USER_INFO: 'userInfo',
+  PREFERRED_SEMESTER_ID: 'preferredSemesterId',
 };
 
 const SHIFT_TYPE = {

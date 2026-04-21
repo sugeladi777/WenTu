@@ -40,6 +40,25 @@
     </view>
   </view>
 
+  <picker
+    class="semester-switch card"
+    mode="selector"
+    range="{{semesterList}}"
+    range-key="name"
+    value="{{selectedSemesterIndex}}"
+    bindchange="onSemesterChange"
+    wx:if="{{semesterList.length > 0}}">
+    <view class="section-head">
+      <text class="section-title">切换学期</text>
+      <text class="section-desc">我的班次和固定排班会按该学期显示</text>
+    </view>
+    <view class="semester-current">
+      <text class="semester-current-label">当前学期</text>
+      <text class="semester-current-value">{{selectedSemesterName || '选择学期'}}</text>
+      <text class="entry-arrow">></text>
+    </view>
+  </picker>
+
   <view class="entry-section">
     <view class="entry-card" hover-class="tap-card-hover" bindtap="onOpenProfileEdit">
       <view class="entry-icon peach">资</view>

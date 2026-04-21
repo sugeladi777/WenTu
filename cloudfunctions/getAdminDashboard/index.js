@@ -200,8 +200,12 @@ exports.main = async (event) => {
   try {
     await ensureAdmin(requesterId);
 
-    const [semester, users] = await Promise.all([
+    const [semester, semesterList, users] = await Promise.all([
       findSemester(semesterId),
+      loadAllDocuments(db.collection('semesters'), { status: 'active' }, {
+        orderByField: 'startDate',
+        orderByOrder: 'desc',
+      }),
       loadAllDocuments(db.collection('users'), {}, { orderByField: 'studentId' }),
     ]);
     const leaderApplications = semester && semester._id
@@ -214,6 +218,7 @@ exports.main = async (event) => {
     return {
       success: true,
       semester,
+      semesterList,
       summary: buildSummary(users),
       leaderApplications,
       users: users.map((user) => omitPassword(user)),

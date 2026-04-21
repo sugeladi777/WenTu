@@ -8,6 +8,11 @@ const {
   getRoleText,
   getRoleTheme,
 } = require('../../utils/role');
+const { callCloudFunction } = require('../../utils/cloud');
+const {
+  getStoredPreferredSemesterId,
+  setStoredPreferredSemesterId,
+} = require('../../utils/semester');
 
 const DEFAULT_AVATAR_TEXT = '文';
 
@@ -49,6 +54,10 @@ Page({
     displayName: '未登录',
     avatarText: DEFAULT_AVATAR_TEXT,
     avatarUrl: '',
+    semesterList: [],
+    selectedSemesterId: '',
+    selectedSemesterIndex: 0,
+    selectedSemesterName: '',
   },
 
   onLoad() {
@@ -78,6 +87,7 @@ Page({
   async bootstrapPage() {
     const userInfo = await app.refreshUserInfo();
     this.loadUserInfo(userInfo || app.globalData.userInfo);
+    await this.loadSemesterOptions();
   },
 
   loadUserInfo(userInfo) {
@@ -98,6 +108,40 @@ Page({
     });
 
     this.resolveAvatarUrl(avatar);
+  },
+
+  async loadSemesterOptions() {
+    try {
+      const result = await callCloudFunction('getSemesterOptions', {
+        semesterId: getStoredPreferredSemesterId(),
+      });
+
+      const semesterList = result.semesterList || [];
+      const semester = result.semester || null;
+      const selectedSemesterId = semester ? String(semester._id || '').trim() : '';
+      const selectedSemesterIndex = semesterList.findIndex((item) => {
+        return String(item._id || '').trim() === selectedSemesterId;
+      });
+
+      if (selectedSemesterId) {
+        setStoredPreferredSemesterId(selectedSemesterId);
+      }
+
+      this.setData({
+        semesterList,
+        selectedSemesterId,
+        selectedSemesterIndex: selectedSemesterIndex >= 0 ? selectedSemesterIndex : 0,
+        selectedSemesterName: semester ? String(semester.name || '').trim() : '',
+      });
+    } catch (error) {
+      console.warn('加载学期列表失败:', error);
+      this.setData({
+        semesterList: [],
+        selectedSemesterId: '',
+        selectedSemesterIndex: 0,
+        selectedSemesterName: '',
+      });
+    }
   },
 
   async resolveAvatarUrl(avatar) {
@@ -169,6 +213,35 @@ Page({
     this.loadUserInfo(userInfo);
     wx.showToast({
       title: `已切换为${getRoleText(role)}`,
+      icon: 'none',
+    });
+  },
+
+  onSemesterChange(e) {
+    const selectedSemesterIndex = Number(e.detail.value);
+    if (Number.isNaN(selectedSemesterIndex)) {
+      return;
+    }
+
+    const semester = this.data.semesterList[selectedSemesterIndex] || null;
+    if (!semester) {
+      return;
+    }
+
+    const selectedSemesterId = String(semester._id || '').trim();
+    if (!selectedSemesterId || selectedSemesterId === this.data.selectedSemesterId) {
+      return;
+    }
+
+    setStoredPreferredSemesterId(selectedSemesterId);
+    this.setData({
+      selectedSemesterIndex,
+      selectedSemesterId,
+      selectedSemesterName: String(semester.name || '').trim(),
+    });
+
+    wx.showToast({
+      title: '已切换学期',
       icon: 'none',
     });
   },

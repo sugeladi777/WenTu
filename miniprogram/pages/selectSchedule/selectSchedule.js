@@ -1,6 +1,10 @@
 const app = getApp();
 
 const { callCloudFunction } = require('../../utils/cloud');
+const {
+  getStoredPreferredSemesterId,
+  setStoredPreferredSemesterId,
+} = require('../../utils/semester');
 
 function buildCapacityMatrix(shiftTemplates, capacityList) {
   const capacityMap = {};
@@ -78,6 +82,9 @@ function buildSelectionSummary(selectedMatrix, weekDays) {
 Page({
   data: {
     semester: null,
+    semesterList: [],
+    selectedSemesterId: '',
+    selectedSemesterIndex: 0,
     shiftTemplates: [],
     capacityMatrix: [],
     weekDays: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
@@ -87,13 +94,14 @@ Page({
     loading: false,
   },
 
-  onLoad() {
+  onLoad(options = {}) {
     if (!app.checkLogin()) {
       app.goToLogin();
       return;
     }
 
-    this.loadData();
+    this.entrySource = String(options.source || '').trim();
+    this.loadData(String(options.semesterId || '').trim() || getStoredPreferredSemesterId());
   },
 
   syncSelectionSummary(selectedMatrix = this.data.selectedMatrix) {
@@ -101,7 +109,7 @@ Page({
     this.setData(summary);
   },
 
-  async loadData() {
+  async loadData(preferredSemesterId = this.data.selectedSemesterId || getStoredPreferredSemesterId()) {
     const userInfo = app.globalData.userInfo;
     if (!userInfo || !userInfo._id) {
       wx.showToast({ title: '登录信息异常', icon: 'none' });
@@ -114,27 +122,29 @@ Page({
     try {
       const result = await callCloudFunction('getScheduleSelectionData', {
         userId: userInfo._id,
+        semesterId: preferredSemesterId,
       });
-
-      if ((result.preferences || []).length > 0) {
-        wx.showModal({
-          title: '固定班次已锁定',
-          content: '当前版本不支持重新选择班次，如需调整请联系负责人处理。',
-          showCancel: false,
-          success: () => {
-            wx.switchTab({ url: '/pages/myShift/myShift' });
-          },
-        });
-        return;
-      }
+      const semesterList = result.semesterList || [];
+      const semester = result.semester || null;
+      const selectedSemesterId = semester ? String(semester._id || '').trim() : '';
+      const selectedSemesterIndex = semesterList.findIndex((item) => {
+        return String(item._id || '').trim() === selectedSemesterId;
+      });
 
       const shiftTemplates = result.shiftTemplates || [];
       const capacityMatrix = buildCapacityMatrix(shiftTemplates, result.capacityList || []);
       const selectedMatrix = buildSelectedMatrix(shiftTemplates, result.preferences || []);
       const summary = buildSelectionSummary(selectedMatrix, this.data.weekDays);
 
+      if (selectedSemesterId) {
+        setStoredPreferredSemesterId(selectedSemesterId);
+      }
+
       this.setData({
-        semester: result.semester || null,
+        semester,
+        semesterList,
+        selectedSemesterId,
+        selectedSemesterIndex: selectedSemesterIndex >= 0 ? selectedSemesterIndex : 0,
         shiftTemplates,
         capacityMatrix,
         selectedMatrix,
@@ -203,6 +213,30 @@ Page({
     });
   },
 
+  onSemesterChange(e) {
+    const selectedSemesterIndex = Number(e.detail.value);
+    if (Number.isNaN(selectedSemesterIndex)) {
+      return;
+    }
+
+    const semester = this.data.semesterList[selectedSemesterIndex] || null;
+    if (!semester) {
+      return;
+    }
+
+    const semesterId = String(semester._id || '').trim();
+    if (!semesterId || semesterId === this.data.selectedSemesterId) {
+      return;
+    }
+
+    this.setData({
+      selectedSemesterIndex,
+      selectedSemesterId: semesterId,
+    });
+    setStoredPreferredSemesterId(semesterId);
+    this.loadData(semesterId);
+  },
+
   async saveSelection(preferences) {
     const userInfo = app.globalData.userInfo;
     const semester = this.data.semester;
@@ -234,7 +268,9 @@ Page({
       });
 
       setTimeout(() => {
-        wx.switchTab({ url: '/pages/index/index' });
+        wx.switchTab({
+          url: this.entrySource === 'myShift' ? '/pages/myShift/myShift' : '/pages/index/index',
+        });
       }, 800);
     } catch (error) {
       wx.showToast({

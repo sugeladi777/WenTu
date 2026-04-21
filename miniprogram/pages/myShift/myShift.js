@@ -5,6 +5,10 @@ const { formatDate } = require('../../utils/date');
 const { getActiveRole } = require('../../utils/role');
 const { buildWeeklyCalendarData, decorateSchedule } = require('../../utils/shift');
 const { callCloudFunction } = require('../../utils/cloud');
+const {
+  getStoredPreferredSemesterId,
+  setStoredPreferredSemesterId,
+} = require('../../utils/semester');
 
 function sortByDateTime(list = []) {
   return [...list].sort((left, right) => {
@@ -54,6 +58,9 @@ function decorateMyShift(item, userId) {
 Page({
   data: {
     semester: null,
+    semesterList: [],
+    selectedSemesterId: '',
+    selectedSemesterIndex: 0,
     shiftList: [],
     weeklyShifts: [],
     currentWeekIndex: 0,
@@ -145,13 +152,18 @@ Page({
     this.setData({ loading: true });
 
     try {
-      let semester = null;
+      const semesterResult = await callCloudFunction('getSemesterOptions', {
+        semesterId: this.data.selectedSemesterId || getStoredPreferredSemesterId(),
+      });
+      const semester = semesterResult.semester || null;
+      const semesterList = semesterResult.semesterList || [];
+      const selectedSemesterId = semester ? String(semester._id || '').trim() : '';
+      const selectedSemesterIndex = semesterList.findIndex((item) => {
+        return String(item._id || '').trim() === selectedSemesterId;
+      });
 
-      try {
-        const semesterResult = await callCloudFunction('getCurrentSemester');
-        semester = semesterResult.semester || null;
-      } catch (error) {
-        console.warn('获取学期信息失败:', error);
+      if (selectedSemesterId) {
+        setStoredPreferredSemesterId(selectedSemesterId);
       }
 
       const shiftResult = await callCloudFunction('getMyShifts', {
@@ -168,6 +180,9 @@ Page({
 
       this.setData({
         semester,
+        semesterList,
+        selectedSemesterId,
+        selectedSemesterIndex: selectedSemesterIndex >= 0 ? selectedSemesterIndex : 0,
         shiftList,
         weeklyShifts,
         currentWeekIndex,
@@ -182,6 +197,30 @@ Page({
     } finally {
       this.setData({ loading: false });
     }
+  },
+
+  onSemesterChange(e) {
+    const selectedSemesterIndex = Number(e.detail.value);
+    if (Number.isNaN(selectedSemesterIndex)) {
+      return;
+    }
+
+    const semester = this.data.semesterList[selectedSemesterIndex] || null;
+    if (!semester) {
+      return;
+    }
+
+    const semesterId = String(semester._id || '').trim();
+    if (!semesterId || semesterId === this.data.selectedSemesterId) {
+      return;
+    }
+
+    setStoredPreferredSemesterId(semesterId);
+    this.setData({
+      selectedSemesterIndex,
+      selectedSemesterId: semesterId,
+    });
+    this.loadMyShifts();
   },
 
   onWeekChange(e) {
@@ -199,6 +238,14 @@ Page({
   onOpenBorrowCenter() {
     wx.navigateTo({
       url: '/pages/borrowCenter/borrowCenter',
+    });
+  },
+
+  onOpenScheduleEditor() {
+    const semester = this.data.semester;
+    const semesterId = semester ? String(semester._id || '').trim() : '';
+    wx.navigateTo({
+      url: `/pages/selectSchedule/selectSchedule?source=myShift${semesterId ? `&semesterId=${semesterId}` : ''}`,
     });
   },
 

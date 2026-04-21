@@ -104,6 +104,9 @@ function openLocalDocument(filePath, fileType = 'xlsx') {
 Page({
   data: {
     semester: null,
+    semesterList: [],
+    selectedSemesterId: '',
+    selectedSemesterIndex: 0,
     semesterRangeText: '还没有激活学期，可以先创建后再管理导出与排班。',
     summaryCards: [],
     userList: [],
@@ -114,9 +117,13 @@ Page({
     loading: false,
     exporting: false,
     batchIssuing: false,
+    updatingSemester: false,
     createSemesterName: '',
     createSemesterStart: '',
     createSemesterEnd: '',
+    editSemesterName: '',
+    editSemesterStart: '',
+    editSemesterEnd: '',
     exportStartDate: '',
     exportStartTime: '00:00',
     exportEndDate: '',
@@ -242,7 +249,7 @@ Page({
     return users.filter((item) => item.searchText.includes(searchKeyword));
   },
 
-  async loadDashboard(showLoading = false) {
+  async loadDashboard(showLoading = false, preferredSemesterId = this.data.selectedSemesterId || '') {
     const userInfo = app.globalData.userInfo;
     if (!userInfo || !userInfo._id) {
       return;
@@ -256,18 +263,33 @@ Page({
     try {
       const result = await callCloudFunction('getAdminDashboard', {
         requesterId: userInfo._id,
+        semesterId: preferredSemesterId,
       });
 
       const semester = result.semester || null;
+      const semesterList = result.semesterList || [];
       const summaryCards = this.buildSummaryCards(result.summary || {});
       const userList = this.buildUserList(result.users || []);
       const displayedUserList = this.filterUserList(userList, this.data.userSearchKeyword);
+      const selectedSemester = semesterList.find((item) => {
+        return String(item._id || '').trim() === String(preferredSemesterId || '').trim();
+      }) || semester || semesterList[0] || null;
+      const selectedSemesterId = selectedSemester ? String(selectedSemester._id || '').trim() : '';
+      const selectedSemesterIndex = semesterList.findIndex((item) => {
+        return String(item._id || '').trim() === selectedSemesterId;
+      });
 
       this.ensureSemesterFormDefaults(semester);
       this.ensureExportFormDefaults(semester);
       this.ensureBatchSalaryFormDefaults(semester);
       this.setData({
         semester,
+        semesterList,
+        selectedSemesterId,
+        selectedSemesterIndex: selectedSemesterIndex >= 0 ? selectedSemesterIndex : 0,
+        editSemesterName: selectedSemester ? String(selectedSemester.name || '').trim() : '',
+        editSemesterStart: selectedSemester ? String(selectedSemester.startDate || '').trim() : '',
+        editSemesterEnd: selectedSemester ? String(selectedSemester.endDate || '').trim() : '',
         semesterRangeText: semester
           ? `${semester.startDate} 至 ${semester.endDate}`
           : '还没有激活学期，可以先创建后再管理导出与排班。',
@@ -305,6 +327,47 @@ Page({
   onSemesterEndChange(e) {
     this.setData({
       createSemesterEnd: String(e.detail.value || ''),
+    });
+  },
+
+  async onEditSemesterChange(e) {
+    const selectedSemesterIndex = Number(e.detail.value);
+    if (Number.isNaN(selectedSemesterIndex)) {
+      return;
+    }
+
+    const selectedSemester = this.data.semesterList[selectedSemesterIndex] || null;
+    if (!selectedSemester) {
+      return;
+    }
+
+    const selectedSemesterId = String(selectedSemester._id || '').trim();
+    this.setData({
+      selectedSemesterIndex,
+      selectedSemesterId,
+      editSemesterName: String(selectedSemester.name || '').trim(),
+      editSemesterStart: String(selectedSemester.startDate || '').trim(),
+      editSemesterEnd: String(selectedSemester.endDate || '').trim(),
+    });
+
+    await this.loadDashboard(false, selectedSemesterId);
+  },
+
+  onEditSemesterNameInput(e) {
+    this.setData({
+      editSemesterName: String(e.detail.value || '').trim(),
+    });
+  },
+
+  onEditSemesterStartChange(e) {
+    this.setData({
+      editSemesterStart: String(e.detail.value || ''),
+    });
+  },
+
+  onEditSemesterEndChange(e) {
+    this.setData({
+      editSemesterEnd: String(e.detail.value || ''),
     });
   },
 
@@ -557,9 +620,9 @@ Page({
 
   async onCreateSemester() {
     const requester = app.globalData.userInfo;
-    const { createSemesterName, createSemesterStart, createSemesterEnd, loading } = this.data;
+    const { createSemesterName, createSemesterStart, createSemesterEnd, loading, updatingSemester } = this.data;
 
-    if (loading) {
+    if (loading || updatingSemester) {
       return;
     }
 
@@ -602,7 +665,7 @@ Page({
             createSemesterEnd: '',
           });
 
-          await this.loadDashboard();
+          await this.loadDashboard(false);
         } catch (error) {
           wx.showToast({
             title: error.message || '创建失败',
@@ -611,6 +674,69 @@ Page({
         } finally {
           wx.hideLoading();
           this.setData({ loading: false });
+        }
+      },
+    });
+  },
+
+  async onUpdateSemester() {
+    const requester = app.globalData.userInfo;
+    const {
+      loading,
+      updatingSemester,
+      selectedSemesterId,
+      editSemesterName,
+      editSemesterStart,
+      editSemesterEnd,
+    } = this.data;
+
+    if (loading || updatingSemester) {
+      return;
+    }
+
+    if (!requester || !requester._id) {
+      return;
+    }
+
+    if (!selectedSemesterId || !editSemesterName || !editSemesterStart || !editSemesterEnd) {
+      wx.showToast({ title: '请填写完整的学期信息', icon: 'none' });
+      return;
+    }
+
+    wx.showModal({
+      title: '确认更新学期',
+      content: `将更新“${editSemesterName}”，时间为 ${editSemesterStart} 至 ${editSemesterEnd}。`,
+      success: async (res) => {
+        if (!res.confirm) {
+          return;
+        }
+
+        this.setData({ updatingSemester: true });
+        wx.showLoading({ title: '更新中' });
+
+        try {
+          const result = await callCloudFunction('updateSemester', {
+            requesterId: requester._id,
+            semesterId: selectedSemesterId,
+            name: editSemesterName,
+            startDate: editSemesterStart,
+            endDate: editSemesterEnd,
+          });
+
+          wx.showToast({
+            title: result.message || '学期已更新',
+            icon: 'success',
+          });
+
+          await this.loadDashboard(false, selectedSemesterId);
+        } catch (error) {
+          wx.showToast({
+            title: error.message || '更新失败',
+            icon: 'none',
+          });
+        } finally {
+          wx.hideLoading();
+          this.setData({ updatingSemester: false });
         }
       },
     });

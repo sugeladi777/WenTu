@@ -36,8 +36,35 @@
   opacity: 0.86;
 }
 
+.semester-picker {
+  display: block;
+  margin-top: 18rpx;
+}
+
+.semester-picker-inner {
+  padding: 22rpx 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  background:
+    radial-gradient(circle at 92% 8%, rgba(255, 255, 255, 0.72), transparent 28%),
+    linear-gradient(180deg, rgba(250, 246, 255, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%);
+}
+
+.semester-picker-label {
+  font-size: 24rpx;
+  color: #a298af;
+}
+
+.semester-picker-value {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #6d607a;
+}
+
 .entry-stack {
-  margin-top: 20rpx;
+  margin-top: 18rpx;
   display: flex;
   flex-direction: column;
   gap: 18rpx;
@@ -105,6 +132,22 @@
   background:
     radial-gradient(circle at top right, rgba(255, 255, 255, 0.7), transparent 32%),
     linear-gradient(135deg, rgba(223, 245, 236, 0.98) 0%, rgba(233, 239, 255, 0.98) 54%, rgba(255, 239, 214, 0.98) 100%);
+}
+
+.edit-entry {
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.7), transparent 32%),
+    linear-gradient(135deg, rgba(237, 230, 255, 0.98) 0%, rgba(250, 239, 255, 0.98) 54%, rgba(255, 236, 215, 0.98) 100%);
+}
+
+.edit-button {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.36) 0%, rgba(255, 255, 255, 0) 34%),
+    linear-gradient(145deg, #d4c4ff 0%, #f2c9ff 52%, #ffe3b0 100%);
+}
+
+.edit-button .game-button-text {
+  color: #6d598a;
 }
 
 .borrow-entry .market-title {

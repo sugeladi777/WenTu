@@ -1,5 +1,6 @@
 const { clearStoredUser, getStoredUser, setStoredUser } = require('./utils/auth');
 const { getActiveRole } = require('./utils/role');
+const { clearStoredPreferredSemesterId } = require('./utils/semester');
 
 App({
   onLaunch() {
@@ -97,6 +98,7 @@ App({
 
   clearUserSession() {
     clearStoredUser();
+    clearStoredPreferredSemesterId();
     this.globalData.userInfo = null;
     this.globalData.isLoggedIn = false;
     this.globalData.sessionBootstrapped = true;

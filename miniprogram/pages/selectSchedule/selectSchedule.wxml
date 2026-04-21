@@ -1,8 +1,8 @@
 <view class="container">
-  <view class="hero-card" wx:if="{{semester}}">
+  <view class="hero-card">
     <view class="hero-copy">
-      <text class="hero-title">{{semester.name}}</text>
-      <text class="hero-subtitle">{{semester.startDate}} 至 {{semester.endDate}}</text>
+      <text class="hero-title">{{semester ? semester.name : '暂无可用学期'}}</text>
+      <text class="hero-subtitle">{{semester ? (semester.startDate + ' 至 ' + semester.endDate) : '请联系管理员创建学期'}}</text>
     </view>
     <view class="hero-counter">
       <text class="hero-counter-value">{{selectedCount}}</text>
@@ -10,7 +10,26 @@
     </view>
   </view>
 
-  <view class="empty card" wx:if="{{!loading && shiftTemplates.length === 0}}">
+  <picker
+    class="semester-picker"
+    mode="selector"
+    range="{{semesterList}}"
+    range-key="name"
+    value="{{selectedSemesterIndex}}"
+    bindchange="onSemesterChange"
+    wx:if="{{semesterList.length > 0}}">
+    <view class="semester-picker-inner card">
+      <text class="semester-picker-label">切换学期</text>
+      <text class="semester-picker-value">{{semester ? semester.name : '选择学期'}}</text>
+    </view>
+  </picker>
+
+  <view class="empty card" wx:if="{{!loading && !semester}}">
+    <text class="empty-title">暂无可编辑学期</text>
+    <text class="empty-hint">请联系管理员先创建并启用学期。</text>
+  </view>
+
+  <view class="empty card" wx:if="{{!loading && semester && shiftTemplates.length === 0}}">
     <text class="empty-title">当前学期暂无班次模板</text>
     <text class="empty-hint">请联系管理员配置班次模板。</text>
   </view>
@@ -57,7 +76,7 @@
     </view>
   </scroll-view>
 
-  <view class="submit-section" wx:if="{{shiftTemplates.length > 0}}">
+  <view class="submit-section" wx:if="{{semester && shiftTemplates.length > 0}}">
     <view class="submit-meta">
       <text class="submit-title">已选择 {{selectedCount}} 个班次</text>
       <text class="submit-desc">保存后生成后续排班</text>

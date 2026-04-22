@@ -85,6 +85,8 @@ Page({
     semesterList: [],
     selectedSemesterId: '',
     selectedSemesterIndex: 0,
+    canEditSelection: false,
+    selectionEditWindowHint: '',
     shiftTemplates: [],
     capacityMatrix: [],
     weekDays: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
@@ -145,6 +147,8 @@ Page({
         semesterList,
         selectedSemesterId,
         selectedSemesterIndex: selectedSemesterIndex >= 0 ? selectedSemesterIndex : 0,
+        canEditSelection: Boolean(result.canEditSelection),
+        selectionEditWindowHint: String(result.selectionEditWindowHint || ''),
         shiftTemplates,
         capacityMatrix,
         selectedMatrix,
@@ -162,6 +166,11 @@ Page({
   },
 
   onSelectShift(e) {
+    if (!this.data.canEditSelection) {
+      wx.showToast({ title: this.data.selectionEditWindowHint || '当前不可修改排班', icon: 'none' });
+      return;
+    }
+
     const shiftIndex = Number(e.currentTarget.dataset.shiftidx);
     const dayIndex = Number(e.currentTarget.dataset.dayidx);
     const selectedMatrix = this.data.selectedMatrix.map((row) => [...row]);
@@ -184,6 +193,11 @@ Page({
   },
 
   onResetSelection() {
+    if (!this.data.canEditSelection) {
+      wx.showToast({ title: this.data.selectionEditWindowHint || '当前不可修改排班', icon: 'none' });
+      return;
+    }
+
     const selectedMatrix = this.data.shiftTemplates.map(() => Array.from({ length: 7 }, () => false));
     this.setData({ selectedMatrix });
     this.syncSelectionSummary(selectedMatrix);
@@ -191,6 +205,11 @@ Page({
 
   onSubmit() {
     if (this.data.loading) {
+      return;
+    }
+
+    if (!this.data.canEditSelection) {
+      wx.showToast({ title: this.data.selectionEditWindowHint || '当前不可修改排班', icon: 'none' });
       return;
     }
 

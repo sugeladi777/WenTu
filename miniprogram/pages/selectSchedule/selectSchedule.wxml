@@ -24,6 +24,11 @@
     </view>
   </picker>
 
+  <view class="window-tip card" wx:if="{{semester}}">
+    <text class="window-tip-title">{{canEditSelection ? '当前可修改固定排班' : '当前暂不可修改固定排班'}}</text>
+    <text class="window-tip-desc">{{selectionEditWindowHint || (canEditSelection ? '管理员已开放当前学期的调班时间。' : '请联系管理员开放调班时间。')}}</text>
+  </view>
+
   <view class="empty card" wx:if="{{!loading && !semester}}">
     <text class="empty-title">暂无可编辑学期</text>
     <text class="empty-hint">请联系管理员先创建并启用学期。</text>
@@ -64,7 +69,7 @@
           data-shiftidx="{{shiftIdx}}"
           data-dayidx="{{dayIdx}}"
           bindtap="onSelectShift">
-          <view class="shift-btn {{selectedMatrix[shiftIdx][dayIdx] ? 'selected' : ''}} {{capacityMatrix[shiftIdx][dayIdx].remaining <= 0 ? 'full' : ''}}">
+          <view class="shift-btn {{selectedMatrix[shiftIdx][dayIdx] ? 'selected' : ''}} {{capacityMatrix[shiftIdx][dayIdx].remaining <= 0 ? 'full' : ''}} {{!canEditSelection ? 'blocked' : ''}}">
             <text class="btn-check" wx:if="{{selectedMatrix[shiftIdx][dayIdx]}}">已选</text>
             <block wx:else>
               <text class="btn-count">{{capacityMatrix[shiftIdx][dayIdx].remaining}}</text>
@@ -81,7 +86,7 @@
       <text class="submit-title">已选择 {{selectedCount}} 个班次</text>
       <text class="submit-desc">保存后生成后续排班</text>
     </view>
-    <button class="submit-btn" hover-class="tap-button-hover" bindtap="onSubmit" loading="{{loading}}">
+    <button class="submit-btn" hover-class="tap-button-hover" bindtap="onSubmit" loading="{{loading}}" disabled="{{loading || !canEditSelection}}">
       确认班次
     </button>
   </view>

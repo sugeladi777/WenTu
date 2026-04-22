@@ -17,6 +17,30 @@ function isValidDateString(value) {
   return /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
 
+function isValidDateTimeString(value) {
+  return /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(value);
+}
+
+function toBoolean(value, fallbackValue = false) {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  if (value == null) {
+    return fallbackValue;
+  }
+
+  if (value === 1 || value === '1' || value === 'true') {
+    return true;
+  }
+
+  if (value === 0 || value === '0' || value === 'false') {
+    return false;
+  }
+
+  return fallbackValue;
+}
+
 function normalizeRoles(user = {}) {
   const roles = [];
 
@@ -58,6 +82,11 @@ exports.main = async (event = {}) => {
   const name = normalizeString(event.name);
   const startDate = normalizeString(event.startDate);
   const endDate = normalizeString(event.endDate);
+  const hasSelectionEditWindowEnabled = Object.prototype.hasOwnProperty.call(event, 'selectionEditWindowEnabled');
+  const hasSelectionEditStartAt = Object.prototype.hasOwnProperty.call(event, 'selectionEditStartAt');
+  const hasSelectionEditEndAt = Object.prototype.hasOwnProperty.call(event, 'selectionEditEndAt');
+  const rawSelectionEditStartAt = normalizeString(event.selectionEditStartAt);
+  const rawSelectionEditEndAt = normalizeString(event.selectionEditEndAt);
 
   if (!requesterId || !semesterId || !name || !startDate || !endDate) {
     return { success: false, error: '参数不完整' };
@@ -78,6 +107,33 @@ exports.main = async (event = {}) => {
     const semester = semesterResult.data || null;
     if (!semester || semester.status !== 'active') {
       return { success: false, error: '学期不存在或不可编辑' };
+    }
+
+    const selectionEditWindowEnabled = hasSelectionEditWindowEnabled
+      ? toBoolean(event.selectionEditWindowEnabled, false)
+      : Boolean(semester.selectionEditWindowEnabled);
+    let selectionEditStartAt = hasSelectionEditStartAt
+      ? rawSelectionEditStartAt
+      : normalizeString(semester.selectionEditStartAt);
+    let selectionEditEndAt = hasSelectionEditEndAt
+      ? rawSelectionEditEndAt
+      : normalizeString(semester.selectionEditEndAt);
+
+    if (!selectionEditWindowEnabled) {
+      selectionEditStartAt = '';
+      selectionEditEndAt = '';
+    } else {
+      if (!selectionEditStartAt || !selectionEditEndAt) {
+        return { success: false, error: '请完整设置调班开放时间段' };
+      }
+
+      if (!isValidDateTimeString(selectionEditStartAt) || !isValidDateTimeString(selectionEditEndAt)) {
+        return { success: false, error: '调班时间格式应为 YYYY-MM-DD HH:mm' };
+      }
+
+      if (selectionEditStartAt > selectionEditEndAt) {
+        return { success: false, error: '调班开放开始时间不能晚于结束时间' };
+      }
     }
 
     const overlapResult = await db.collection('semesters')
@@ -101,6 +157,9 @@ exports.main = async (event = {}) => {
         name,
         startDate,
         endDate,
+        selectionEditWindowEnabled,
+        selectionEditStartAt,
+        selectionEditEndAt,
         updatedAt: db.serverDate(),
       },
     });

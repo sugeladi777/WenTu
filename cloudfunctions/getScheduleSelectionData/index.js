@@ -93,6 +93,58 @@ function formatChinaDate(input = new Date()) {
   return `${chinaDate.getUTCFullYear()}-${padNumber(chinaDate.getUTCMonth() + 1)}-${padNumber(chinaDate.getUTCDate())}`;
 }
 
+function formatChinaDateTime(input = new Date()) {
+  const chinaDate = toChinaDate(input);
+  return `${chinaDate.getUTCFullYear()}-${padNumber(chinaDate.getUTCMonth() + 1)}-${padNumber(chinaDate.getUTCDate())} ${padNumber(chinaDate.getUTCHours())}:${padNumber(chinaDate.getUTCMinutes())}`;
+}
+
+function resolveSelectionEditPermission(semester) {
+  if (!semester) {
+    return {
+      canEditSelection: false,
+      selectionEditWindowHint: '暂无可编辑学期',
+    };
+  }
+
+  const windowEnabled = Boolean(semester.selectionEditWindowEnabled);
+  const windowStart = String(semester.selectionEditStartAt || '').trim();
+  const windowEnd = String(semester.selectionEditEndAt || '').trim();
+
+  if (!windowEnabled) {
+    return {
+      canEditSelection: false,
+      selectionEditWindowHint: '当前未开放固定排班修改',
+    };
+  }
+
+  if (!windowStart || !windowEnd) {
+    return {
+      canEditSelection: false,
+      selectionEditWindowHint: '调班时间配置不完整，请联系管理员',
+    };
+  }
+
+  const nowDateTime = formatChinaDateTime();
+  if (nowDateTime < windowStart) {
+    return {
+      canEditSelection: false,
+      selectionEditWindowHint: `开放时间：${windowStart} 至 ${windowEnd}`,
+    };
+  }
+
+  if (nowDateTime > windowEnd) {
+    return {
+      canEditSelection: false,
+      selectionEditWindowHint: `本次开放已结束：${windowStart} 至 ${windowEnd}`,
+    };
+  }
+
+  return {
+    canEditSelection: true,
+    selectionEditWindowHint: `当前开放中：${windowStart} 至 ${windowEnd}`,
+  };
+}
+
 async function loadAllDocuments(collection, filter, options = {}) {
   const documents = [];
   let offset = 0;
@@ -158,6 +210,16 @@ exports.main = async (event) => {
   const preferredSemesterId = String(event.semesterId || '').trim();
 
   try {
+    if (!userId) {
+      return { success: false, error: '用户ID不能为空' };
+    }
+
+    const userResult = await db.collection('users').doc(userId).get();
+    const user = userResult.data || null;
+    if (!user) {
+      return { success: false, error: '用户不存在' };
+    }
+
     const { semesterList, semester: defaultSemester } = await findSemester(formatChinaDate());
     const semester = preferredSemesterId
       ? (semesterList.find((item) => String(item._id || '') === preferredSemesterId) || defaultSemester)
@@ -170,6 +232,8 @@ exports.main = async (event) => {
         shiftTemplates: [],
         capacityList: [],
         preferences: [],
+        canEditSelection: false,
+        selectionEditWindowHint: '暂无可编辑学期',
       };
     }
 
@@ -237,6 +301,8 @@ exports.main = async (event) => {
       });
     });
 
+    const selectionEditPermission = resolveSelectionEditPermission(semester);
+
     return {
       success: true,
       semester,
@@ -244,6 +310,8 @@ exports.main = async (event) => {
       shiftTemplates: templates,
       capacityList: Object.values(capacityMap),
       preferences,
+      canEditSelection: selectionEditPermission.canEditSelection,
+      selectionEditWindowHint: selectionEditPermission.selectionEditWindowHint,
     };
   } catch (error) {
     return { success: false, error: error.message };

@@ -37,6 +37,43 @@ function addDays(dateString, offsetDays) {
   return formatDateString(date);
 }
 
+function parseDateTimeParts(value) {
+  const match = /^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2})$/.exec(String(value || '').trim());
+  if (!match) {
+    return { date: '', time: '' };
+  }
+
+  return {
+    date: match[1],
+    time: match[2],
+  };
+}
+
+function buildDateTimeString(date, time) {
+  const normalizedDate = String(date || '').trim();
+  const normalizedTime = String(time || '').trim();
+  if (!normalizedDate || !normalizedTime) {
+    return '';
+  }
+
+  return `${normalizedDate} ${normalizedTime}`;
+}
+
+function buildEditWindowForm(semester) {
+  const semesterStartDate = semester ? String(semester.startDate || '').trim() : '';
+  const semesterEndDate = semester ? String(semester.endDate || '').trim() : '';
+  const startParts = parseDateTimeParts(semester ? semester.selectionEditStartAt : '');
+  const endParts = parseDateTimeParts(semester ? semester.selectionEditEndAt : '');
+
+  return {
+    editSelectionWindowEnabled: Boolean(semester && semester.selectionEditWindowEnabled),
+    editSelectionStartDate: startParts.date || semesterStartDate,
+    editSelectionStartTime: startParts.time || '00:00',
+    editSelectionEndDate: endParts.date || semesterEndDate,
+    editSelectionEndTime: endParts.time || '23:59',
+  };
+}
+
 function normalizeSearchText(value) {
   return String(value || '').trim().toLowerCase();
 }
@@ -124,6 +161,11 @@ Page({
     editSemesterName: '',
     editSemesterStart: '',
     editSemesterEnd: '',
+    editSelectionWindowEnabled: false,
+    editSelectionStartDate: '',
+    editSelectionStartTime: '00:00',
+    editSelectionEndDate: '',
+    editSelectionEndTime: '23:59',
     exportStartDate: '',
     exportStartTime: '00:00',
     exportEndDate: '',
@@ -278,6 +320,7 @@ Page({
       const selectedSemesterIndex = semesterList.findIndex((item) => {
         return String(item._id || '').trim() === selectedSemesterId;
       });
+      const editWindowForm = buildEditWindowForm(selectedSemester);
 
       this.ensureSemesterFormDefaults(semester);
       this.ensureExportFormDefaults(semester);
@@ -290,6 +333,7 @@ Page({
         editSemesterName: selectedSemester ? String(selectedSemester.name || '').trim() : '',
         editSemesterStart: selectedSemester ? String(selectedSemester.startDate || '').trim() : '',
         editSemesterEnd: selectedSemester ? String(selectedSemester.endDate || '').trim() : '',
+        ...editWindowForm,
         semesterRangeText: semester
           ? `${semester.startDate} 至 ${semester.endDate}`
           : '还没有激活学期，可以先创建后再管理导出与排班。',
@@ -348,6 +392,7 @@ Page({
       editSemesterName: String(selectedSemester.name || '').trim(),
       editSemesterStart: String(selectedSemester.startDate || '').trim(),
       editSemesterEnd: String(selectedSemester.endDate || '').trim(),
+      ...buildEditWindowForm(selectedSemester),
     });
 
     await this.loadDashboard(false, selectedSemesterId);
@@ -368,6 +413,36 @@ Page({
   onEditSemesterEndChange(e) {
     this.setData({
       editSemesterEnd: String(e.detail.value || ''),
+    });
+  },
+
+  onEditSelectionWindowSwitch(e) {
+    this.setData({
+      editSelectionWindowEnabled: Boolean(e.detail.value),
+    });
+  },
+
+  onEditSelectionStartDateChange(e) {
+    this.setData({
+      editSelectionStartDate: String(e.detail.value || ''),
+    });
+  },
+
+  onEditSelectionStartTimeChange(e) {
+    this.setData({
+      editSelectionStartTime: String(e.detail.value || ''),
+    });
+  },
+
+  onEditSelectionEndDateChange(e) {
+    this.setData({
+      editSelectionEndDate: String(e.detail.value || ''),
+    });
+  },
+
+  onEditSelectionEndTimeChange(e) {
+    this.setData({
+      editSelectionEndTime: String(e.detail.value || ''),
     });
   },
 
@@ -688,6 +763,11 @@ Page({
       editSemesterName,
       editSemesterStart,
       editSemesterEnd,
+      editSelectionWindowEnabled,
+      editSelectionStartDate,
+      editSelectionStartTime,
+      editSelectionEndDate,
+      editSelectionEndTime,
     } = this.data;
 
     if (loading || updatingSemester) {
@@ -700,6 +780,18 @@ Page({
 
     if (!selectedSemesterId || !editSemesterName || !editSemesterStart || !editSemesterEnd) {
       wx.showToast({ title: '请填写完整的学期信息', icon: 'none' });
+      return;
+    }
+
+    const selectionEditStartAt = editSelectionWindowEnabled
+      ? buildDateTimeString(editSelectionStartDate, editSelectionStartTime)
+      : '';
+    const selectionEditEndAt = editSelectionWindowEnabled
+      ? buildDateTimeString(editSelectionEndDate, editSelectionEndTime)
+      : '';
+
+    if (editSelectionWindowEnabled && (!selectionEditStartAt || !selectionEditEndAt)) {
+      wx.showToast({ title: '璇峰畬鏁磋缃皟鐝紑鏀炬椂闂存', icon: 'none' });
       return;
     }
 
@@ -721,6 +813,9 @@ Page({
             name: editSemesterName,
             startDate: editSemesterStart,
             endDate: editSemesterEnd,
+            selectionEditWindowEnabled: editSelectionWindowEnabled,
+            selectionEditStartAt,
+            selectionEditEndAt,
           });
 
           wx.showToast({

@@ -149,7 +149,7 @@
     <text class="export-hint">只会处理有效工时大于 0 且当前还未发薪的班次，已经发过工资的记录不会重复处理。</text>
   </view>
 
-  <view class="card section-card">
+  <view class="card section-card edit-semester-card">
     <view class="section-head">
       <text class="section-title">编辑学期</text>
       <text class="section-desc">可切换学期并修改时间段与名称。</text>
@@ -198,6 +198,59 @@
         </picker>
       </view>
 
+      <view class="edit-window-panel">
+        <view class="edit-window-head">
+          <view class="edit-window-copy">
+            <text class="edit-window-title">开放固定排班修改</text>
+            <text class="edit-window-desc">仅在指定时间段内，所有角色可修改固定排班</text>
+          </view>
+          <switch
+            checked="{{editSelectionWindowEnabled}}"
+            color="#86a6e8"
+            bindchange="onEditSelectionWindowSwitch" />
+        </view>
+
+        <view class="edit-window-grid" wx:if="{{editSelectionWindowEnabled}}">
+          <view class="range-block">
+            <text class="range-label">开放开始</text>
+            <view class="picker-row compact">
+              <picker class="picker-field" mode="date" value="{{editSelectionStartDate}}" bindchange="onEditSelectionStartDateChange">
+                <view class="picker-inner">
+                  <text class="picker-label">日期</text>
+                  <text class="picker-value">{{editSelectionStartDate || '选择日期'}}</text>
+                </view>
+              </picker>
+              <picker class="picker-field time-field" mode="time" value="{{editSelectionStartTime}}" bindchange="onEditSelectionStartTimeChange">
+                <view class="picker-inner">
+                  <text class="picker-label">时间</text>
+                  <text class="picker-value">{{editSelectionStartTime || '00:00'}}</text>
+                </view>
+              </picker>
+            </view>
+          </view>
+
+          <view class="range-block">
+            <text class="range-label">开放结束</text>
+            <view class="picker-row compact">
+              <picker class="picker-field" mode="date" value="{{editSelectionEndDate}}" bindchange="onEditSelectionEndDateChange">
+                <view class="picker-inner">
+                  <text class="picker-label">日期</text>
+                  <text class="picker-value">{{editSelectionEndDate || '选择日期'}}</text>
+                </view>
+              </picker>
+              <picker class="picker-field time-field" mode="time" value="{{editSelectionEndTime}}" bindchange="onEditSelectionEndTimeChange">
+                <view class="picker-inner">
+                  <text class="picker-label">时间</text>
+                  <text class="picker-value">{{editSelectionEndTime || '23:59'}}</text>
+                </view>
+              </picker>
+            </view>
+          </view>
+        </view>
+
+        <text class="edit-window-off-hint" wx:else>当前关闭，所有角色都不可修改固定排班</text>
+      </view>
+
       <button
         class="action-btn salary-action-btn"
         hover-class="tap-button-hover"
@@ -209,7 +262,7 @@
     </block>
   </view>
 
-  <view class="card section-card">
+  <view class="card section-card create-semester-card">
     <view class="section-head">
       <text class="section-title">创建学期</text>
       <text class="section-desc">排班、导出和工资统计都会以当前学期为准。</text>
@@ -243,7 +296,7 @@
     </button>
   </view>
 
-  <view class="card section-card">
+  <view class="card section-card user-list-card">
     <view class="list-head">
       <view>
         <text class="section-title">志愿者列表</text>

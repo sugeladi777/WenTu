@@ -133,6 +133,21 @@ function normalizeSelectionsByUser(selections = []) {
   }).filter(Boolean);
 }
 
+function padNumber(value) {
+  return String(value).padStart(2, '0');
+}
+
+function toChinaDate(input = new Date()) {
+  const date = input instanceof Date ? input : new Date(input);
+  const offsetMinutes = 8 * 60 + date.getTimezoneOffset();
+  return new Date(date.getTime() + offsetMinutes * 60 * 1000);
+}
+
+function formatChinaDateTime(input = new Date()) {
+  const chinaDate = toChinaDate(input);
+  return `${chinaDate.getUTCFullYear()}-${padNumber(chinaDate.getUTCMonth() + 1)}-${padNumber(chinaDate.getUTCDate())} ${padNumber(chinaDate.getUTCHours())}:${padNumber(chinaDate.getUTCMinutes())}`;
+}
+
 function buildCapacityMap(templates, selections) {
   const capacityMap = {};
 
@@ -184,6 +199,29 @@ exports.main = async (event) => {
 
       if (semester.status !== 'active') {
         throw new Error('当前学期不可编辑班次');
+      }
+
+      const userResult = await transaction.collection('users').doc(userId).get();
+      const user = userResult.data || null;
+      if (!user) {
+        throw new Error('用户不存在');
+      }
+
+      const windowEnabled = Boolean(semester.selectionEditWindowEnabled);
+      const windowStart = String(semester.selectionEditStartAt || '').trim();
+      const windowEnd = String(semester.selectionEditEndAt || '').trim();
+
+      if (!windowEnabled) {
+        throw new Error('当前未开放固定排班修改');
+      }
+
+      if (!windowStart || !windowEnd) {
+        throw new Error('调班时间配置不完整，请联系管理员');
+      }
+
+      const nowDateTime = formatChinaDateTime();
+      if (nowDateTime < windowStart || nowDateTime > windowEnd) {
+        throw new Error(`当前不在开放时间内（${windowStart} 至 ${windowEnd}）`);
       }
 
       const templateList = await loadAllDocuments(transaction.collection('shiftTemplates'), { semesterId });

@@ -99,10 +99,9 @@
 
     <view class="focus-action">
       <button
-        class="btn-check {{checkButtonClass}}"
+        class="btn-check {{checkButtonClass}} {{checkDisabled ? 'is-disabled' : ''}}"
         hover-class="tap-button-hover"
-        bindtap="onCheck"
-        disabled="{{checkDisabled}}">
+        bindtap="onCheck">
         <view class="btn-beam beam-a"></view>
         <view class="btn-beam beam-b"></view>
         <view class="btn-spark spark-a"></view>
@@ -110,6 +109,7 @@
         <view class="btn-spark spark-c"></view>
         <text class="btn-text">{{checkButtonText}}</text>
       </button>
+      <text class="check-hint" wx:if="{{checkHint}}">{{checkHint}}</text>
     </view>
   </view>
 

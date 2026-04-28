@@ -99,15 +99,6 @@ async function ensureRequester(requesterId) {
   return user;
 }
 
-function evaluateAttendanceStatus(schedule, currentMinutes) {
-  const startMinutes = timeToMinutes(schedule.startTime);
-  if (startMinutes === null) {
-    return ATTENDANCE_NORMAL;
-  }
-
-  return currentMinutes > startMinutes + 5 ? ATTENDANCE_LATE : ATTENDANCE_NORMAL;
-}
-
 function buildNormalizedUpdateData(schedule, requesterId, requesterName, currentMinutes, endMinutes) {
   const updateData = {
     leaderConfirmStatus: 'present',
@@ -143,7 +134,7 @@ exports.main = async (event) => {
     return { success: false, error: '参数错误' };
   }
 
-  if (!['present', 'absent', 'normalize'].includes(action)) {
+  if (!['present', 'late', 'absent', 'normalize'].includes(action)) {
     return { success: false, error: '不支持的确认动作' };
   }
 
@@ -206,10 +197,19 @@ exports.main = async (event) => {
         return { success: false, error: '该同学尚未自助签到，不能确认到岗' };
       }
 
-      updateData.attendanceStatus = schedule.attendanceStatus || evaluateAttendanceStatus(schedule, currentMinutes);
+      updateData.leaderConfirmStatus = 'present';
+      updateData.attendanceStatus = ATTENDANCE_NORMAL;
+    } else if (action === 'late') {
+      if (!schedule.checkInTime) {
+        return { success: false, error: '该同学尚未自助签到，不能标记迟到' };
+      }
+
+      updateData.leaderConfirmStatus = 'present';
+      updateData.attendanceStatus = ATTENDANCE_LATE;
     } else if (action === 'normalize') {
       const hasAbnormalStatus = schedule.attendanceStatus === ATTENDANCE_ABSENT
         || schedule.attendanceStatus === ATTENDANCE_MISSING_CHECKOUT
+        || schedule.attendanceStatus === ATTENDANCE_LATE
         || schedule.leaderConfirmStatus === 'absent';
 
       if (!hasAbnormalStatus) {
@@ -239,7 +239,7 @@ exports.main = async (event) => {
       success: true,
       message: action === 'present'
         ? '已确认签到'
-        : (action === 'normalize' ? '已恢复为正常签到' : '已标记为旷岗'),
+        : (action === 'late' ? '已标记为迟到' : (action === 'normalize' ? '已恢复为正常签到' : '已标记为旷岗')),
     };
   } catch (error) {
     return { success: false, error: error.message };

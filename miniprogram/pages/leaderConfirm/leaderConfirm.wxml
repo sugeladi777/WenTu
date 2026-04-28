@@ -53,12 +53,12 @@
           <text class="check-pill {{item.checkOutTime ? 'success' : 'soft'}}">
             {{item.checkOutTime ? '已签退' : '未签退'}}
           </text>
-          <text class="check-pill {{item.attendanceStatus === 3 ? 'danger' : (item.attendanceStatus === 2 ? 'warning' : 'soft')}}">
-            {{item.attendanceStatus === 3 ? '旷岗记录' : (item.attendanceStatus === 2 ? '未签退记录' : '考勤正常')}}
+          <text class="check-pill {{item.attendanceStatus === 3 ? 'danger' : (item.attendanceStatus === 2 || item.attendanceStatus === 1 ? 'warning' : 'soft')}}">
+            {{item.attendanceStatus === 3 ? '旷岗记录' : (item.attendanceStatus === 2 ? '未签退记录' : (item.attendanceStatus === 1 ? '迟到记录' : '考勤正常'))}}
           </text>
         </view>
 
-        <view class="action-row" wx:if="{{item.canConfirmPresent || item.canConfirmAbsent || item.canNormalizeAttendance}}">
+        <view class="action-row" wx:if="{{item.canConfirmPresent || item.canConfirmLate || item.canConfirmAbsent || item.canNormalizeAttendance}}">
           <button
             wx:if="{{item.canConfirmPresent}}"
             class="action-btn confirm"
@@ -66,6 +66,14 @@
             data-id="{{item._id}}"
             bindtap="onConfirmPresent">
             确认签到
+          </button>
+          <button
+            wx:if="{{item.canConfirmLate}}"
+            class="action-btn late"
+            hover-class="tap-button-hover"
+            data-id="{{item._id}}"
+            bindtap="onConfirmLate">
+            标记迟到
           </button>
           <button
             wx:if="{{item.canConfirmAbsent}}"

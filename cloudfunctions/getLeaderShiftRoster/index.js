@@ -11,6 +11,7 @@ const VALID_ROLES = [ROLE_MEMBER, ROLE_LEADER, ROLE_ADMIN];
 const SHIFT_TYPE_LEAVE = 1;
 const SHIFT_TYPE_SWAP = 2;
 const SHIFT_TYPE_BORROW = 3;
+const ATTENDANCE_LATE = 1;
 const ATTENDANCE_MISSING_CHECKOUT = 2;
 const ATTENDANCE_ABSENT = 3;
 
@@ -108,6 +109,10 @@ function timeToMinutes(timeString) {
 
 function getLeaderConfirmText(schedule) {
   if (schedule.leaderConfirmStatus === 'present') {
+    if (schedule.attendanceStatus === ATTENDANCE_LATE) {
+      return '已确认迟到';
+    }
+
     return '已确认签到';
   }
 
@@ -124,6 +129,10 @@ function getLeaderConfirmText(schedule) {
 
 function getLeaderConfirmClass(schedule) {
   if (schedule.leaderConfirmStatus === 'present') {
+    if (schedule.attendanceStatus === ATTENDANCE_LATE) {
+      return 'warning';
+    }
+
     return 'success';
   }
 
@@ -421,9 +430,11 @@ exports.main = async (event) => {
       canNormalizeAttendance: item.date === today && (
         item.attendanceStatus === ATTENDANCE_ABSENT
         || item.attendanceStatus === ATTENDANCE_MISSING_CHECKOUT
+        || item.attendanceStatus === ATTENDANCE_LATE
         || item.leaderConfirmStatus === 'absent'
       ),
       canConfirmPresent: item.date === today && Boolean(item.checkInTime) && item.leaderConfirmStatus !== 'present',
+      canConfirmLate: item.date === today && Boolean(item.checkInTime) && item.attendanceStatus !== ATTENDANCE_LATE,
       canConfirmAbsent: item.date === today && !item.checkInTime && item.leaderConfirmStatus !== 'absent',
       canReviewOvertime: Boolean(item.checkOutTime) && item.overtimeStatus === 'pending' && Number(item.overtimeHours || 0) > 0,
     }));

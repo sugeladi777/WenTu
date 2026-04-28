@@ -154,6 +154,35 @@ function getCheckState(shift) {
     };
   }
 
+  const startMinutes = timeToMinutes(shift.startTime);
+  const endMinutes = timeToMinutes(shift.endTime);
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+  if (startMinutes !== null && currentMinutes < startMinutes) {
+    return {
+      hasCheckedIn: false,
+      hasCheckedOut: false,
+      checkDisabled: true,
+      checkButtonClass: 'checked-out',
+      checkButtonText: '未开始',
+      checkButtonIcon: '待',
+      checkHint: `班次开始后才能签到，请在 ${shift.startTime} 后签到。`,
+    };
+  }
+
+  if (endMinutes !== null && currentMinutes > endMinutes) {
+    return {
+      hasCheckedIn: false,
+      hasCheckedOut: false,
+      checkDisabled: true,
+      checkButtonClass: 'checked-out',
+      checkButtonText: '已结束',
+      checkButtonIcon: '过',
+      checkHint: '已超过班次时间，不能签到。',
+    };
+  }
+
   return {
     hasCheckedIn: false,
     hasCheckedOut: false,
@@ -404,6 +433,10 @@ Page({
       nextState.userName = nextUserName;
     }
 
+    if (this.data.currentShift) {
+      Object.assign(nextState, getCheckState(this.data.currentShift));
+    }
+
     if (Object.keys(nextState).length > 0) {
       this.setData(nextState);
     }
@@ -616,7 +649,21 @@ Page({
   },
 
   onCheck() {
-    if (this.data.checkDisabled || !this.data.currentShift) {
+    if (this.data.loading) {
+      wx.showToast({ title: '正在处理，请稍候', icon: 'none' });
+      return;
+    }
+
+    if (!this.data.currentShift) {
+      wx.showToast({ title: '当前没有可操作班次', icon: 'none' });
+      return;
+    }
+
+    if (this.data.checkDisabled) {
+      wx.showToast({
+        title: this.data.checkHint || this.data.checkButtonText || '当前班次不可操作',
+        icon: 'none',
+      });
       return;
     }
 
@@ -669,13 +716,14 @@ Page({
         longitude: location.longitude,
       });
 
+      await this.loadPageData(false);
+      wx.hideLoading();
       wx.showToast({
         title: result.status || '签到成功',
         icon: 'success',
       });
-
-      await this.loadPageData(false);
     } catch (error) {
+      wx.hideLoading();
       const message = String(error && (error.message || error.errMsg) || '');
       const locationPermissionDenied = /auth deny|authorize|permission|scope.userLocation|system permission denied/i.test(message);
       wx.showToast({
@@ -683,7 +731,6 @@ Page({
         icon: 'none',
       });
     } finally {
-      wx.hideLoading();
       this.setData({ loading: false });
     }
   },
@@ -707,19 +754,19 @@ Page({
         scheduleId: currentShift._id,
       });
 
+      await this.loadPageData(false);
+      wx.hideLoading();
       wx.showToast({
         title: '签退成功',
         icon: 'success',
       });
-
-      await this.loadPageData(false);
     } catch (error) {
+      wx.hideLoading();
       wx.showToast({
         title: error.message || '签退失败',
         icon: 'none',
       });
     } finally {
-      wx.hideLoading();
       this.setData({ loading: false });
     }
   },

@@ -292,6 +292,13 @@
   color: #6788a1;
 }
 
+.action-btn.late {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 32%),
+    linear-gradient(145deg, #ffe4b8 0%, #ffd4c2 54%, #fff1df 100%);
+  color: #bd7c4d;
+}
+
 .action-btn.absent {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 32%),

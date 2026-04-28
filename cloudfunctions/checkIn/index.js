@@ -6,7 +6,6 @@ const db = cloud.database();
 
 const SHIFT_TYPE_LEAVE = 1;
 const ATTENDANCE_NORMAL = 0;
-const ATTENDANCE_LATE = 1;
 const ATTENDANCE_ABSENT = 3;
 const CHECK_IN_CONFIG_COLLECTION = 'systemConfig';
 const CHECK_IN_CONFIG_DOC_ID = 'checkInPolicy';
@@ -191,13 +190,12 @@ function evaluateSchedule(schedule, currentMinutes) {
     return { ok: false, code: 'invalid_time', message: '班次时间配置异常' };
   }
 
-  const earliestCheckIn = startMinutes - 15;
-  if (currentMinutes < earliestCheckIn) {
+  if (currentMinutes < startMinutes) {
     return {
       ok: false,
       code: 'too_early',
-      message: `请在 ${formatMinutes(earliestCheckIn)} 后签到`,
-      availableAt: earliestCheckIn,
+      message: `请在 ${formatMinutes(startMinutes)} 后签到`,
+      availableAt: startMinutes,
     };
   }
 
@@ -207,7 +205,7 @@ function evaluateSchedule(schedule, currentMinutes) {
 
   return {
     ok: true,
-    attendanceStatus: currentMinutes > startMinutes + 5 ? ATTENDANCE_LATE : ATTENDANCE_NORMAL,
+    attendanceStatus: ATTENDANCE_NORMAL,
   };
 }
 
@@ -330,7 +328,7 @@ exports.main = async (event) => {
       success: true,
       scheduleId: targetSchedule._id,
       attendanceStatus: evaluation.attendanceStatus,
-      status: evaluation.attendanceStatus === ATTENDANCE_LATE ? '签到成功（迟到）' : '签到成功',
+      status: '签到成功',
     };
   } catch (error) {
     return { success: false, error: error.message };

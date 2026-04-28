@@ -128,6 +128,10 @@ function getLeaderConfirmMeta(schedule = {}) {
   }
 
   if (schedule.leaderConfirmStatus === 'present') {
+    if (schedule.attendanceStatus === ATTENDANCE_STATUS.LATE) {
+      return { text: '班负已确认迟到', className: 'text-warning' };
+    }
+
     return { text: '班负已确认签到', className: 'text-success' };
   }
 

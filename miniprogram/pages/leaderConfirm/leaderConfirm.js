@@ -31,6 +31,10 @@ function getAttendanceActionText(action) {
     return '标记旷岗';
   }
 
+  if (action === 'late') {
+    return '标记迟到';
+  }
+
   if (action === 'normalize') {
     return '改为正常签到';
   }
@@ -157,6 +161,10 @@ Page({
 
   onConfirmAbsent(e) {
     this.confirmAttendance(String(e.currentTarget.dataset.id || '').trim(), 'absent');
+  },
+
+  onConfirmLate(e) {
+    this.confirmAttendance(String(e.currentTarget.dataset.id || '').trim(), 'late');
   },
 
   onNormalizeAttendance(e) {

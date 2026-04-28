@@ -369,7 +369,7 @@ function isUpdateSuccessful(result) {
   return Number(result && result.stats && result.stats.updated) > 0;
 }
 
-async function finalizeLeaveClaim(leaveSchedule, replacementScheduleId, userId, userName) {
+async function finalizeLeaveClaim(leaveSchedule, replacementScheduleId, userId, userName, options = {}) {
   const result = await db.collection('schedules')
     .where({
       _id: leaveSchedule._id,
@@ -385,6 +385,8 @@ async function finalizeLeaveClaim(leaveSchedule, replacementScheduleId, userId, 
         replacementUserId: userId,
         replacementUserName: userName,
         replacementScheduleId,
+        replacementUsesExistingSchedule: Boolean(options.usedExistingSchedule),
+        leaveCountsAsLeave: Boolean(options.countsAsLeave),
         leaveApprovedAt: db.serverDate(),
         updatedAt: db.serverDate(),
       },
@@ -501,21 +503,24 @@ exports.main = async (event = {}) => {
       && !slotAlreadyHasLeader,
     );
 
-    if (sameSlotSchedule && !canTakeOverLeaderOnly) {
-      return { success: false, error: '你在该时间段已经有其他班次，无法替班' };
-    }
-
-    if (canTakeOverLeaderOnly) {
-      const finalized = await finalizeLeaveClaim(leaveSchedule, sameSlotSchedule._id, userId, userName);
+    if (sameSlotSchedule) {
+      const finalized = await finalizeLeaveClaim(leaveSchedule, sameSlotSchedule._id, userId, userName, {
+        usedExistingSchedule: true,
+        countsAsLeave: true,
+      });
       if (!finalized) {
         return { success: false, error: CLAIM_CONFLICT_ERROR };
       }
 
-      const leaderSyncSuffix = await completeLeaderHandover(slotSchedules, userId, userName);
+      let successMessage = '同班次替班认领成功';
+      if (canTakeOverLeaderOnly) {
+        const leaderSyncSuffix = await completeLeaderHandover(slotSchedules, userId, userName);
+        successMessage = `已接任当前班次的班负职责${leaderSyncSuffix}`;
+      }
 
       return {
         success: true,
-        message: `已接任当前班次的班负职责${leaderSyncSuffix}`,
+        message: successMessage,
         replacementScheduleId: sameSlotSchedule._id,
         usedExistingSchedule: true,
       };
@@ -528,7 +533,10 @@ exports.main = async (event = {}) => {
       data: buildReplacementSchedule(leaveSchedule, userId, userName, replacementLeaderInfo),
     });
     const replacementScheduleId = String(replacementResult && replacementResult._id || '').trim();
-    const finalized = await finalizeLeaveClaim(leaveSchedule, replacementScheduleId, userId, userName);
+    const finalized = await finalizeLeaveClaim(leaveSchedule, replacementScheduleId, userId, userName, {
+      usedExistingSchedule: false,
+      countsAsLeave: false,
+    });
 
     if (!finalized) {
       await removeScheduleIfExists(replacementScheduleId);

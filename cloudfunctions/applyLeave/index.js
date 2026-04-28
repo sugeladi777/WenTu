@@ -239,6 +239,8 @@ exports.main = async (event = {}) => {
         replacementUserId: null,
         replacementUserName: '',
         replacementScheduleId: null,
+        replacementUsesExistingSchedule: false,
+        leaveCountsAsLeave: true,
         leaveApprovedAt: null,
         updatedAt: db.serverDate(),
       },

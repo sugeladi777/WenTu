@@ -22,7 +22,7 @@ function timeToMinutes(timeString) {
 }
 
 function getEffectiveAttendanceStatus(schedule = {}, now = new Date()) {
-  if (!schedule || schedule.shiftType === SHIFT_TYPE.LEAVE) {
+  if (!schedule || Number(schedule.shiftType) === SHIFT_TYPE.LEAVE) {
     return schedule ? schedule.attendanceStatus : null;
   }
 
@@ -63,7 +63,7 @@ function getEffectiveAttendanceStatus(schedule = {}, now = new Date()) {
 }
 
 function getShiftTypeText(shiftType) {
-  switch (shiftType) {
+  switch (Number(shiftType)) {
     case SHIFT_TYPE.LEAVE:
       return '请假';
     case SHIFT_TYPE.SWAP:
@@ -76,7 +76,7 @@ function getShiftTypeText(shiftType) {
 }
 
 function getShiftTypeClass(shiftType) {
-  switch (shiftType) {
+  switch (Number(shiftType)) {
     case SHIFT_TYPE.LEAVE:
       return 'shift-leave';
     case SHIFT_TYPE.SWAP:
@@ -88,9 +88,22 @@ function getShiftTypeClass(shiftType) {
   }
 }
 
+function isNonCountingLeave(schedule = {}) {
+  return Number(schedule.shiftType) === SHIFT_TYPE.LEAVE && schedule.leaveCountsAsLeave === false;
+}
+
 function getLeaveProgressMeta(schedule = {}) {
-  if (schedule.shiftType !== SHIFT_TYPE.LEAVE) {
+  if (Number(schedule.shiftType) !== SHIFT_TYPE.LEAVE) {
     return { text: '', className: '' };
+  }
+
+  if (isNonCountingLeave(schedule)) {
+    return {
+      text: schedule.replacementUserName
+        ? `已由 ${schedule.replacementUserName} 替班，不计请假`
+        : '已被替班，不计请假',
+      className: 'text-muted',
+    };
   }
 
   if (schedule.leaveStatus === LEAVE_STATUS.APPROVED) {
@@ -106,7 +119,7 @@ function getLeaveProgressMeta(schedule = {}) {
 }
 
 function getLeaderConfirmMeta(schedule = {}) {
-  if (!schedule || schedule.shiftType === SHIFT_TYPE.LEAVE) {
+  if (!schedule || Number(schedule.shiftType) === SHIFT_TYPE.LEAVE) {
     return { text: '无需班负确认', className: 'text-muted' };
   }
 
@@ -154,7 +167,11 @@ function getOvertimeMeta(schedule = {}) {
 function getAttendanceMeta(schedule = {}) {
   const effectiveStatus = getEffectiveAttendanceStatus(schedule);
 
-  if (schedule.shiftType === SHIFT_TYPE.LEAVE) {
+  if (Number(schedule.shiftType) === SHIFT_TYPE.LEAVE) {
+    if (isNonCountingLeave(schedule)) {
+      return { text: '已被替班，不计请假', className: 'text-muted' };
+    }
+
     if (schedule.leaveStatus === LEAVE_STATUS.APPROVED) {
       return { text: '已请假', className: 'text-muted' };
     }
@@ -202,7 +219,7 @@ function decorateSchedule(schedule = {}) {
   return {
     ...schedule,
     effectiveAttendanceStatus,
-    shiftTypeText: getShiftTypeText(schedule.shiftType),
+    shiftTypeText: isNonCountingLeave(schedule) ? '已替班' : getShiftTypeText(schedule.shiftType),
     shiftTypeClass: getShiftTypeClass(schedule.shiftType),
     attendanceText: attendance.text,
     attendanceClass: attendance.className,
@@ -239,7 +256,7 @@ function pickCurrentShift(schedules = []) {
   }
 
   const notCheckedIn = schedules.find((item) => {
-    return item.shiftType !== SHIFT_TYPE.LEAVE
+    return Number(item.shiftType) !== SHIFT_TYPE.LEAVE
       && !item.checkInTime
       && getEffectiveAttendanceStatus(item) !== ATTENDANCE_STATUS.ABSENT;
   });
@@ -247,7 +264,7 @@ function pickCurrentShift(schedules = []) {
     return notCheckedIn;
   }
 
-  const leaveShift = schedules.find((item) => item.shiftType === SHIFT_TYPE.LEAVE);
+  const leaveShift = schedules.find((item) => Number(item.shiftType) === SHIFT_TYPE.LEAVE);
   if (leaveShift) {
     return leaveShift;
   }

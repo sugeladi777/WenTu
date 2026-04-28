@@ -79,7 +79,7 @@ function canSubmitOvertimeRequest(shift, isMine, effectiveAttendanceStatus) {
     return false;
   }
 
-  if (shift.shiftType === SHIFT_TYPE.LEAVE || !shift.checkOutTime || shift.salaryPaid) {
+  if (Number(shift.shiftType) === SHIFT_TYPE.LEAVE || !shift.checkOutTime || shift.salaryPaid) {
     return false;
   }
 
@@ -119,7 +119,7 @@ Page({
     const derivedIsValid = Boolean(
       decorated.checkOutTime
       && (effectiveAttendanceStatus === ATTENDANCE_STATUS.NORMAL || effectiveAttendanceStatus === ATTENDANCE_STATUS.LATE)
-      && decorated.shiftType !== SHIFT_TYPE.LEAVE
+      && Number(decorated.shiftType) !== SHIFT_TYPE.LEAVE
       && effectiveAttendanceStatus !== ATTENDANCE_STATUS.ABSENT
     );
     const hasValidFlag = typeof shift.isValid === 'boolean' || typeof decorated.isValid === 'boolean';
@@ -132,13 +132,13 @@ Page({
           ? roundHours((Number(shift.fixedHours) || 0) + (decorated.overtimeApproved ? (Number(shift.overtimeHours) || 0) : 0))
           : 0));
     const canApplyLeave = isMine
-      && decorated.shiftType === SHIFT_TYPE.NORMAL
+      && Number(decorated.shiftType) === SHIFT_TYPE.NORMAL
       && !decorated.checkInTime
       && !decorated.checkOutTime
       && !shiftStarted;
     const canClaimReplacement = source === 'market'
       && !isMine
-      && decorated.shiftType === SHIFT_TYPE.LEAVE
+      && Number(decorated.shiftType) === SHIFT_TYPE.LEAVE
       && decorated.leaveStatus === LEAVE_STATUS.PENDING
       && !shiftStarted;
     const leaderSelf = isSelfLeader(shift, userInfo._id);
@@ -184,14 +184,14 @@ Page({
       leaderNameText: resolveLeaderName(shift),
       leaderNameClass: leaderSelf ? 'leader-self' : '',
       leaveStatusText: decorated.leaveProgressText || decorated.attendanceText,
-      showLeaveSection: decorated.shiftType === SHIFT_TYPE.LEAVE || source === 'market',
-      showSwapSection: decorated.shiftType === SHIFT_TYPE.SWAP,
-      showBorrowSection: decorated.shiftType === SHIFT_TYPE.BORROW,
-      borrowStatusText: decorated.shiftType === SHIFT_TYPE.BORROW ? '已加入我的班次' : '',
+      showLeaveSection: Number(decorated.shiftType) === SHIFT_TYPE.LEAVE || source === 'market',
+      showSwapSection: Number(decorated.shiftType) === SHIFT_TYPE.SWAP,
+      showBorrowSection: Number(decorated.shiftType) === SHIFT_TYPE.BORROW,
+      borrowStatusText: Number(decorated.shiftType) === SHIFT_TYPE.BORROW ? '已加入我的班次' : '',
       borrowLeaderText: decorated.leaderUserName || '当前未安排班负',
       borrowLeaderClass: leaderSelf ? 'leader-self' : '',
-      showLeaderConfirmRow: decorated.shiftType !== SHIFT_TYPE.LEAVE,
-      showOvertimeSection: isMine && decorated.shiftType !== SHIFT_TYPE.LEAVE && Boolean(decorated.checkOutTime),
+      showLeaderConfirmRow: Number(decorated.shiftType) !== SHIFT_TYPE.LEAVE,
+      showOvertimeSection: isMine && Number(decorated.shiftType) !== SHIFT_TYPE.LEAVE && Boolean(decorated.checkOutTime),
       overtimeHint,
       overtimeButtonText: overtimeStatus === 'rejected' ? '重新提交加班申请' : '提交加班申请',
       actionTitle: canApplyLeave ? '申请请假' : (canClaimReplacement ? '认领替班' : ''),

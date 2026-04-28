@@ -215,7 +215,7 @@ async function ensureAdmin(requesterId) {
 }
 
 function getEffectiveAttendanceStatus(schedule = {}) {
-  if (!schedule || schedule.shiftType === SHIFT_TYPE_LEAVE) {
+  if (!schedule || Number(schedule.shiftType) === SHIFT_TYPE_LEAVE) {
     return schedule ? schedule.attendanceStatus : null;
   }
 
@@ -259,7 +259,7 @@ function getValidScheduleHours(schedule, effectiveAttendanceStatus) {
   const isValid = Boolean(
     schedule.checkOutTime
     && (effectiveAttendanceStatus === ATTENDANCE_NORMAL || effectiveAttendanceStatus === ATTENDANCE_LATE)
-    && schedule.shiftType !== SHIFT_TYPE_LEAVE
+    && Number(schedule.shiftType) !== SHIFT_TYPE_LEAVE
     && effectiveAttendanceStatus !== ATTENDANCE_ABSENT
   );
 
@@ -289,6 +289,55 @@ function createEmptySummary() {
     paidShiftCount: 0,
     unpaidShiftCount: 0,
   };
+}
+
+function shouldCountAsLeave(schedule = {}, replacementScheduleMap = {}) {
+  if (!schedule || Number(schedule.shiftType) !== SHIFT_TYPE_LEAVE) {
+    return false;
+  }
+
+  if (typeof schedule.leaveCountsAsLeave === 'boolean') {
+    return schedule.leaveCountsAsLeave;
+  }
+
+  if (!schedule.replacementUserId && !schedule.replacementScheduleId) {
+    return true;
+  }
+
+  const replacementScheduleId = String(schedule.replacementScheduleId || '').trim();
+  const replacementSchedule = replacementScheduleId ? replacementScheduleMap[replacementScheduleId] : null;
+
+  if (replacementSchedule) {
+    return Number(replacementSchedule.shiftType) !== SHIFT_TYPE_SWAP;
+  }
+
+  return false;
+}
+
+async function loadReplacementScheduleMap(schedules = []) {
+  const replacementScheduleIds = [...new Set(
+    schedules
+      .filter((item) => item && Number(item.shiftType) === SHIFT_TYPE_LEAVE)
+      .map((item) => String(item.replacementScheduleId || '').trim())
+      .filter(Boolean)
+  )];
+
+  const entries = await Promise.all(replacementScheduleIds.map(async (scheduleId) => {
+    try {
+      const result = await db.collection('schedules').doc(scheduleId).get();
+      return result.data ? [scheduleId, result.data] : null;
+    } catch (error) {
+      return null;
+    }
+  }));
+
+  return entries.reduce((map, entry) => {
+    if (entry) {
+      map[entry[0]] = entry[1];
+    }
+
+    return map;
+  }, {});
 }
 
 function sortSchedules(list = []) {
@@ -332,9 +381,11 @@ exports.main = async (event) => {
       : [];
 
     const summary = createEmptySummary();
+    const replacementScheduleMap = await loadReplacementScheduleMap(schedules);
     const scheduleList = sortSchedules(schedules).map((schedule) => {
       const effectiveAttendanceStatus = getEffectiveAttendanceStatus(schedule);
       const actualHours = getValidScheduleHours(schedule, effectiveAttendanceStatus);
+      const leaveCountsAsLeave = shouldCountAsLeave(schedule, replacementScheduleMap);
 
       summary.totalShifts += 1;
 
@@ -347,7 +398,7 @@ exports.main = async (event) => {
         summary.completedShifts += 1;
       }
 
-      if (schedule.shiftType === SHIFT_TYPE_LEAVE) {
+      if (leaveCountsAsLeave) {
         summary.leaveShifts += 1;
       }
 
@@ -386,6 +437,7 @@ exports.main = async (event) => {
         salaryAmount: roundNumber(schedule.salaryAmount || 0),
         salaryRate: roundNumber(schedule.salaryRate || 0),
         isValid: actualHours > 0,
+        leaveCountsAsLeave,
       };
     });
 

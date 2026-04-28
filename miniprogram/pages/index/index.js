@@ -29,7 +29,7 @@ function getRecordStatusClass(schedule) {
     return 'danger';
   }
 
-  if (schedule.shiftType === SHIFT_TYPE.LEAVE) {
+  if (Number(schedule.shiftType) === SHIFT_TYPE.LEAVE) {
     return 'muted';
   }
 
@@ -76,7 +76,7 @@ function getCheckState(shift) {
     ? shift.effectiveAttendanceStatus
     : getEffectiveAttendanceStatus(shift);
 
-  if (shift.shiftType === SHIFT_TYPE.LEAVE) {
+  if (Number(shift.shiftType) === SHIFT_TYPE.LEAVE) {
     return {
       hasCheckedIn: false,
       hasCheckedOut: true,
@@ -254,7 +254,7 @@ function buildShiftStats(todayShifts) {
     return item.checkOutTime
       || item.effectiveAttendanceStatus === ATTENDANCE_STATUS.ABSENT
       || item.effectiveAttendanceStatus === ATTENDANCE_STATUS.MISSING_CHECKOUT
-      || item.shiftType === SHIFT_TYPE.LEAVE;
+      || Number(item.shiftType) === SHIFT_TYPE.LEAVE;
   }).length;
 
   return {

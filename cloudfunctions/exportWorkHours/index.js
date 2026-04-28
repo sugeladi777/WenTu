@@ -208,7 +208,7 @@ function scheduleOverlapsRange(schedule = {}, range) {
 }
 
 function getEffectiveAttendanceStatus(schedule = {}) {
-  if (!schedule || schedule.shiftType === SHIFT_TYPE_LEAVE) {
+  if (!schedule || Number(schedule.shiftType) === SHIFT_TYPE_LEAVE) {
     return schedule ? schedule.attendanceStatus : null;
   }
 
@@ -253,7 +253,7 @@ function getScheduleHoursMeta(schedule = {}) {
   const isValid = Boolean(
     schedule.checkOutTime
     && (effectiveAttendanceStatus === ATTENDANCE_NORMAL || effectiveAttendanceStatus === ATTENDANCE_LATE)
-    && schedule.shiftType !== SHIFT_TYPE_LEAVE
+    && Number(schedule.shiftType) !== SHIFT_TYPE_LEAVE
     && effectiveAttendanceStatus !== ATTENDANCE_ABSENT,
   );
 
@@ -295,8 +295,20 @@ function getShiftTypeText(shiftType) {
   }
 }
 
-function getAttendanceText(schedule = {}, effectiveAttendanceStatus) {
-  if (schedule.shiftType === SHIFT_TYPE_LEAVE) {
+function getScheduleTypeText(schedule = {}, scheduleMap = {}) {
+  if (Number(schedule.shiftType) === SHIFT_TYPE_LEAVE && !shouldCountAsLeave(schedule, scheduleMap)) {
+    return '已替班';
+  }
+
+  return getShiftTypeText(schedule.shiftType);
+}
+
+function getAttendanceText(schedule = {}, effectiveAttendanceStatus, scheduleMap = {}) {
+  if (Number(schedule.shiftType) === SHIFT_TYPE_LEAVE) {
+    if (!shouldCountAsLeave(schedule, scheduleMap)) {
+      return '已被替班，不计请假';
+    }
+
     return schedule.replacementUserId ? '已请假，已被接替' : '已请假';
   }
 
@@ -323,12 +335,16 @@ function getAttendanceText(schedule = {}, effectiveAttendanceStatus) {
   return '正常';
 }
 
-function getEvaluationText(schedule = {}, effectiveAttendanceStatus) {
-  if (schedule.shiftType === SHIFT_TYPE_LEAVE) {
+function getEvaluationText(schedule = {}, effectiveAttendanceStatus, scheduleMap = {}) {
+  if (Number(schedule.shiftType) === SHIFT_TYPE_LEAVE) {
+    if (!shouldCountAsLeave(schedule, scheduleMap)) {
+      return '已由他人替班，不计请假';
+    }
+
     return schedule.replacementUserId ? '请假，已由他人替班' : '请假，待替班';
   }
 
-  const attendanceText = getAttendanceText(schedule, effectiveAttendanceStatus);
+  const attendanceText = getAttendanceText(schedule, effectiveAttendanceStatus, scheduleMap);
   if (schedule.shiftType === SHIFT_TYPE_SWAP) {
     return `替班记录 · ${attendanceText}`;
   }
@@ -340,8 +356,14 @@ function getEvaluationText(schedule = {}, effectiveAttendanceStatus) {
   return attendanceText;
 }
 
-function getRelatedRecordText(schedule = {}) {
-  if (schedule.shiftType === SHIFT_TYPE_LEAVE) {
+function getRelatedRecordText(schedule = {}, scheduleMap = {}) {
+  if (Number(schedule.shiftType) === SHIFT_TYPE_LEAVE) {
+    if (!shouldCountAsLeave(schedule, scheduleMap)) {
+      return schedule.replacementUserName
+        ? `替班同学：${schedule.replacementUserName}（不计请假）`
+        : '已被替班，不计请假';
+    }
+
     return schedule.replacementUserName
       ? `替班同学：${schedule.replacementUserName}`
       : '暂未被认领';
@@ -358,6 +380,29 @@ function getRelatedRecordText(schedule = {}) {
   }
 
   return '';
+}
+
+function shouldCountAsLeave(schedule = {}, scheduleMap = {}) {
+  if (!schedule || Number(schedule.shiftType) !== SHIFT_TYPE_LEAVE) {
+    return false;
+  }
+
+  if (typeof schedule.leaveCountsAsLeave === 'boolean') {
+    return schedule.leaveCountsAsLeave;
+  }
+
+  if (!schedule.replacementUserId && !schedule.replacementScheduleId) {
+    return true;
+  }
+
+  const replacementScheduleId = String(schedule.replacementScheduleId || '').trim();
+  const replacementSchedule = replacementScheduleId ? scheduleMap[replacementScheduleId] : null;
+
+  if (replacementSchedule) {
+    return Number(replacementSchedule.shiftType) !== SHIFT_TYPE_SWAP;
+  }
+
+  return false;
 }
 
 function createEmptyUserStats(user = {}) {
@@ -547,6 +592,13 @@ exports.main = async (event) => {
     const rangedSchedules = sortSchedules(
       schedules.filter((schedule) => scheduleOverlapsRange(schedule, range))
     );
+    const scheduleMap = schedules.reduce((map, schedule) => {
+      if (schedule && schedule._id) {
+        map[String(schedule._id)] = schedule;
+      }
+
+      return map;
+    }, {});
 
     const detailRows = [];
 
@@ -561,7 +613,7 @@ exports.main = async (event) => {
       const stats = statsMap.get(schedule.userId) || createEmptyUserStats(user);
       const hoursMeta = getScheduleHoursMeta(schedule);
 
-      if (schedule.shiftType === SHIFT_TYPE_LEAVE) {
+      if (shouldCountAsLeave(schedule, scheduleMap)) {
         stats.leaveCount += 1;
       }
       if (schedule.shiftType === SHIFT_TYPE_SWAP) {
@@ -603,9 +655,9 @@ exports.main = async (event) => {
         studentId: stats.studentId || '-',
         name: stats.name || '未命名用户',
         shiftName: schedule.shiftName || '',
-        shiftTypeText: getShiftTypeText(schedule.shiftType),
-        evaluationText: getEvaluationText(schedule, hoursMeta.effectiveAttendanceStatus),
-        attendanceText: getAttendanceText(schedule, hoursMeta.effectiveAttendanceStatus),
+        shiftTypeText: getScheduleTypeText(schedule, scheduleMap),
+        evaluationText: getEvaluationText(schedule, hoursMeta.effectiveAttendanceStatus, scheduleMap),
+        attendanceText: getAttendanceText(schedule, hoursMeta.effectiveAttendanceStatus, scheduleMap),
         checkInTimeText: formatChinaDateTime(schedule.checkInTime),
         checkOutTimeText: formatChinaDateTime(schedule.checkOutTime),
         actualHours: hoursMeta.actualHours,
@@ -614,7 +666,7 @@ exports.main = async (event) => {
         salaryPaidText: schedule.salaryPaid ? '已发放' : '未发放',
         salaryAmount: roundNumber(schedule.salaryAmount || 0),
         leaderUserName: schedule.leaderUserName || '',
-        relatedRecordText: getRelatedRecordText(schedule),
+        relatedRecordText: getRelatedRecordText(schedule, scheduleMap),
         leaveReason: schedule.leaveReason || '',
       });
     });

@@ -294,6 +294,8 @@ async function restoreClaimedLeaveSchedules(targetUserId, today, currentMinutes)
         replacementUserId: null,
         replacementUserName: '',
         replacementScheduleId: null,
+        replacementUsesExistingSchedule: false,
+        leaveCountsAsLeave: true,
         leaveApprovedAt: null,
         updatedAt: db.serverDate(),
       },

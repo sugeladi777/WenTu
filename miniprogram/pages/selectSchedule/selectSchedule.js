@@ -214,11 +214,6 @@ Page({
     }
 
     const preferences = collectPreferences(this.data.selectedMatrix, this.data.shiftTemplates);
-    if (false && preferences.length === 0) {
-      wx.showToast({ title: '请至少选择一个班次', icon: 'none' });
-      return;
-    }
-
     wx.showModal({
       title: '确认提交',
       content: '提交后将重新生成未来班次安排，确定继续吗？',

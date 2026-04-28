@@ -44,6 +44,18 @@ function getRoleBadgeText(userInfo) {
   return '志愿者';
 }
 
+function shouldCountAsLeave(schedule = {}) {
+  if (!schedule || Number(schedule.shiftType) !== SHIFT_TYPE.LEAVE) {
+    return false;
+  }
+
+  if (typeof schedule.leaveCountsAsLeave === 'boolean') {
+    return schedule.leaveCountsAsLeave;
+  }
+
+  return !schedule.replacementUserId && !schedule.replacementScheduleId;
+}
+
 function getScheduleDayOfWeek(schedule = {}) {
   const rawDayOfWeek = Number(schedule.dayOfWeek);
   if (!Number.isNaN(rawDayOfWeek) && rawDayOfWeek >= 0 && rawDayOfWeek <= 6) {
@@ -219,7 +231,7 @@ Page({
     const leaderUserName = String(item.leaderUserName || '').trim();
     const isTargetLeader = leaderUserId && leaderUserId === targetUserId;
 
-    if (item.shiftType === SHIFT_TYPE.LEAVE) {
+    if (Number(item.shiftType) === SHIFT_TYPE.LEAVE) {
       return {
         canManageLeader: false,
         leaderAction: '',
@@ -311,7 +323,7 @@ Page({
 
   pickRepresentativeSchedule(slotSchedules = []) {
     const sortedSchedules = slotSchedules.slice().sort(compareSchedules);
-    const nonLeaveSchedules = sortedSchedules.filter((item) => item.shiftType !== SHIFT_TYPE.LEAVE);
+    const nonLeaveSchedules = sortedSchedules.filter((item) => Number(item.shiftType) !== SHIFT_TYPE.LEAVE);
     const targetLeaderSchedule = nonLeaveSchedules.find((item) => {
       return String(item.leaderUserId || '').trim() === this.targetUserId;
     });
@@ -339,7 +351,7 @@ Page({
     const leaderUserId = String(representative.leaderUserId || '').trim();
     const leaderUserName = String(representative.leaderUserName || '').trim();
     const isTargetLeader = leaderUserId && leaderUserId === this.targetUserId;
-    const leaveOccurrenceCount = slotSchedules.filter((item) => item.shiftType === SHIFT_TYPE.LEAVE).length;
+    const leaveOccurrenceCount = slotSchedules.filter(shouldCountAsLeave).length;
     const slotStateClass = !leaderMeta.canManageLeader
       ? 'disabled'
       : (isTargetLeader ? 'self' : (leaderUserId ? 'assigned' : 'empty'));
@@ -472,7 +484,7 @@ Page({
       const summary = result.summary || {};
       const shiftList = this.buildShiftList(result.schedules || []);
       const fixedShiftList = shiftList.filter((item) => {
-        return item.shiftType !== SHIFT_TYPE.SWAP && item.shiftType !== SHIFT_TYPE.BORROW;
+        return Number(item.shiftType) !== SHIFT_TYPE.SWAP && Number(item.shiftType) !== SHIFT_TYPE.BORROW;
       });
       const shiftTable = this.buildShiftTableRows(
         fixedShiftList,

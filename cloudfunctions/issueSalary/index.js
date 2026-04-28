@@ -103,7 +103,7 @@ async function loadAllDocuments(collection, filter) {
 }
 
 function getEffectiveAttendanceStatus(schedule = {}) {
-  if (!schedule || schedule.shiftType === SHIFT_TYPE_LEAVE) {
+  if (!schedule || Number(schedule.shiftType) === SHIFT_TYPE_LEAVE) {
     return schedule ? schedule.attendanceStatus : null;
   }
 
@@ -149,7 +149,7 @@ function getActualHours(schedule) {
     schedule
     && schedule.checkOutTime
     && (effectiveAttendanceStatus === ATTENDANCE_NORMAL || effectiveAttendanceStatus === ATTENDANCE_LATE)
-    && schedule.shiftType !== SHIFT_TYPE_LEAVE
+    && Number(schedule.shiftType) !== SHIFT_TYPE_LEAVE
     && effectiveAttendanceStatus !== ATTENDANCE_ABSENT,
   );
 

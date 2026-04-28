@@ -20,6 +20,24 @@ function timeToMinutes(timeString) {
   return Number(match[1]) * 60 + Number(match[2]);
 }
 
+function withTimeout(promise, timeoutMs, message) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(message));
+    }, timeoutMs);
+
+    Promise.resolve(promise)
+      .then((result) => {
+        clearTimeout(timer);
+        resolve(result);
+      })
+      .catch((error) => {
+        clearTimeout(timer);
+        reject(error);
+      });
+  });
+}
+
 function getRecordStatusClass(schedule) {
   const attendanceStatus = schedule.effectiveAttendanceStatus != null
     ? schedule.effectiveAttendanceStatus
@@ -677,20 +695,127 @@ Page({
 
   getCurrentLocation() {
     return new Promise((resolve, reject) => {
+      let settled = false;
+      const timer = setTimeout(() => {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+        reject(new Error('定位超时，请检查手机定位、微信定位权限和网络后重试'));
+      }, 10000);
+
       wx.getLocation({
         type: 'gcj02',
         isHighAccuracy: true,
         highAccuracyExpireTime: 5000,
         success: (location) => {
+          if (settled) {
+            return;
+          }
+
+          settled = true;
+          clearTimeout(timer);
           resolve({
             latitude: Number(location.latitude),
             longitude: Number(location.longitude),
           });
         },
         fail: (error) => {
+          if (settled) {
+            return;
+          }
+
+          settled = true;
+          clearTimeout(timer);
           reject(error);
         },
       });
+    });
+  },
+
+  requestPrivacyAuthorization() {
+    const task = new Promise((resolve, reject) => {
+      if (typeof wx.requirePrivacyAuthorize !== 'function') {
+        resolve();
+        return;
+      }
+
+      wx.requirePrivacyAuthorize({
+        success: () => resolve(),
+        fail: () => reject(new Error('请先同意小程序隐私保护指引后再签到')),
+      });
+    });
+
+    return withTimeout(task, 6000, '隐私授权无响应，请检查小程序隐私保护指引配置后重试');
+  },
+
+  openLocationSetting() {
+    return new Promise((resolve, reject) => {
+      wx.showModal({
+        title: '需要定位权限',
+        content: '签到需要获取当前位置，请在设置中开启位置信息权限。',
+        confirmText: '去设置',
+        success: (modalResult) => {
+          if (!modalResult.confirm) {
+            reject(new Error('请开启定位权限后再签到'));
+            return;
+          }
+
+          wx.openSetting({
+            success: (settingResult) => {
+              if (settingResult.authSetting && settingResult.authSetting['scope.userLocation']) {
+                resolve();
+                return;
+              }
+
+              reject(new Error('未开启定位权限，无法签到'));
+            },
+            fail: () => reject(new Error('无法打开权限设置，请手动开启微信定位权限')),
+          });
+        },
+        fail: () => reject(new Error('请开启定位权限后再签到')),
+      });
+    });
+  },
+
+  ensureLocationAuthorized() {
+    const task = new Promise((resolve, reject) => {
+      wx.getSetting({
+        success: (setting) => {
+          const locationAuth = setting.authSetting
+            ? setting.authSetting['scope.userLocation']
+            : undefined;
+
+          if (locationAuth === true) {
+            resolve();
+            return;
+          }
+
+          if (locationAuth === false) {
+            this.openLocationSetting().then(resolve).catch(reject);
+            return;
+          }
+
+          wx.authorize({
+            scope: 'scope.userLocation',
+            success: () => resolve(),
+            fail: () => reject(new Error('请允许小程序使用你的位置信息后再签到')),
+          });
+        },
+        fail: () => reject(new Error('无法读取定位授权状态，请稍后重试')),
+      });
+    });
+
+    return withTimeout(task, 10000, '定位授权无响应，请检查微信定位权限后重试');
+  },
+
+  showCheckInError(message) {
+    wx.showModal({
+      title: '签到失败',
+      content: message || '签到失败，请稍后重试',
+      showCancel: false,
+      confirmText: '知道了',
     });
   },
 
@@ -703,33 +828,46 @@ Page({
       return;
     }
 
-    this.setData({ loading: true });
-    wx.showLoading({ title: '正在签到' });
+    this.setData({
+      loading: true,
+      checkHint: '正在请求定位权限，请根据手机提示完成授权。',
+    });
 
     try {
+      await this.requestPrivacyAuthorization();
+      await this.ensureLocationAuthorized();
+      this.setData({ checkHint: '正在获取当前位置，请稍候。' });
+      wx.showLoading({ title: '获取定位中', mask: true });
       const location = await this.getCurrentLocation();
-      const result = await callCloudFunction('checkIn', {
-        userId: userInfo._id,
-        date: formatDate(new Date()),
-        scheduleId: currentShift._id,
-        latitude: location.latitude,
-        longitude: location.longitude,
-      });
+      this.setData({ checkHint: '已获取定位，正在提交签到。' });
+      wx.showLoading({ title: '正在签到', mask: true });
+      const result = await withTimeout(
+        callCloudFunction('checkIn', {
+          userId: userInfo._id,
+          date: formatDate(new Date()),
+          scheduleId: currentShift._id,
+          latitude: location.latitude,
+          longitude: location.longitude,
+        }),
+        15000,
+        '签到服务无响应，请检查网络后重试'
+      );
 
-      await this.loadPageData(false);
       wx.hideLoading();
       wx.showToast({
         title: result.status || '签到成功',
         icon: 'success',
       });
+      await this.loadPageData(false);
     } catch (error) {
       wx.hideLoading();
       const message = String(error && (error.message || error.errMsg) || '');
       const locationPermissionDenied = /auth deny|authorize|permission|scope.userLocation|system permission denied/i.test(message);
-      wx.showToast({
-        title: locationPermissionDenied ? '请开启定位权限后再签到' : (error.message || '签到失败'),
-        icon: 'none',
-      });
+      const locationUnavailable = /getLocation|location|定位|timeout|超时/i.test(message);
+      const errorText = locationPermissionDenied
+        ? '请在手机系统和微信中开启定位权限后再签到'
+        : (locationUnavailable ? (message || '无法获取定位，请检查手机定位和网络后重试') : (error.message || '签到失败'));
+      this.showCheckInError(errorText);
     } finally {
       this.setData({ loading: false });
     }

@@ -637,6 +637,22 @@
   gap: 16rpx;
 }
 
+.application-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.batch-action-btn {
+  flex: none;
+  width: 188rpx;
+  height: 64rpx;
+  line-height: 64rpx;
+  margin: 0;
+  border-radius: 18rpx;
+  font-size: 22rpx;
+}
+
 .record-list {
   display: flex;
   flex-direction: column;

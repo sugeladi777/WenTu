@@ -337,6 +337,7 @@ Page({
     showShiftWorkspace: true,
     leaderApplications: [],
     reviewingApplicationId: '',
+    batchReviewing: false,
   },
 
   onLoad() {
@@ -494,6 +495,7 @@ Page({
     return {
       leaderApplications: buildAdminLeaderApplications(leaderApplications),
       reviewingApplicationId: '',
+      batchReviewing: false,
     };
   },
 
@@ -740,6 +742,108 @@ Page({
     this.reviewLeaderApplication(applicationId, 'reject');
   },
 
+  submitLeaderApplicationReview(requesterId, applicationId, action) {
+    return callCloudFunction('reviewLeaderApplication', {
+      requesterId,
+      applicationId,
+      action,
+    });
+  },
+
+  async onBatchApproveLeaderApplications() {
+    const requester = app.globalData.userInfo;
+    const applications = this.data.leaderApplications || [];
+
+    if (
+      !requester
+      || !requester._id
+      || applications.length === 0
+      || this.data.loading
+      || this.data.reviewingApplicationId
+      || this.data.batchReviewing
+    ) {
+      return;
+    }
+
+    const confirmed = await new Promise((resolve) => {
+      wx.showModal({
+        title: '确认操作',
+        content: `确定要批量通过 ${applications.length} 条班负申请吗？`,
+        success: (res) => resolve(!!res.confirm),
+        fail: () => resolve(false),
+      });
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
+    this.setData({
+      loading: true,
+      batchReviewing: true,
+      reviewingApplicationId: '',
+    });
+    wx.showLoading({ title: '批量处理中' });
+
+    let successCount = 0;
+    const failedItems = [];
+
+    for (const application of applications) {
+      const applicationId = String(application._id || '').trim();
+      if (!applicationId) {
+        failedItems.push({
+          userName: application.userName || '未命名用户',
+          message: '申请ID不存在',
+        });
+        continue;
+      }
+
+      this.setData({ reviewingApplicationId: applicationId });
+
+      try {
+        await this.submitLeaderApplicationReview(requester._id, applicationId, 'approve');
+        successCount += 1;
+      } catch (error) {
+        failedItems.push({
+          userName: application.userName || '未命名用户',
+          message: error.message || '审批失败',
+        });
+      }
+    }
+
+    wx.hideLoading();
+    this.setData({
+      loading: false,
+      batchReviewing: false,
+      reviewingApplicationId: '',
+    });
+
+    if (successCount > 0 || failedItems.length > 0) {
+      await this.loadPageData(false);
+    }
+
+    if (failedItems.length === 0) {
+      wx.showToast({
+        title: `已通过 ${successCount} 条`,
+        icon: 'success',
+      });
+      return;
+    }
+
+    const failedSummary = failedItems
+      .slice(0, 3)
+      .map((item) => `${item.userName}：${item.message}`)
+      .join('\n');
+    const extraCount = Math.max(0, failedItems.length - 3);
+    const extraText = extraCount > 0 ? `\n另有 ${extraCount} 条失败，请在列表中继续处理` : '';
+
+    wx.showModal({
+      title: '批量通过完成',
+      content: `成功 ${successCount} 条，失败 ${failedItems.length} 条。\n${failedSummary}${extraText}`,
+      showCancel: false,
+    });
+  },
+
   reviewLeaderApplication(applicationId, action) {
     const application = this.data.leaderApplications.find((item) => item._id === applicationId);
     const requester = app.globalData.userInfo;
@@ -764,11 +868,7 @@ Page({
         wx.showLoading({ title: '提交中' });
 
         try {
-          const result = await callCloudFunction('reviewLeaderApplication', {
-            requesterId: requester._id,
-            applicationId,
-            action,
-          });
+          const result = await this.submitLeaderApplicationReview(requester._id, applicationId, action);
 
           wx.showToast({
             title: result.message || '操作成功',

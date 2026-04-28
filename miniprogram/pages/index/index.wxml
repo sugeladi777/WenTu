@@ -34,7 +34,17 @@
         <text class="section-title">班负申请审批</text>
         <text class="section-desc">当前有 {{leaderApplications.length}} 条待审批申请</text>
       </view>
-      <text class="pill pill-ink">{{leaderApplications.length}} 条</text>
+      <view class="application-header-actions">
+        <text class="pill pill-ink">{{leaderApplications.length}} 条</text>
+        <button
+          class="mini-action-btn approve batch-action-btn"
+          hover-class="tap-button-hover"
+          loading="{{batchReviewing}}"
+          disabled="{{loading}}"
+          bindtap="onBatchApproveLeaderApplications">
+          批量通过
+        </button>
+      </view>
     </view>
 
     <view class="application-list">

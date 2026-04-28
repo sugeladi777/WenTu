@@ -214,7 +214,7 @@ Page({
     }
 
     const preferences = collectPreferences(this.data.selectedMatrix, this.data.shiftTemplates);
-    if (preferences.length === 0) {
+    if (false && preferences.length === 0) {
       wx.showToast({ title: '请至少选择一个班次', icon: 'none' });
       return;
     }

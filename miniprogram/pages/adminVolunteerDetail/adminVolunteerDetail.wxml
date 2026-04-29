@@ -10,13 +10,20 @@
     </view>
     <view class="hero-actions">
       <button
+        class="secondary-action-btn"
+        loading="{{resettingPassword}}"
+        disabled="{{loading || retiring || resettingPassword || leaderActionScheduleId}}"
+        bindtap="onResetPassword">
+        重置密码
+      </button>
+      <button
         class="danger-btn"
         loading="{{retiring}}"
-        disabled="{{loading || retiring || leaderActionScheduleId}}"
+        disabled="{{loading || retiring || resettingPassword || leaderActionScheduleId}}"
         bindtap="onRetireVolunteer">
         退岗
       </button>
-      <text class="hero-action-hint">会删除该志愿者未来未开始的所有班次，并清空固定班次选择。</text>
+      <text class="hero-action-hint">可为该志愿者设置新登录密码；退岗会删除该志愿者未来未开始的所有班次，并清空固定班次选择。</text>
     </view>
   </view>
 

@@ -119,6 +119,7 @@ Page({
   data: {
     loading: false,
     retiring: false,
+    resettingPassword: false,
     leaderActionScheduleId: '',
     semester: null,
     userInfo: null,
@@ -559,8 +560,14 @@ Page({
   },
 
   onRetireVolunteer() {
-    const { userInfo, loading, retiring, leaderActionScheduleId } = this.data;
-    if (!userInfo || loading || retiring || leaderActionScheduleId) {
+    const {
+      userInfo,
+      loading,
+      retiring,
+      resettingPassword,
+      leaderActionScheduleId,
+    } = this.data;
+    if (!userInfo || loading || retiring || resettingPassword || leaderActionScheduleId) {
       return;
     }
 
@@ -618,6 +625,91 @@ Page({
       this.setData({
         loading: false,
         retiring: false,
+      });
+    }
+  },
+
+  onResetPassword() {
+    const {
+      userInfo,
+      loading,
+      retiring,
+      resettingPassword,
+      leaderActionScheduleId,
+    } = this.data;
+
+    if (!userInfo || loading || retiring || resettingPassword || leaderActionScheduleId) {
+      return;
+    }
+
+    wx.showModal({
+      title: '重置密码',
+      content: `请输入 ${userInfo.displayName} 的新密码，至少 6 位。`,
+      editable: true,
+      placeholderText: '新密码',
+      confirmText: '重置',
+      success: async (res) => {
+        if (!res.confirm) {
+          return;
+        }
+
+        const newPassword = String(res.content || '').trim();
+        if (newPassword.length < 6) {
+          wx.showToast({ title: '新密码至少 6 位', icon: 'none' });
+          return;
+        }
+
+        wx.showModal({
+          title: '确认重置',
+          content: `确定要将 ${userInfo.displayName} 的密码重置为刚才输入的新密码吗？`,
+          confirmText: '确定',
+          confirmColor: '#d96b5f',
+          success: async (confirmResult) => {
+            if (!confirmResult.confirm) {
+              return;
+            }
+
+            await this.submitResetPassword(newPassword);
+          },
+        });
+      },
+    });
+  },
+
+  async submitResetPassword(newPassword) {
+    const requester = app.globalData.userInfo;
+    if (!requester || !requester._id) {
+      return;
+    }
+
+    this.setData({
+      loading: true,
+      resettingPassword: true,
+    });
+    wx.showLoading({ title: '重置中' });
+
+    try {
+      const result = await callCloudFunction('resetUserPasswordByAdmin', {
+        requesterId: requester._id,
+        targetUserId: this.targetUserId,
+        newPassword,
+      });
+
+      wx.hideLoading();
+      wx.showToast({
+        title: result.message || '密码已重置',
+        icon: 'success',
+      });
+    } catch (error) {
+      wx.hideLoading();
+      wx.showToast({
+        title: error.message || '重置失败',
+        icon: 'none',
+      });
+    } finally {
+      this.setData({
+        loading: false,
+        resettingPassword: false,
       });
     }
   },

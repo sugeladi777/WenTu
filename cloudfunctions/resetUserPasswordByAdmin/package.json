@@ -1,0 +1,10 @@
+{
+  "name": "resetUserPasswordByAdmin",
+  "version": "1.0.0",
+  "description": "Reset any user's password by admin",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3",
+    "bcryptjs": "^2.4.3"
+  }
+}
